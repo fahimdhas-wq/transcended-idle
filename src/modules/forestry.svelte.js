@@ -1,12 +1,22 @@
 import { character } from './character.svelte.js';
 import { addLog } from '../ui/LogPanelState.svelte.js';
-import { 
-  getForestryYieldBonus, 
-  getForestrySpeedBonus 
-} from './bestiaryBonuses.js';
+import { getForestryYieldBonus, getForestrySpeedBonus } from './bestiaryBonuses.js';
 import { setDnaGainCallback } from './bestiary.svelte.js';
 import { Decimal } from '../systems/decimal.js';
 import { formatNumber } from '../systems/scalingSystem.js';
+
+// Constants
+const FORESTRY_CONSTANTS = {
+  BASE_GROWTH_RATE: 2,
+  CHAMBER_BONUS: 1,
+  GROWTH_TICK_RATE: 0.1,
+  GROWTH_THRESHOLD: 100,
+  MUTATION_BASE_MULTIPLIER: 3,
+  MUTATION_POWER_BONUS: 0.5,
+  REFINE_RATIO: 25,
+  DNA_DROP_CHANCE: 0.2,
+  MAX_GROWTH_PER_TICK: 1000 // Prevent overflow
+};
 
 export const forestryState = $state({
   unlocked: false,
@@ -19,12 +29,11 @@ export const forestryState = $state({
   mutationChance: 0.05,
   reforestation: 1,
   
-  // Upgrades
-  chainsawFuel: 1,    // Speed multiplier
-  ancientSaplings: 1, // Unlock tiers
-  mutationPower: 0,   // Mutation yield multiplier
-  overclockPower: 1,  // Speed during overclock
-  efficiency: 0,      // Reduces DNA cost for certain actions (placeholder for future use)
+  chainsawFuel: 1,
+  ancientSaplings: 1,
+  mutationPower: 0,
+  overclockPower: 1,
+  efficiency: 0,
 
   resources: {
     biomass: new Decimal(0), oakron: new Decimal(0), birchon: new Decimal(0),
@@ -42,7 +51,6 @@ export const forestryState = $state({
   }
 });
 
-// Register DNA gain callback to break circular dependency
 setDnaGainCallback((amount) => {
   forestryState.dnaFragments = forestryState.dnaFragments.add(amount);
 });
@@ -77,15 +85,24 @@ export function performForestryTick(ticks) {
   const tool = bioTools[Math.max(0, forestryState.toolTier - 1)];
   const speedBonus = getForestrySpeedBonus();
   
-  // Growth rate calculation
-  let growthRate = (2 + (forestryState.growthChambers * 1)) * tool.speed * forestryState.chainsawFuel * forestryState.reforestation * speedBonus * 2;
+  const growthRate = (FORESTRY_CONSTANTS.BASE_GROWTH_RATE + 
+                     (forestryState.growthChambers * FORESTRY_CONSTANTS.CHAMBER_BONUS)) * 
+                     tool.speed * 
+                     forestryState.chainsawFuel * 
+                     forestryState.reforestation * 
+                     speedBonus * 2;
   
-  // Add progress, but keep within reasonable bounds per tick to allow UI to catch up
-  forestryState.growthProgress += (growthRate * 0.1) * ticks;
+  // Cap growth per tick to prevent overflow - FIXED
+  const progressGain = Math.min(
+    (growthRate * FORESTRY_CONSTANTS.GROWTH_TICK_RATE) * ticks,
+    FORESTRY_CONSTANTS.MAX_GROWTH_PER_TICK * ticks
+  );
   
-  if (forestryState.growthProgress >= 100) {
-    const harvests = Math.floor(forestryState.growthProgress / 100);
-    forestryState.growthProgress %= 100;
+  forestryState.growthProgress += progressGain;
+  
+  if (forestryState.growthProgress >= FORESTRY_CONSTANTS.GROWTH_THRESHOLD) {
+    const harvests = Math.floor(forestryState.growthProgress / FORESTRY_CONSTANTS.GROWTH_THRESHOLD);
+    forestryState.growthProgress %= FORESTRY_CONSTANTS.GROWTH_THRESHOLD;
     executeHarvest(tool, harvests);
   }
 }
@@ -100,24 +117,22 @@ function executeHarvest(tool, count = 1) {
   const maxTier = Math.max(1, Math.min(tiers.length, forestryState.ancientSaplings));
   const availableTiers = tiers.slice(0, maxTier);
 
-  // Mutation check
   const isMutated = Math.random() < (forestryState.mutationChance + (tool.luck / 1000));
   let mutationMult = 1;
   if (isMutated) {
-    mutationMult = 3 + (forestryState.mutationPower * 0.5);
+    mutationMult = FORESTRY_CONSTANTS.MUTATION_BASE_MULTIPLIER + 
+                   (forestryState.mutationPower * FORESTRY_CONSTANTS.MUTATION_POWER_BONUS);
     addLog(`[FORESTRY] Mutation Cluster harvested!`, 'loot');
   }
 
   const totalBaseAmount = new Decimal(tool.yield).mul(yieldBonus).mul(count).mul(mutationMult);
 
   if (count < 10) {
-    // Small amount of harvests, pick one random tier for simplicity
     const oreId = availableTiers[Math.floor(Math.random() * availableTiers.length)];
     const finalAmount = totalBaseAmount.ceil();
     forestryState.resources[oreId] = forestryState.resources[oreId].add(finalAmount);
     handleBioRefining(oreId);
   } else {
-    // Large amount of harvests, distribute for accuracy
     const amountPerTier = totalBaseAmount.div(availableTiers.length).floor();
     const remainder = totalBaseAmount.mod(availableTiers.length).toNumber();
 
@@ -132,32 +147,31 @@ function executeHarvest(tool, count = 1) {
     });
   }
   
-  // DNA Gain - scale with count for bulk processing
-  const dnaChance = 0.2;
-  const expectedDna = count * dnaChance;
+  // DNA Gain
+  const expectedDna = count * FORESTRY_CONSTANTS.DNA_DROP_CHANCE;
   const actualDna = Math.floor(expectedDna) + (Math.random() < (expectedDna % 1) ? 1 : 0);
   if (actualDna > 0) {
     forestryState.dnaFragments = forestryState.dnaFragments.add(new Decimal(actualDna).mul(tool.tier));
   }
 }
 
-function handleBioRefining(id) {
-  const evolves = {
-    biomass: 'biofiber', oakron: 'reinforcedFiber', birchon: 'lightPanel',
-    pynex: 'resinGel', willix: 'flexFiber', mahorix: 'denseCore',
-    tecron: 'armorFiber', ebonex: 'darkMatterFiber', crystalis: 'crystalGrowth',
-    spirion: 'spiritFlux',
-    biofiber: 'bioCore', reinforcedFiber: 'terraCore', lightPanel: 'photonBark',
-    resinGel: 'cryoCore', flexFiber: 'psiCore', denseCore: 'royalMatrix',
-    armorFiber: 'guardianCore', darkMatterFiber: 'shadowCore', crystalGrowth: 'lumenCore',
-    spiritFlux: 'etherealCore'
-  };
+const BIO_REFINE_MAP = {
+  biomass: 'biofiber', oakron: 'reinforcedFiber', birchon: 'lightPanel',
+  pynex: 'resinGel', willix: 'flexFiber', mahorix: 'denseCore',
+  tecron: 'armorFiber', ebonex: 'darkMatterFiber', crystalis: 'crystalGrowth',
+  spirion: 'spiritFlux',
+  biofiber: 'bioCore', reinforcedFiber: 'terraCore', lightPanel: 'photonBark',
+  resinGel: 'cryoCore', flexFiber: 'psiCore', denseCore: 'royalMatrix',
+  armorFiber: 'guardianCore', darkMatterFiber: 'shadowCore', crystalGrowth: 'lumenCore',
+  spiritFlux: 'etherealCore'
+};
 
-  const target = evolves[id];
-  if (target && forestryState.autoRefine[id] && forestryState.resources[id].gte(25)) {
-    const count = forestryState.resources[id].div(25).floor();
+function handleBioRefining(id) {
+  const target = BIO_REFINE_MAP[id];
+  if (target && forestryState.autoRefine[id] && forestryState.resources[id].gte(FORESTRY_CONSTANTS.REFINE_RATIO)) {
+    const count = forestryState.resources[id].div(FORESTRY_CONSTANTS.REFINE_RATIO).floor();
     forestryState.resources[target] = forestryState.resources[target].add(count);
-    forestryState.resources[id] = forestryState.resources[id].sub(count.mul(25));
+    forestryState.resources[id] = forestryState.resources[id].sub(count.mul(FORESTRY_CONSTANTS.REFINE_RATIO));
     handleBioRefining(target);
   }
 }
@@ -227,17 +241,7 @@ export function upgradeMutationChance(amount = 1) {
 }
 
 export function refineBioSingle(id) {
-  const evolves = {
-    biomass: 'biofiber', oakron: 'reinforcedFiber', birchon: 'lightPanel',
-    pynex: 'resinGel', willix: 'flexFiber', mahorix: 'denseCore',
-    tecron: 'armorFiber', ebonex: 'darkMatterFiber', crystalis: 'crystalGrowth',
-    spirion: 'spiritFlux',
-    biofiber: 'bioCore', reinforcedFiber: 'terraCore', lightPanel: 'photonBark',
-    resinGel: 'cryoCore', flexFiber: 'psiCore', denseCore: 'royalMatrix',
-    armorFiber: 'guardianCore', darkMatterFiber: 'shadowCore', crystalGrowth: 'lumenCore',
-    spiritFlux: 'etherealCore'
-  };
-  const target = evolves[id];
+  const target = BIO_REFINE_MAP[id];
   if (target && forestryState.resources[id].gte(25)) {
     forestryState.resources[target] = forestryState.resources[target].add(1);
     forestryState.resources[id] = forestryState.resources[id].sub(25);
