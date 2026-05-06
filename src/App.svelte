@@ -72,6 +72,25 @@
       <div class="game-title transcended-text">TRANSCENDED <span style="font-size: 0.5em; vertical-align: middle; color: var(--neon-blue);">v2.0</span></div>
     </div>
 
+    <div class="tab-scroll-wrapper">
+      <div class="tab-header">
+        {#each tabs as t (t)}
+          {#if isTabUnlocked(t)}
+            <button
+              onclick={() => { activeTab = t; newlyUnlocked.delete(t); }}
+              class:active={t === activeTab}
+              class:new-tab={newlyUnlocked.has(t)}
+              class:desktop-hide={t === 'COMBAT'}
+            >
+              {t}
+              {#if newlyUnlocked.has(t)}<span class="new-dot"></span>{/if}
+            </button>
+          {/if}
+        {/each}
+      </div>
+      <div class="tab-fade-right"></div>
+    </div>
+
     <div class="split-layout">
       <div class="left-pane" class:mobile-hidden={activeTab !== 'COMBAT'}>
         <div class="combat-container">
@@ -83,25 +102,6 @@
       </div>
 
       <div class="right-pane" class:mobile-hidden={activeTab === 'COMBAT'}>
-        <div class="tab-scroll-wrapper">
-          <div class="tab-header">
-            {#each tabs as t (t)}
-              {#if isTabUnlocked(t)}
-                <button
-                  onclick={() => { activeTab = t; newlyUnlocked.delete(t); }}
-                  class:active={t === activeTab}
-                  class:new-tab={newlyUnlocked.has(t)}
-                  class:desktop-hide={t === 'COMBAT'}
-                >
-                  {t}
-                  {#if newlyUnlocked.has(t)}<span class="new-dot"></span>{/if}
-                </button>
-              {/if}
-            {/each}
-          </div>
-          <div class="tab-fade-right"></div>
-        </div>
-
         <div class="main-content">
           <div class="panel-container">
             {#each tabs as t}
@@ -222,7 +222,7 @@
     display: flex;
     gap: 8px;
     border-bottom: 1px solid var(--border-subtle);
-    padding-bottom: 14px;
+    padding-bottom: 8px;
     overflow-x: auto;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
@@ -231,7 +231,7 @@
 
   .tab-fade-right {
     position: absolute;
-    right: 0; top: 0; bottom: 12px;
+    right: 0; top: 0; bottom: 8px;
     width: 40px;
     background: linear-gradient(to right, transparent, rgba(10,10,15,0.9));
     pointer-events: none;
@@ -287,7 +287,6 @@
     display: flex;
     flex-direction: column;
     min-height: 0;
-    margin-top: 12px;
   }
 
   .panel-container {

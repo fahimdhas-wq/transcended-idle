@@ -4,11 +4,30 @@
 
   // Requires at least 1 Overclock to access the Auto-Matrix
   let isUnlocked = $derived(overclockState.timesOverclocked > 0);
-
   let localTarget = $state(matrixState.targetOverclockLevel);
+  let validationError = $state('');
 
   function applyTarget() {
-    matrixState.targetOverclockLevel = localTarget;
+    // FIXED: Input validation
+    const parsed = parseInt(localTarget, 10);
+    
+    if (isNaN(parsed)) {
+      validationError = 'Must be a valid number';
+      return;
+    }
+    
+    if (parsed < 1000) {
+      validationError = 'Minimum level is 1000';
+      return;
+    }
+    
+    if (parsed > 1e308) {
+      validationError = 'Level too high';
+      return;
+    }
+    
+    validationError = '';
+    matrixState.targetOverclockLevel = parsed;
   }
 </script>
 
@@ -121,6 +140,9 @@
           />
           <button class="apply-btn" onclick={applyTarget}>APPLY</button>
         </div>
+        {#if validationError}
+          <p class="validation-error">{validationError}</p>
+        {/if}
         <p class="text-xs color-muted" style="margin-top: 5px;">
           Currently set to: {matrixState.targetOverclockLevel}
         </p>
@@ -205,6 +227,12 @@
   }
   .apply-btn:hover {
     box-shadow: 0 0 10px var(--neon-pink);
+  }
+
+  .validation-error {
+    color: var(--neon-red);
+    font-size: 0.7rem;
+    margin: 5px 0 0 0;
   }
 
   /* Toggle Switch CSS */

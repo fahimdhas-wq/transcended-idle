@@ -12,8 +12,22 @@
 </script>
 
 {#if show}
-  <div class="overlay" onclick={handleCancel}>
-    <div class="modal" onclick={(e) => e.stopPropagation()}>
+  <div 
+    class="overlay" 
+    onclick={handleCancel} 
+    onkeydown={(e) => { if (e.key === 'Escape') handleCancel(); }}
+    role="button"
+    tabindex="0"
+    aria-label="Close modal"
+  >
+    <div 
+      class="modal" 
+      onclick={(e) => e.stopPropagation()}
+      onkeydown={(e) => e.stopPropagation()}
+      role="dialog"
+      tabindex="0"
+      aria-modal="true"
+    >
       <div class="modal-title transcended-text">CONFIRM ACTION</div>
       <p class="modal-msg">{message}</p>
       <div class="modal-btns">

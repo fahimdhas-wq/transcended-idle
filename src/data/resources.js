@@ -51,3 +51,29 @@ export const basicTrees = [
   { id: 'darkwood',  name: 'Darkwood',  tier: 9 },
   { id: 'voidwood',  name: 'Voidwood',  tier: 10 },
 ];
+
+export const refinedTrees = [
+  { id: 'biofiber',          name: 'Biofiber' },
+  { id: 'reinforcedFiber',   name: 'Reinforced Fiber' },
+  { id: 'lightPanel',        name: 'Light Panel' },
+  { id: 'resinGel',          name: 'Resin Gel' },
+  { id: 'flexFiber',         name: 'Flex Fiber' },
+  { id: 'denseCore',         name: 'Dense Core' },
+  { id: 'armorFiber',        name: 'Armor Fiber' },
+  { id: 'darkMatterFiber',   name: 'Dark Matter Fiber' },
+  { id: 'crystalGrowth',     name: 'Crystal Growth' },
+  { id: 'spiritFlux',        name: 'Spirit Flux' },
+];
+
+export const advancedTrees = [
+  { id: 'bioCore',           name: 'Bio Core' },
+  { id: 'terraCore',         name: 'Terra Core' },
+  { id: 'photonBark',        name: 'Photon Bark' },
+  { id: 'cryoCore',          name: 'Cryo Core' },
+  { id: 'psiCore',           name: 'Psi Core' },
+  { id: 'royalMatrix',       name: 'Royal Matrix' },
+  { id: 'guardianCore',      name: 'Guardian Core' },
+  { id: 'shadowCore',        name: 'Shadow Core' },
+  { id: 'lumenCore',         name: 'Lumen Core' },
+  { id: 'etherealCore',      name: 'Ethereal Core' },
+];

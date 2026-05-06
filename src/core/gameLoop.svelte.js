@@ -14,6 +14,7 @@ import { aiSystem } from '../systems/aiSystem.js';
 import { rewardSystem } from '../systems/rewardSystem.js';
 import { Decimal } from '../systems/decimal.js';
 import { showOfflineSummary } from '../stores/uiStore.svelte.js';
+import { gameConfig } from '../data/config.js';
 
 let lastTick = performance.now();
 
@@ -22,7 +23,7 @@ export const gameLoop = $state({
 });
 
 let accumulatedTime = 0;
-const tickRate = 100;
+const tickRate = gameConfig.baseTickRate; // ms per tick (single source of truth)
 let achCheckCounter = 0;
 
 /**
@@ -30,27 +31,26 @@ let achCheckCounter = 0;
  * Calculates progress using pure math instead of loops.
  */
 export function processOfflineProgress(ms) {
-  if (ms < 1000) return; // Ignore tiny blips
+  if (ms < 1000) return;
 
-  // Always recalculate stats fresh — avoids stale cache from before dev commands
   flushStatCache();
   updateDerivedStats();
 
-  const MONTH_IN_SECONDS = 30 * 24 * 3600; // 2,592,000 seconds — hard cap
+  const MONTH_IN_SECONDS = 30 * 24 * 3600;
+  
+  // FIXED: Use actual tick rate from config
+  const tickRateVal = tickRate / 1000; // Convert ms to seconds (match gameTick)
   const totalSeconds = Math.min(ms / 1000, MONTH_IN_SECONDS);
   const efficiency = character.offlineSettings.efficiency;
   const effectiveTime = totalSeconds * efficiency;
-  const ticks = effectiveTime * 10; // 10 ticks per second
+  const ticks = effectiveTime / tickRateVal; // ticks to apply across combat/mining/forestry
 
-  // Prepare Summary
   const preLevel = new Decimal(character.level);
   const preKills = new Decimal(character.kills);
   
-  // 1. Resolve Combat Mathematically using the Stat Engine
   const stats = getEffectiveCombatStats();
   const enemy = aiSystem.generateEnemy(character);
   
-  // Ticks per kill = EnemyHP / PlayerDamage (Min 1 tick for spawn/animation overhead)
   const ticksPerKill = Decimal.max(1, enemy.maxHp.div(stats.atk)).toNumber();
   const totalKills = new Decimal(Math.floor(ticks / ticksPerKill));
 
@@ -58,11 +58,9 @@ export function processOfflineProgress(ms) {
     rewardSystem.grantRewards(enemy, totalKills);
   }
   
-  // New: Process Mining & Forestry
   performMiningTick(ticks);
   performForestryTick(ticks);
 
-  // 2. Resolve Momentum & Overcharge
   const killsNum = totalKills.toNumber();
   character.momentum = applyMomentumSoftcap(character.momentum + (0.01 + (killsNum * 0.0001)) * ticks);
   
@@ -70,13 +68,11 @@ export function processOfflineProgress(ms) {
     character.overcharge = applyOverchargeSoftcap(character.overcharge + (0.05 * ticks));
   }
 
-  // 3. Drain ALL pending XP into levels using O(1) batch math (no cap)
   let batchPasses = 0;
   while (character.xp.gte(character.xpNeeded) && batchPasses++ < 20) {
     rewardSystem.batchLevelUps();
   }
 
-  // 4. Process Automation Offline
   if (matrixState.autoSkill) upgradeAllSkills();
   if (matrixState.autoMining) autoUpgradeMining();
   if (matrixState.autoForestry) autoUpgradeForestry();
@@ -84,7 +80,6 @@ export function processOfflineProgress(ms) {
 
   updateDerivedStats();
 
-  // 5. Update UI Summary and show modal
   character.offlineSettings.lastSummary = {
     seconds: totalSeconds,
     levels: character.level.sub(preLevel),

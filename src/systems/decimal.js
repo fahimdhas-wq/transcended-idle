@@ -191,6 +191,10 @@ export class Decimal {
     return this.m * Math.pow(10, this.e);
   }
 
+  valueOf() {
+    return this.toNumber();
+  }
+
   toString() {
     return this.m.toFixed(2) + "e" + this.e;
   }

@@ -17,29 +17,26 @@ function calculateMiningCost(type, amount) {
   const getCost = (lv) => {
     if (type === 'sharpness')      return new Decimal(lv).mul(1000);
     if (type === 'discovery')      return new Decimal(10).pow(lv).mul(500);
-    if (type === 'sensors')        return new Decimal(lv + 1).mul(2000);
-    if (type === 'overclockPower') return new Decimal(lv + 1).mul(2500);
-    if (type === 'efficiency')     return new Decimal(lv + 1).mul(1500);
+    if (type === 'sensors')        return new Decimal(lv).mul(2000);
+    if (type === 'overclockPower') return new Decimal(lv).mul(2500);
+    if (type === 'efficiency')     return new Decimal(lv).mul(1500);
     return new Decimal(0);
   };
-  return calculateBulkCost(getCost, miningState[type] || 0, amount);
+  return calculateBulkCost(getCost, Number(miningState[type] || 0), amount);
 }
 
 function calculateEnergyCost(amount) {
   const getCost = (i) => {
-    const currentMax = miningState.maxEnergy + (i * 100);
+    const currentMax = Number(miningState.maxEnergy) + (i * 100);
     return new Decimal((currentMax / 100) * 25);
   };
   return calculateBulkCost(getCost, 0, amount);
 }
 
 function calculateAutoCost(type, amount) {
-  let total = new Decimal(0);
-  for (let i = 0; i < amount; i++) {
-    const lv = (type === 'drone' ? miningState.drones : miningState.autoExtractors) + i;
-    total = total.add(new Decimal(lv + 1).mul(type === 'drone' ? 50 : 100));
-  }
-  return total;
+  const isDrone = type === 'drone';
+  const getCost = (lv) => new Decimal(lv).mul(isDrone ? 50 : 100);
+  return calculateBulkCost(getCost, Number(isDrone ? miningState.drones : miningState.autoExtractors), amount);
 }
 
 
@@ -57,6 +54,10 @@ let currentDisplayTab = $state('basic');
     </div>
     <div class="header-stats">
       <div class="header-stat-box">
+        <span class="stat-label">MINING RATE</span>
+        <span class="stat-value" style="color: var(--neon-blue);">{formatNumber(miningState.minesPerSecond)}/s</span>
+      </div>
+      <div class="header-stat-box">
         <span class="stat-label">DATA FRAGS</span>
         <span class="stat-value" style="color: var(--neon-gold);">{formatNumber(bestiaryState.dataFragments)}</span>
       </div>
@@ -70,13 +71,31 @@ let currentDisplayTab = $state('basic');
         <div>Unlocks at Level 100</div>
       </div>
     {:else}
-      <div class="status-bar">
-        <span>{miningState.toolName}</span>
-        <span class="highlight">{formatNumber(bestiaryState.dataFragments)} DATA</span>
-      </div>
+      <div class="mining-status">
+        <div class="tool-info">
+          <span class="stat-label" style="color: var(--color-muted);">ACTIVE DRILL:</span>
+          <span class="highlight" style="font-family: var(--font-cyber); font-size: 0.8rem;">{miningState.toolName}</span>
+        </div>
 
-      <div class="energy-bar-container">
-        <div class="energy-fill" style="width: {(miningState.energy / miningState.maxEnergy * 100)}%"></div>
+        <div class="bar-group">
+          <div class="bar-label">
+            <span>EXTRACTION PROGRESS</span>
+            <span>{Math.floor(miningState.miningProgress)}%</span>
+          </div>
+          <div class="progress-bar-container">
+            <div class="progress-fill" style="width: {miningState.miningProgress}%"></div>
+          </div>
+        </div>
+
+        <div class="bar-group">
+          <div class="bar-label">
+            <span>RIG ENERGY</span>
+            <span>{Math.floor((Number(miningState.energy) / Math.max(1, Number(miningState.maxEnergy))) * 100)}%</span>
+          </div>
+          <div class="energy-bar-container">
+            <div class="energy-fill" style="width: {Math.max(0, Math.min(100, (Number(miningState.energy) / Math.max(1, Number(miningState.maxEnergy))) * 100))}%"></div>
+          </div>
+        </div>
       </div>
 
       <div class="action-grid">
@@ -194,10 +213,14 @@ let currentDisplayTab = $state('basic');
 .content-container { display: flex; flex-direction: column; padding: 10px; gap: 10px; height: 100%; overflow-y: auto; }
 .locked-msg { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 200px; color: var(--color-muted); }
 .lock-icon { font-size: 3rem; margin-bottom: 10px; }
-.status-bar { display: flex; justify-content: space-between; background: var(--panel-bg); padding: 8px; border: 1px solid var(--border-subtle); font-size: 0.8rem; }
+.mining-status { display: flex; flex-direction: column; gap: 12px; background: rgba(0,0,0,0.3); padding: 12px; border: 1px solid var(--border-subtle); border-radius: 4px; }
+.tool-info { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px; margin-bottom: 4px; }
+.bar-group { display: flex; flex-direction: column; gap: 4px; }
+.bar-label { display: flex; justify-content: space-between; font-size: 0.65rem; font-family: var(--font-cyber); color: var(--color-muted); letter-spacing: 1px; }
+.progress-bar-container, .energy-bar-container { height: 10px; background: #000; border: 1px solid #333; position: relative; border-radius: 2px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--neon-gold); transition: width 0.1s linear; box-shadow: 0 0 10px var(--neon-gold); }
+.energy-fill { height: 100%; background: var(--neon-blue); transition: width 0.1s linear; box-shadow: 0 0 10px var(--neon-blue); }
 .highlight { color: var(--color-primary); font-weight: bold; }
-.energy-bar-container { height: 16px; background: #111; border: 1px solid var(--border-subtle); position: relative; }
-.energy-fill { height: 100%; background: var(--color-primary); transition: width 0.1s linear; }
 .action-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
 .upgrades-section, .automation-section { background: rgba(0,0,0,0.2); padding: 10px; border: 1px solid var(--border-subtle); }
 .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }

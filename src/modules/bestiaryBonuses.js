@@ -81,5 +81,5 @@ export function getEnergyEfficiencyBonus() {
 }
 
 export function getQuality() {
-  return 0;
+  return bestiaryState.huntersGreed || 0;
 }

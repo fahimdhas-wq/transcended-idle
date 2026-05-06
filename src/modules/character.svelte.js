@@ -11,6 +11,7 @@ const INITIAL_STATS = {
   regenDef: new Decimal(10),
   critChance: 0.01,
   skipDamageChance: 0,
+  quality: 0,
 };
 
 export const character = $state({

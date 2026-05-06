@@ -1,8 +1,21 @@
+// src/modules/bestiary.svelte.js
 import { mobs } from '../data/mobs.js';
 import { character } from './character.svelte.js';
 import { addLog } from '../ui/LogPanelState.svelte.js';
 import { formatNumber } from '../systems/scalingSystem.js';
 import { Decimal } from '../systems/decimal.js';
+
+const BESTIARY_CONSTANTS = {
+  SOUL_KILL_RATIO: 100,
+  FRAGMENT_DROP_CHANCE: 0.15, // Unified chance
+  STAGE_THRESHOLDS: {
+    KNOWN: 100,
+    MASTERED: 500,
+    EXALTED: 1000,
+    TRANSCENDENT: 5000,
+    OMNISCIENT: 10000
+  }
+};
 
 export const bestiaryState = $state({
   entries: {},
@@ -10,25 +23,23 @@ export const bestiaryState = $state({
   totalKills: new Decimal(0),
   souls: new Decimal(0),
   
-  // New Upgrades
-  anatomy: 1,         // Damage multiplier
-  huntersGreed: 0,    // Quality stat
-  soulExtraction: 1,  // Permanent stat boost per soul
-  cachedBoost: 0      // Optimized cache
+  anatomy: 1,
+  huntersGreed: 0,
+  soulExtraction: 1,
+  cachedBoost: 0
 });
 
-// Initialize bestiary
+// Initialize with Decimal
 mobs.forEach(mob => {
   bestiaryState.entries[mob.id] = {
     id: mob.id,
     name: mob.name,
     type: mob.type,
-    kills: 0, // Using standard number for kills, capped at 1e15
+    kills: new Decimal(0), // FIXED: Use Decimal throughout
     stage: 'Unknown'
   };
 });
 
-// Callback for DNA gain to avoid circular dependency
 let dnaGainCallback = null;
 export function setDnaGainCallback(cb) { dnaGainCallback = cb; }
 
@@ -38,7 +49,7 @@ export function recordKill(mob, count = 1) {
       id: mob.id,
       name: mob.name,
       type: mob.type,
-      kills: 0,
+      kills: new Decimal(0),
       stage: 'Unknown'
     };
   }
@@ -47,43 +58,48 @@ export function recordKill(mob, count = 1) {
   const countDec = new Decimal(count);
   const oldTotal = bestiaryState.totalKills;
   
-  // Safe kill counting
-  const safeCount = Math.min(countDec.toNumber(), 1e15);
-  entry.kills = Math.min(entry.kills + safeCount, 1e15);
+  // FIXED: Full Decimal support
+  entry.kills = entry.kills.add(countDec);
   bestiaryState.totalKills = bestiaryState.totalKills.add(countDec);
 
-  // Optimized Soul Extraction - O(1) instead of loop
-  const totalSoulsPotential = bestiaryState.totalKills.div(100).floor();
-  const oldSoulsPotential = oldTotal.div(100).floor();
+  // Optimized Soul Extraction
+  const totalSoulsPotential = bestiaryState.totalKills.div(BESTIARY_CONSTANTS.SOUL_KILL_RATIO).floor();
+  const oldSoulsPotential = oldTotal.div(BESTIARY_CONSTANTS.SOUL_KILL_RATIO).floor();
   const soulsGained = totalSoulsPotential.sub(oldSoulsPotential);
 
   if (soulsGained.gt(0)) {
     bestiaryState.souls = bestiaryState.souls.add(soulsGained);
   }
   
-  // Update stage based on kills
-  if (entry.kills >= 10000) entry.stage = 'Omniscient';
-  else if (entry.kills >= 5000) entry.stage = 'Transcendent';
-  else if (entry.kills >= 1000) entry.stage = 'Exalted';
-  else if (entry.kills >= 500) entry.stage = 'Mastered';
-  else if (entry.kills >= 100) entry.stage = 'Known';
+  // Update stage based on kills - FIXED: Use Decimal comparisons
+  const killsNum = entry.kills.toNumber(); // Safe for display purposes
+  if (killsNum >= BESTIARY_CONSTANTS.STAGE_THRESHOLDS.OMNISCIENT) entry.stage = 'Omniscient';
+  else if (killsNum >= BESTIARY_CONSTANTS.STAGE_THRESHOLDS.TRANSCENDENT) entry.stage = 'Transcendent';
+  else if (killsNum >= BESTIARY_CONSTANTS.STAGE_THRESHOLDS.EXALTED) entry.stage = 'Exalted';
+  else if (killsNum >= BESTIARY_CONSTANTS.STAGE_THRESHOLDS.MASTERED) entry.stage = 'Mastered';
+  else if (killsNum >= BESTIARY_CONSTANTS.STAGE_THRESHOLDS.KNOWN) entry.stage = 'Known';
 
-  // Update cache if milestone hit
-  const previousKills = entry.kills - safeCount;
-  const milestones = [100, 1000];
-  if (milestones.some(m => entry.kills >= m && previousKills < m)) {
+  // Check milestones
+  const previousKills = entry.kills.sub(countDec).toNumber();
+  const milestones = [
+    BESTIARY_CONSTANTS.STAGE_THRESHOLDS.KNOWN, 
+    BESTIARY_CONSTANTS.STAGE_THRESHOLDS.MASTERED
+  ];
+  if (milestones.some(m => killsNum >= m && previousKills < m)) {
     updateGlobalBoost();
   }
   
-  // Fragments scaling
-  const fragMult = 1 + (entry.kills / 1000);
-  if (Math.random() < 0.15) {
-    const fragGain = countDec.mul(fragMult).mul(0.2).ceil();
-    bestiaryState.dataFragments = bestiaryState.dataFragments.add(fragGain);
-  }
-  if (Math.random() < 0.08 && dnaGainCallback) {
-    const dnaGain = countDec.mul(fragMult).mul(0.1).ceil();
-    dnaGainCallback(dnaGain);
+  // Fragments scaling - SIGNIFICANTLY BOOSTED for 1M/s target at max
+  const fragMult = new Decimal(1).add(Math.min(killsNum, 1000000000) / 1000); 
+  
+  if (Math.random() < BESTIARY_CONSTANTS.FRAGMENT_DROP_CHANCE) {
+    // Scaling heavily with character level and bestiary anatomy
+    const baseGain = countDec.mul(fragMult).mul(0.5);
+    const bonusGain = character.level.div(100).add(1).mul(bestiaryState.anatomy);
+    const gain = baseGain.mul(bonusGain).ceil();
+    
+    bestiaryState.dataFragments = bestiaryState.dataFragments.add(gain);
+    if (dnaGainCallback) dnaGainCallback(gain);
   }
 }
 
@@ -104,26 +120,27 @@ export function buyBestiaryUpgrade(type, amount = 1) {
     bestiaryState.dataFragments = bestiaryState.dataFragments.sub(totalCost);
     bestiaryState[type] += amount;
     
-    // Immediate effect application
     if (type === 'anatomy') {
       updateGlobalBoost();
     }
+    if (type === 'huntersGreed') {
+      character.quality = bestiaryState.huntersGreed;
+      if (character.stats) character.stats.quality = bestiaryState.huntersGreed;
+    }
     addLog(`[BESTIARY] Upgraded ${type} x${amount}!`, "system");
-  } else {
-    addLog(`[BESTIARY] Need ${formatNumber(totalCost)} Data for x${amount} ${type}.`, "system");
   }
 }
 
 export function updateGlobalBoost() {
   let boost = 0;
   Object.values(bestiaryState.entries).forEach(e => {
-    if (e.kills >= 100) boost += 0.02;
-    if (e.kills >= 1000) boost += 0.10;
+    const kills = e.kills instanceof Decimal ? e.kills.toNumber() : e.kills;
+    if (kills >= BESTIARY_CONSTANTS.STAGE_THRESHOLDS.KNOWN) boost += 0.02;
+    if (kills >= BESTIARY_CONSTANTS.STAGE_THRESHOLDS.MASTERED) boost += 0.10;
   });
   bestiaryState.cachedBoost = boost;
 }
 
-// Initialize cache on load
 updateGlobalBoost();
 
 export function autoUpgradeBestiary() {

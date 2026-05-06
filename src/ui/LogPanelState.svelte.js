@@ -1,13 +1,50 @@
+// src/ui/LogPanelState.svelte.js
 import { Decimal } from '../systems/decimal.js';
 
-// Reactive summary state (updated 1/sec)
+// FIXED: Circular buffer implementation
+class CircularBuffer {
+  constructor(size) {
+    this.size = size;
+    this.buffer = new Array(size);
+    this.start = 0;
+    this.count = 0;
+  }
+
+  push(item) {
+    const index = (this.start + this.count) % this.size;
+    this.buffer[index] = item;
+    
+    if (this.count < this.size) {
+      this.count++;
+    } else {
+      this.start = (this.start + 1) % this.size;
+    }
+  }
+
+  toArray() {
+    const result = [];
+    for (let i = 0; i < this.count; i++) {
+      result.push(this.buffer[(this.start + i) % this.size]);
+    }
+    return result.reverse(); // Newest first
+  }
+
+  get length() {
+    return this.count;
+  }
+}
+
+const MAX_EVENTS = 30;
+const eventBuffer = new CircularBuffer(MAX_EVENTS);
+
 export const summaryState = $state({
   live: { kills: new Decimal(0), loot: new Decimal(0), levels: new Decimal(0), verges: new Decimal(0) },
   history: [],
-  events: []   // individual notable events (Legendary drops, Level ups, Seal breaks, etc.)
+  get events() {
+    return eventBuffer.toArray();
+  }
 });
 
-// Fast non-reactive tally
 let hotTally = {
   kills: new Decimal(0),
   loot:  new Decimal(0),
@@ -15,8 +52,6 @@ let hotTally = {
   verges: new Decimal(0),
   startTime: Date.now()
 };
-
-const MAX_EVENTS = 30;
 
 export function addLog(message, type = 'normal') {
   if (type === 'spawn') return;
@@ -27,11 +62,9 @@ export function addLog(message, type = 'normal') {
     hotTally.kills  = hotTally.kills.add(1);
   }
 
-  // Push notable events into the event feed
   const notable = type === 'loot' || type === 'awakening' || type === 'system';
   if (notable) {
-    summaryState.events.unshift({ message, type, ts: Date.now() });
-    if (summaryState.events.length > MAX_EVENTS) summaryState.events.pop();
+    eventBuffer.push({ message, type, ts: Date.now() });
   }
 }
 

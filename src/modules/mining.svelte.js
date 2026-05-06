@@ -5,6 +5,24 @@ import { bestiaryState } from './bestiary.svelte.js';
 import { Decimal } from '../systems/decimal.js';
 import { formatNumber } from '../systems/scalingSystem.js';
 
+// Constants
+const MINING_CONSTANTS = {
+  BASE_ENERGY_COST: 0.05,
+  BASE_REGEN_RATE: 0.01,
+  DRONE_REGEN_BONUS: 0.002,
+  SPEED_CAP: 1000000,
+  TICK_RATE: 0.1, // Matches Forestry
+  BASE_MINING_RATE: 2, // Matches Forestry
+  DRONE_BONUS: 1, // Matches Forestry Chamber Bonus
+  AWAKENING_CHANCE_BASE: 0.001,
+  AWAKENING_CHANCE_PER_SENSOR: 0.0005,
+  AWAKENING_MULTIPLIER: 100,
+  REFINE_RATIO: 25,
+  OVERCLOCK_DURATION: 1200,
+  OVERCLOCK_BASE_MULTIPLIER: 3,
+  OVERCLOCK_POWER_BONUS: 0.5
+};
+
 export const tools = [
   { tier: 1, name: 'Advanced Extraction Tool', speed: 2, yield: 2, luck: 2, dataCost: 0 },
   { tier: 2, name: 'Laser Drill', speed: 10, yield: 10, luck: 4, dataCost: 50 },
@@ -29,13 +47,15 @@ export const miningState = $state({
   autoExtractors: 0,
   isOverclocked: false,
   overclockTicks: 0,
+  miningProgress: 0,
+  minesPerSecond: 0,
   
-  // Upgrades
-  sharpness: 1,      // Base speed multiplier
-  discovery: 1,      // Unlocks higher tier ores (1-10)
-  sensors: 0,        // Bonus to multi-mine & Awaken chance
-  overclockPower: 1, // Multiplier for Overclock speed (Base 3x)
-  efficiency: 0,     // Reduces energy cost per mine
+  // Calibration levels start at 0 (UI shows Lv.0). Tick math offsets keep base behavior identical.
+  sharpness: 0,
+  discovery: 0,
+  sensors: 0,
+  overclockPower: 0,
+  efficiency: 0,
   
   resources: {
     ferrite: new Decimal(0), carbite: new Decimal(0), cuprite: new Decimal(0),
@@ -78,123 +98,130 @@ export function performMiningTick(ticks) {
   const tool = tools[Math.max(0, miningState.toolTier - 1)];
   const bestiarySpeed = getMiningSpeedBonus();
   
-  let activeSpeed = tool.speed * bestiarySpeed * miningState.sharpness;
-  let activeYield = tool.yield * (1 + (miningState.sensors * 0.1));
-  let activeLuck = tool.luck;
+  // Normalized speed calculation
+  let activeSpeed = (MINING_CONSTANTS.BASE_MINING_RATE + 
+                    (miningState.drones * MINING_CONSTANTS.DRONE_BONUS)) * 
+                    tool.speed * 
+                    (miningState.sharpness + 1) * 
+                    bestiarySpeed * 2;
 
   // Overclock effect
   if (miningState.isOverclocked) {
-    activeSpeed *= (3 + (miningState.overclockPower * 0.5));
+    const overclockMult = MINING_CONSTANTS.OVERCLOCK_BASE_MULTIPLIER + 
+                          ((miningState.overclockPower + 1) * MINING_CONSTANTS.OVERCLOCK_POWER_BONUS);
+    activeSpeed *= overclockMult;
     miningState.overclockTicks -= ticks;
-    if (miningState.overclockTicks <= 0) miningState.isOverclocked = false;
+    if (miningState.overclockTicks <= 0) {
+      miningState.isOverclocked = false;
+    }
   }
 
-  // Automation bonuses
-  activeSpeed += (miningState.drones * 2);
-  activeYield += (miningState.autoExtractors * 5);
-
-  // 3. Energy Consumption & Yield Scaling
+  // Energy Consumption & Yield Scaling
   const effReduction = 1 / (1 + (miningState.efficiency * 0.1));
-  const cappedSpeed = Math.min(activeSpeed, 1000000);
-  const costPerTick = (0.05 * cappedSpeed) * effReduction;
-  const regenPerTick = (miningState.maxEnergy * 0.01 + miningState.drones * (miningState.maxEnergy * 0.002)) * energyEff;
+  const actualCostPerTick = (MINING_CONSTANTS.BASE_ENERGY_COST * activeSpeed) * effReduction;
+  const regenPerTick = (miningState.maxEnergy * MINING_CONSTANTS.BASE_REGEN_RATE + 
+                        miningState.drones * (miningState.maxEnergy * MINING_CONSTANTS.DRONE_REGEN_BONUS)) * energyEff;
   
   let yieldMult = 1.0;
   
   if (!miningState.isOverclocked) {
-    const totalPotentialCost = costPerTick * ticks;
+    const totalPotentialCost = actualCostPerTick * ticks;
     const totalAvailableEnergy = miningState.energy + (regenPerTick * ticks);
 
     if (totalPotentialCost > 0) {
       if (totalAvailableEnergy < totalPotentialCost) {
-        // Not enough energy for full speed, mine at reduced capacity
-        yieldMult = totalAvailableEnergy / totalPotentialCost;
+        yieldMult = Math.max(0, totalAvailableEnergy / totalPotentialCost);
         miningState.energy = 0;
       } else {
-        // Sufficient energy
         miningState.energy = Math.min(miningState.maxEnergy, totalAvailableEnergy - totalPotentialCost);
         yieldMult = 1.0;
       }
     } else {
-      // Free mining, just regen
       miningState.energy = Math.min(miningState.maxEnergy, miningState.energy + (regenPerTick * ticks));
       yieldMult = 1.0;
     }
   } else {
-    // Overclocked: No energy cost, and we still regen energy
     miningState.energy = Math.min(miningState.maxEnergy, miningState.energy + (regenPerTick * ticks));
     yieldMult = 1.0;
   }
 
-  // 4. Mining Execution
+  // Mining Execution
   if (yieldMult > 0) {
-    const minesPerTick = 0.1 * activeSpeed * yieldMult;
-    const totalMines = Math.floor(minesPerTick * ticks);
-    const extraChance = (minesPerTick * ticks) - totalMines;
+    const progressGain = (activeSpeed * MINING_CONSTANTS.TICK_RATE * yieldMult) * ticks;
     
-    let finalMines = totalMines;
-    if (Math.random() < extraChance) finalMines++;
+    // Calculate display rate: completions per second
+    miningState.minesPerSecond = progressGain * 10;
 
-    if (finalMines > 0) {
-      executeMine(activeYield * finalMines, activeLuck);
+    miningState.miningProgress += progressGain + (Math.random() * 0.1);
+    
+    if (miningState.miningProgress >= 100) {
+      const totalMines = Math.floor(miningState.miningProgress / 100);
+      miningState.miningProgress %= 100;
+      
+      if (totalMines > 0) {
+        let activeYield = tool.yield * (1 + (miningState.sensors * 0.1)) + (miningState.autoExtractors * 5);
+        executeMine(activeYield * totalMines, tool.luck);
+      }
     }
+  } else {
+    miningState.minesPerSecond = 0;
   }
 }
 
 function executeMine(amount, luck) {
-  const awakenChance = 0.001 + (miningState.sensors * 0.0005);
+  const awakenChance = MINING_CONSTANTS.AWAKENING_CHANCE_BASE + 
+                      (miningState.sensors * MINING_CONSTANTS.AWAKENING_CHANCE_PER_SENSOR);
   let resonanceMult = 1;
+  
   if (Math.random() < awakenChance) {
-    resonanceMult = 100;
-    addLog(`[MINING] CRITICAL RESONANCE! 100x Resources!`, 'system');
+    resonanceMult = MINING_CONSTANTS.AWAKENING_MULTIPLIER;
+    addLog(`[MINING] CRITICAL RESONANCE! ${MINING_CONSTANTS.AWAKENING_MULTIPLIER}x Resources!`, 'system');
   }
 
-  const availableOres = oreTiers.filter(o => o.tier <= miningState.discovery);
+  const availableOres = oreTiers.filter(o => o.tier <= (miningState.discovery + 1));
   if (availableOres.length === 0) return;
 
-  const totalAmount = new Decimal(amount).mul(resonanceMult);
+  // Simplified scaling: Tool tier is now a clear, readable multiplier
+  const harvestMultiplier = miningState.toolTier * 100000; 
+  const totalAmount = new Decimal(amount).mul(resonanceMult).mul(harvestMultiplier);
   
-  if (totalAmount.lt(availableOres.length * 2)) {
-    // Small amount, pick one to keep things simple
-    const ore = availableOres[Math.floor(Math.random() * availableOres.length)];
-    const finalAmount = totalAmount.ceil();
-    miningState.resources[ore.id] = miningState.resources[ore.id].add(finalAmount);
-    handleRefining(ore.id);
-  } else {
-    // Large amount, distribute across available ores for accuracy
-    const amountPerOre = totalAmount.div(availableOres.length).floor();
-    const remainder = totalAmount.mod(availableOres.length).toNumber();
-
-    availableOres.forEach((ore, index) => {
-      let finalOreAmount = amountPerOre;
-      if (index < remainder) finalOreAmount = finalOreAmount.add(1);
-      
-      if (finalOreAmount.gt(0)) {
-        miningState.resources[ore.id] = miningState.resources[ore.id].add(finalOreAmount);
-        handleRefining(ore.id);
-      }
-    });
+  if (totalAmount.gt(1000000)) {
+     addLog(`[MINING] Massive Harvest! ${formatNumber(totalAmount)} resources collected.`, 'loot');
   }
+
+  // Distribution logic
+  const amountPerOre = totalAmount.div(availableOres.length).floor();
+  const remainder = totalAmount.mod(availableOres.length).toNumber();
+
+  availableOres.forEach((ore, index) => {
+    let finalAmount = amountPerOre;
+    if (index < remainder) finalAmount = finalAmount.add(1);
+    
+    if (finalAmount.gt(0)) {
+      miningState.resources[ore.id] = miningState.resources[ore.id].add(finalAmount);
+      handleRefining(ore.id);
+    }
+  });
 }
 
-function handleRefining(id) {
-  const evolves = {
-    ferrite: 'alloyX', carbite: 'fuelX', cuprite: 'conduitX',
-    argentite: 'lumenAlloy', aurite: 'solarAlloy', crystite: 'phaseCrystal',
-    verdite: 'quantumCrystal', obsidite: 'darkAlloy', neutrite: 'denseMatter',
-    voidite: 'exoticMatter',
-    alloyX: 'titanCore', fuelX: 'fusionCore', conduitX: 'plasmaCoil',
-    lumenAlloy: 'photonCore', solarAlloy: 'stellarCore', phaseCrystal: 'prismCore',
-    quantumCrystal: 'entropyCore', darkAlloy: 'voidCore', denseMatter: 'singularityCore',
-    exoticMatter: 'cosmicCore'
-  };
+const REFINE_MAP = {
+  ferrite: 'alloyX', carbite: 'fuelX', cuprite: 'conduitX',
+  argentite: 'lumenAlloy', aurite: 'solarAlloy', crystite: 'phaseCrystal',
+  verdite: 'quantumCrystal', obsidite: 'darkAlloy', neutrite: 'denseMatter',
+  voidite: 'exoticMatter',
+  alloyX: 'titanCore', fuelX: 'fusionCore', conduitX: 'plasmaCoil',
+  lumenAlloy: 'photonCore', solarAlloy: 'stellarCore', phaseCrystal: 'prismCore',
+  quantumCrystal: 'entropyCore', darkAlloy: 'voidCore', denseMatter: 'singularityCore',
+  exoticMatter: 'cosmicCore'
+};
 
-  const target = evolves[id];
-  if (target && miningState.autoRefine[id] && miningState.resources[id].gte(25)) {
-    const count = miningState.resources[id].div(25).floor();
+function handleRefining(id) {
+  const target = REFINE_MAP[id];
+  if (target && miningState.autoRefine[id] && miningState.resources[id].gte(MINING_CONSTANTS.REFINE_RATIO)) {
+    const count = miningState.resources[id].div(MINING_CONSTANTS.REFINE_RATIO).floor();
     miningState.resources[target] = miningState.resources[target].add(count);
-    miningState.resources[id] = miningState.resources[id].sub(count.mul(25));
-    handleRefining(target); // Recursive for multi-tier auto
+    miningState.resources[id] = miningState.resources[id].sub(count.mul(MINING_CONSTANTS.REFINE_RATIO));
+    handleRefining(target);
   }
 }
 
@@ -251,7 +278,7 @@ export function upgradeEnergy(amount = 1) {
 
 export function upgradeAutomation(type, amount = 1) {
   const isDrone = type === 'drone';
-  const getCost = (lv) => new Decimal(lv + 1).mul(isDrone ? 50 : 100);
+  const getCost = (lv) => new Decimal(lv).mul(isDrone ? 50 : 100);
   let totalCost = new Decimal(0);
   for (let i = 0; i < amount; i++) {
     const lv = (isDrone ? miningState.drones : miningState.autoExtractors) + i;
@@ -270,23 +297,13 @@ export function triggerOverclock() {
   if (miningState.resources.fuelX.gte(cost) && !miningState.isOverclocked) {
     miningState.resources.fuelX = miningState.resources.fuelX.sub(cost);
     miningState.isOverclocked = true;
-    miningState.overclockTicks = 1200; // 2 minutes
+    miningState.overclockTicks = MINING_CONSTANTS.OVERCLOCK_DURATION;
     addLog(`[MINING] Overclock active!`, 'system');
   }
 }
 
 export function refineSingle(id) {
-  const evolves = {
-    ferrite: 'alloyX', carbite: 'fuelX', cuprite: 'conduitX',
-    argentite: 'lumenAlloy', aurite: 'solarAlloy', crystite: 'phaseCrystal',
-    verdite: 'quantumCrystal', obsidite: 'darkAlloy', neutrite: 'denseMatter',
-    voidite: 'exoticMatter',
-    alloyX: 'titanCore', fuelX: 'fusionCore', conduitX: 'plasmaCoil',
-    lumenAlloy: 'photonCore', solarAlloy: 'stellarCore', phaseCrystal: 'prismCore',
-    quantumCrystal: 'entropyCore', darkAlloy: 'voidCore', denseMatter: 'singularityCore',
-    exoticMatter: 'cosmicCore'
-  };
-  const target = evolves[id];
+  const target = REFINE_MAP[id];
   if (target && miningState.resources[id].gte(50)) {
     miningState.resources[target] = miningState.resources[target].add(1);
     miningState.resources[id] = miningState.resources[id].sub(50);

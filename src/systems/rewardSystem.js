@@ -84,8 +84,8 @@ export const rewardSystem = {
     const safeKillsForLoot = isFinite(killsNum) ? killsNum : 1e9;
 
     if (quality >= 100) {
+      const name = itemNames[Math.floor(Math.random() * itemNames.length)];
       itemRarities.forEach(rarity => {
-        const name = itemNames[Math.floor(Math.random() * itemNames.length)];
         addItem(name, rarity, safeKillsForLoot);
         character.totalDrops = (character.totalDrops || 0) + safeKillsForLoot;
       });
@@ -93,13 +93,21 @@ export const rewardSystem = {
       const dropCount = Math.floor(safeKillsForLoot * dropChance);
       if (dropCount > 0) {
         let rIdx = 0;
-        while (Math.random() < (0.45 + quality / 200 + lootBoost / 2) && rIdx < itemRarities.length - 1) rIdx++;
-        const rarity = itemRarities[rIdx];
+        const upgradeChance = 0.45 + (quality / 200) + (lootBoost / 2);
+        while (Math.random() < upgradeChance && rIdx < itemRarities.length - 1) rIdx++;
+        
         const name = itemNames[Math.floor(Math.random() * itemNames.length)];
-        addItem(name, rarity, dropCount);
-        character.totalDrops = (character.totalDrops || 0) + dropCount;
+        
+        // When a higher rarity is rolled, drop ALL lower rarities of that same item as well
+        for (let i = 0; i <= rIdx; i++) {
+          const rarity = itemRarities[i];
+          addItem(name, rarity, dropCount);
+          character.totalDrops = (character.totalDrops || 0) + dropCount;
+        }
+
         if (rIdx >= 3) {
-          addLog(`[LOOT] ${name} (${rarity}) x${formatNumber(dropCount)}`, 'loot');
+          const rarity = itemRarities[rIdx];
+          addLog(`[LOOT] ${name} (${rarity}) x${formatNumber(dropCount)} (+ tiers)`, 'loot');
           if (rIdx >= 4) showToast(`✦ MYTHIC DROP: ${name}!`, 'loot');
           else showToast(`★ ${rarity}: ${name}`, 'loot');
         }

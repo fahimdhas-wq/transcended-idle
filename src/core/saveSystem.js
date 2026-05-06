@@ -41,34 +41,42 @@ export const saveSystem = {
     try {
       const data = JSON.parse(saved);
 
-      // Merge modules carefully
       const safeMerge = (state, savedData) => {
         if (!savedData) return;
         Object.keys(savedData).forEach(key => {
           if (savedData[key] !== null && typeof savedData[key] === 'object') {
-             // Rehydrate Decimal
-             if ('m' in savedData[key] && 'e' in savedData[key]) {
-               state[key] = new Decimal(savedData[key].m, savedData[key].e);
-             } else if (state[key] && typeof state[key].add === 'function') {
-               // State is a Decimal, but saved data is a number or plain object
-               state[key] = new Decimal(savedData[key]);
-             } else if (state[key] && typeof state[key] === 'object') {
-               safeMerge(state[key], savedData[key]);
-             } else {
-               state[key] = savedData[key];
-             }
-          } else {
-             // Saved data is a primitive (number/string)
-             if (state[key] && typeof state[key].add === 'function') {
-                state[key] = new Decimal(savedData[key]);
-             } else {
-                // Fix for NaN and undefined numeric values
-                if (typeof state[key] === 'number' && (savedData[key] === null || savedData[key] === undefined || isNaN(savedData[key]))) {
-                  state[key] = 0;
+            if ('m' in savedData[key] && 'e' in savedData[key]) {
+              // Validate Decimal values - FIXED
+              const m = Number(savedData[key].m);
+              const e = Number(savedData[key].e);
+              if (!isNaN(m) && isFinite(m) && !isNaN(e) && isFinite(e)) {
+                // Respect original type: if state was a number, keep it as a number
+                if (typeof state[key] === 'number') {
+                  state[key] = m * Math.pow(10, e);
                 } else {
-                  state[key] = savedData[key];
+                  state[key] = new Decimal(m, e);
                 }
-             }
+              } else {
+                console.warn(`Invalid Decimal for ${key}, using default`);
+                state[key] = state[key] instanceof Decimal ? new Decimal(0) : 0;
+              }
+            } else if (state[key] && typeof state[key].add === 'function') {
+              state[key] = new Decimal(savedData[key]);
+            } else if (state[key] && typeof state[key] === 'object') {
+              safeMerge(state[key], savedData[key]);
+            } else {
+              state[key] = savedData[key];
+            }
+          } else {
+            if (state[key] && typeof state[key].add === 'function') {
+              state[key] = new Decimal(savedData[key]);
+            } else {
+              if (typeof state[key] === 'number' && (savedData[key] === null || savedData[key] === undefined || isNaN(savedData[key]))) {
+                state[key] = 0;
+              } else {
+                state[key] = savedData[key];
+              }
+            }
           }
         });
       };
@@ -76,9 +84,13 @@ export const saveSystem = {
       safeMerge(character, data.character);
       safeMerge(inventory, data.inventory);
       
-      // Force object type for autoRefine before merging
-      if (typeof miningState.autoRefine !== 'object') miningState.autoRefine = {};
-      if (typeof forestryState.autoRefine !== 'object') forestryState.autoRefine = {};
+      // FIXED: Proper autoRefine initialization
+      if (!miningState.autoRefine || typeof miningState.autoRefine !== 'object') {
+        miningState.autoRefine = {};
+      }
+      if (!forestryState.autoRefine || typeof forestryState.autoRefine !== 'object') {
+        forestryState.autoRefine = {};
+      }
 
       safeMerge(miningState, data.mining);
       safeMerge(forestryState, data.forestry);
@@ -93,24 +105,22 @@ export const saveSystem = {
         data.skills.forEach(savedSkill => {
           const skill = skillsState.skills.find(s => s.id === savedSkill.id);
           if (skill) {
-             Object.keys(savedSkill).forEach(k => {
-                if (skill[k] && typeof skill[k].add === 'function') {
-                   skill[k] = new Decimal(savedSkill[k]);
-                } else {
-                   skill[k] = savedSkill[k];
-                }
-             });
+            Object.keys(savedSkill).forEach(k => {
+              if (skill[k] && typeof skill[k].add === 'function') {
+                skill[k] = new Decimal(savedSkill[k]);
+              } else {
+                skill[k] = savedSkill[k];
+              }
+            });
           }
         });
       }
 
       const offlineMs = Date.now() - data.lastSaved;
 
-      // Always enforce the current max offline cap — overrides any old saved value
-      character.offlineSettings.maxSeconds = 2592000; // 30 days hard cap
+      character.offlineSettings.maxSeconds = 2592000;
       character.offlineSettings.efficiency = character.offlineSettings.efficiency || 1.0;
 
-      // Ensure minimum starter threads for smooth base progression
       if (overclockState.coreThreads.lt(2) && overclockState.timesOverclocked === 0) {
         overclockState.coreThreads = new Decimal(2);
       }
