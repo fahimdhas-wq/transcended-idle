@@ -118,9 +118,18 @@ export function performMiningTick(ticks) {
 
   // Energy Consumption & Yield Scaling
   const effReduction = 1 / (1 + (miningState.efficiency * 0.1));
-  const actualCostPerTick = (MINING_CONSTANTS.BASE_ENERGY_COST * activeSpeed) * effReduction;
-  const regenPerTick = (miningState.maxEnergy * MINING_CONSTANTS.BASE_REGEN_RATE + 
-                        miningState.drones * (miningState.maxEnergy * MINING_CONSTANTS.DRONE_REGEN_BONUS)) * energyEff;
+
+  // FIXED: energy must scale sublinearly with speed to avoid a hard cap at high tiers.
+  // This prevents yield stalling due to insufficient maxEnergy.
+  const speedLog = Math.max(1, Math.log10(activeSpeed + 1));
+  const actualCostPerTick = (MINING_CONSTANTS.BASE_ENERGY_COST * speedLog * speedLog) * effReduction;
+
+  // Regen scales with tool tier so capacity upgrades can keep up with speed scaling.
+  const toolTierMult = miningState.toolTier;
+  const regenPerTick =
+    (miningState.maxEnergy * MINING_CONSTANTS.BASE_REGEN_RATE * toolTierMult +
+      miningState.drones * (miningState.maxEnergy * MINING_CONSTANTS.DRONE_REGEN_BONUS * toolTierMult)) *
+    energyEff;
   
   let yieldMult = 1.0;
   
@@ -133,15 +142,24 @@ export function performMiningTick(ticks) {
         yieldMult = Math.max(0, totalAvailableEnergy / totalPotentialCost);
         miningState.energy = 0;
       } else {
-        miningState.energy = Math.min(miningState.maxEnergy, totalAvailableEnergy - totalPotentialCost);
+        miningState.energy = Math.max(
+          0,
+          Math.min(miningState.maxEnergy, totalAvailableEnergy - totalPotentialCost)
+        );
         yieldMult = 1.0;
       }
     } else {
-      miningState.energy = Math.min(miningState.maxEnergy, miningState.energy + (regenPerTick * ticks));
+      miningState.energy = Math.max(
+        0,
+        Math.min(miningState.maxEnergy, miningState.energy + (regenPerTick * ticks))
+      );
       yieldMult = 1.0;
     }
   } else {
-    miningState.energy = Math.min(miningState.maxEnergy, miningState.energy + (regenPerTick * ticks));
+    miningState.energy = Math.max(
+      0,
+      Math.min(miningState.maxEnergy, miningState.energy + (regenPerTick * ticks))
+    );
     yieldMult = 1.0;
   }
 

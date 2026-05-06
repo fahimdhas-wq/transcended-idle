@@ -17,11 +17,12 @@ export function getSpeciesDamageBonus(mobId) {
   const entry = bestiaryState.entries[mobId];
   if (!entry) return 1;
   let bonus = 1;
-  if (entry.kills >= 10) bonus += 0.1;
-  if (entry.kills >= 100) bonus += 0.2;
-  if (entry.kills >= 500) bonus += 0.5;
-  if (entry.kills >= 1000) bonus += 1.0;
-  if (entry.kills >= 5000) bonus += 2.0;
+  // FIXED: use Decimal-safe comparisons
+  if (entry.kills.gte(10)) bonus += 0.1;
+  if (entry.kills.gte(100)) bonus += 0.2;
+  if (entry.kills.gte(500)) bonus += 0.5;
+  if (entry.kills.gte(1000)) bonus += 1.0;
+  if (entry.kills.gte(5000)) bonus += 2.0;
   return bonus;
 }
 

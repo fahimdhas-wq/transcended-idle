@@ -179,7 +179,8 @@ export function performCombatTick(ticks = 1) {
 
           rewardSystem.grantRewards(enemy, new Decimal(possibleKills));
           
-          ticksRemaining = 0;
+          // FIXED: carry over remaining ticks instead of discarding
+          ticksRemaining -= timeUsed;
           combatState.isFighting = false;
           combatState.enemy = null;
           break;
@@ -197,7 +198,13 @@ export function performCombatTick(ticks = 1) {
     character.stats.defense = character.stats.defense.add(stats.regenDef.mul(ticksUsed));
     if (character.stats.defense.gt(stats.def)) character.stats.defense = stats.def;
 
-    enemy.hp = enemy.hp.sub(currentDmg.mul(ticksUsed));
+    // FIXED: avoid floating-point epsilon leaving enemy at ~1e-14 HP
+    // When ticksUsed consumes the entire remaining HP, treat it as an exact kill.
+    if (ticksUsed >= ticksToKill) {
+      enemy.hp = new Decimal(0);
+    } else {
+      enemy.hp = enemy.hp.sub(currentDmg.mul(ticksUsed));
+    }
     ticksRemaining -= ticksUsed;
 
     if (enemy.hp.lte(0)) {

@@ -138,18 +138,9 @@ export function gameTick(now) {
     
     const dNum = ticksToProcess;
     
-    // ---- XP (Decimal, batched) ----
-    if (!character.totalXp || character.totalXp.m === 0) {
-      const constant = 2.4;
-      const baseReq = 100;
-      character.totalXp = character.level.pow(constant).sub(1).mul(baseReq / constant).add(character.xp);
-    }
-    let xpGain = new Decimal(dNum);
-    character.xp = character.xp.add(xpGain);
-    character.totalXp = character.totalXp.add(xpGain);
-    
     // ---- Momentum (float) ----
     character.momentum += 0.01 * dNum;
+    
     if (character.kills.gt(0)) {
       const k = safeKills();
       character.momentum += k * 0.0001 * dNum;

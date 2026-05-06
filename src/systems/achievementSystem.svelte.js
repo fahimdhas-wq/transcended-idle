@@ -8,8 +8,6 @@ import { Decimal } from '../systems/decimal.js';
 import { skillsState } from '../modules/skills.svelte.js';
 import { overclockState } from '../modules/overclock.svelte.js';
 
-// Memoization cache
-const reqCache = new Map();
 let lastCheckTime = 0;
 const CHECK_THROTTLE = 1000; // Check achievements max once per second
 
@@ -109,27 +107,11 @@ export function checkAchievements() {
   achievementDefs.forEach(ach => {
     if (!achievementState.unlocked[ach.id]) {
       try {
-        // Check cache first
-        const cacheKey = ach.id;
-        const cached = reqCache.get(cacheKey);
-        
-        if (cached && (now - cached.time < 5000)) {
-          if (cached.value) {
-            achievementState.unlocked[ach.id] = true;
-            applyBonus(ach.bonus);
-            addLog(`[ACH] ${ach.name} unlocked! ${ach.bonusDesc}`, 'awakening');
-            reqCache.delete(cacheKey);
-          }
-        } else {
-          const result = ach.req();
-          reqCache.set(cacheKey, { value: result, time: now });
-          
-          if (result) {
-            achievementState.unlocked[ach.id] = true;
-            applyBonus(ach.bonus);
-            addLog(`[ACH] ${ach.name} unlocked! ${ach.bonusDesc}`, 'awakening');
-            reqCache.delete(cacheKey);
-          }
+        const result = ach.req();
+        if (result) {
+          achievementState.unlocked[ach.id] = true;
+          applyBonus(ach.bonus);
+          addLog(`[ACH] ${ach.name} unlocked! ${ach.bonusDesc}`, 'awakening');
         }
       } catch (e) {
         console.error(`[Achievement Error] Failed to check "${ach.id}":`, e);

@@ -80,10 +80,18 @@ let currentDisplayTab = $state('basic');
         <div class="bar-group">
           <div class="bar-label">
             <span>EXTRACTION PROGRESS</span>
-            <span>{Math.floor(miningState.miningProgress)}%</span>
+            {#if miningState.minesPerSecond >= 100}
+              <span style="color: var(--neon-gold);">{formatNumber(miningState.minesPerSecond)}/s</span>
+            {:else}
+              <span>{Math.floor(miningState.miningProgress)}%</span>
+            {/if}
           </div>
           <div class="progress-bar-container">
-            <div class="progress-fill" style="width: {miningState.miningProgress}%"></div>
+            {#if miningState.minesPerSecond >= 100}
+              <div class="progress-fill progress-maxed" style="width: 100%"></div>
+            {:else}
+              <div class="progress-fill" style="width: {miningState.miningProgress}%"></div>
+            {/if}
           </div>
         </div>
 

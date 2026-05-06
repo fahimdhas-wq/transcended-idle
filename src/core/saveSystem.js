@@ -61,6 +61,7 @@ export const saveSystem = {
                 state[key] = state[key] instanceof Decimal ? new Decimal(0) : 0;
               }
             } else if (state[key] && typeof state[key].add === 'function') {
+              // Decimal instance: never recurse into it
               state[key] = new Decimal(savedData[key]);
             } else if (state[key] && typeof state[key] === 'object') {
               safeMerge(state[key], savedData[key]);

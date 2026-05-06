@@ -119,12 +119,18 @@ export function performForestryTick(ticks) {
   }
 
   // Energy Consumption & Yield Scaling
-  // Keep energy cost behavior aligned with legacy formula.
-  // Calibration level starts at 0, so efficiency=0 should mean “no reduction”.
+  // FIXED: energy cost must scale sublinearly with speed to avoid hard caps at high tiers.
   const effReduction = 1 / (1 + (forestryState.efficiency * 0.1));
-  const actualCostPerTick = (FORESTRY_CONSTANTS.BASE_ENERGY_COST * activeSpeed) * effReduction;
-  const regenPerTick = (forestryState.maxEnergy * FORESTRY_CONSTANTS.BASE_REGEN_RATE + 
-                        forestryState.growthChambers * (forestryState.maxEnergy * FORESTRY_CONSTANTS.CHAMBER_REGEN_BONUS)) * energyEff;
+
+  const speedLog = Math.max(1, Math.log10(activeSpeed + 1));
+  const actualCostPerTick = (FORESTRY_CONSTANTS.BASE_ENERGY_COST * speedLog * speedLog) * effReduction;
+
+  // Regen scales with tool tier and chamber count so capacity upgrades keep pace.
+  const toolTierMult = forestryState.toolTier;
+  const regenPerTick =
+    (forestryState.maxEnergy * FORESTRY_CONSTANTS.BASE_REGEN_RATE * toolTierMult +
+      forestryState.growthChambers * (forestryState.maxEnergy * FORESTRY_CONSTANTS.CHAMBER_REGEN_BONUS * toolTierMult)) *
+    energyEff;
   
   let yieldMult = 1.0;
   
@@ -137,15 +143,24 @@ export function performForestryTick(ticks) {
         yieldMult = Math.max(0, totalAvailableEnergy / totalPotentialCost);
         forestryState.energy = 0;
       } else {
-        forestryState.energy = Math.min(forestryState.maxEnergy, totalAvailableEnergy - totalPotentialCost);
+        forestryState.energy = Math.max(
+          0,
+          Math.min(forestryState.maxEnergy, totalAvailableEnergy - totalPotentialCost)
+        );
         yieldMult = 1.0;
       }
     } else {
-      forestryState.energy = Math.min(forestryState.maxEnergy, forestryState.energy + (regenPerTick * ticks));
+      forestryState.energy = Math.max(
+        0,
+        Math.min(forestryState.maxEnergy, forestryState.energy + (regenPerTick * ticks))
+      );
       yieldMult = 1.0;
     }
   } else {
-    forestryState.energy = Math.min(forestryState.maxEnergy, forestryState.energy + (regenPerTick * ticks));
+    forestryState.energy = Math.max(
+      0,
+      Math.min(forestryState.maxEnergy, forestryState.energy + (regenPerTick * ticks))
+    );
     yieldMult = 1.0;
   }
 

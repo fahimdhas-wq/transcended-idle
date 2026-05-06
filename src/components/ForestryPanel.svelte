@@ -102,10 +102,18 @@ let currentDisplayTab = $state('basic');
       <div class="bar-group">
         <div class="bar-label">
           <span>HARVEST PROGRESS</span>
-          <span>{Math.floor(forestryState.growthProgress)}%</span>
+          {#if forestryState.harvestRate >= 100}
+            <span style="color: #4CAF50;">{formatNumber(forestryState.harvestRate)}/s</span>
+          {:else}
+            <span>{Math.floor(forestryState.growthProgress)}%</span>
+          {/if}
         </div>
         <div class="progress-bar-container">
-          <div class="progress-fill" style="width: {forestryState.growthProgress}%"></div>
+          {#if forestryState.harvestRate >= 100}
+            <div class="progress-fill progress-maxed" style="width: 100%"></div>
+          {:else}
+            <div class="progress-fill" style="width: {forestryState.growthProgress}%"></div>
+          {/if}
         </div>
       </div>
 
@@ -249,6 +257,16 @@ let currentDisplayTab = $state('basic');
 .bar-label { display: flex; justify-content: space-between; font-size: 0.65rem; font-family: var(--font-cyber); color: var(--color-muted); letter-spacing: 1px; }
 .progress-bar-container, .energy-bar-container { height: 10px; background: #000; border: 1px solid #333; position: relative; border-radius: 2px; overflow: hidden; }
 .progress-fill { height: 100%; background: #4CAF50; transition: width 0.1s linear; box-shadow: 0 0 10px #4CAF50; }
+
+.progress-maxed {
+  transition: none;
+  animation: maxed-pulse 1s ease-in-out infinite;
+}
+
+@keyframes maxed-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
 .energy-fill { height: 100%; background: var(--neon-blue); transition: width 0.1s linear; box-shadow: 0 0 10px var(--neon-blue); }
 .highlight { color: #4CAF50; font-weight: bold; }
 

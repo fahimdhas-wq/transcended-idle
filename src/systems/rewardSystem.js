@@ -90,7 +90,12 @@ export const rewardSystem = {
         character.totalDrops = (character.totalDrops || 0) + safeKillsForLoot;
       });
     } else {
-      const dropCount = Math.floor(safeKillsForLoot * dropChance);
+      let dropCount = Math.floor(safeKillsForLoot * dropChance);
+
+      // FIXED: death paths that grant fractional "kills" (e.g. grantRewards(enemy, 0.1))
+      // would otherwise always truncate to 0 drops.
+      if (dropCount <= 0 && safeKillsForLoot > 0) dropCount = 1;
+
       if (dropCount > 0) {
         let rIdx = 0;
         const upgradeChance = 0.45 + (quality / 200) + (lootBoost / 2);
@@ -133,7 +138,8 @@ export const rewardSystem = {
     }
 
     const X = character.xp;
-    const C = character.xpNeeded;
+    // FIXED: C must be the BASE XP cost at level 1 (not current xpNeeded which grows with level)
+    const C = new Decimal(100);
     const g = 1.15;
     const logG = Math.log10(g);
 
