@@ -4,17 +4,9 @@ import { getMiningSpeedBonus, getEnergyEfficiencyBonus } from './bestiaryBonuses
 import { bestiaryState } from './bestiary.svelte.js';
 import { Decimal } from '../systems/decimal.js';
 import { formatNumber } from '../systems/scalingSystem.js';
+import { GATHERING_CONSTANTS, makeTools, type GatheringTool } from '../data/gatheringConfig.js';
 
-export interface MiningTool {
-  tier: number;
-  name: string;
-  speed: number;
-  yield: number;
-  luck: number;
-  dataCost: number;
-}
-
-export type MiningUpgradeType = 'sharpness' | 'discovery' | 'sensors' | 'overclockPower' | 'efficiency';
+export type MiningUpgradeType = 'sharpness' | 'discovery' | 'sensors' | 'overclockPower' | 'efficiency' | 'extraction';
 export type MiningAutomationType = 'drone' | 'extractor';
 
 export interface MiningState {
@@ -30,44 +22,28 @@ export interface MiningState {
   overclockTicks: number;
   miningProgress: number;
   minesPerSecond: number;
+  dataRate: number;
   sharpness: number;
   discovery: number;
   sensors: number;
   overclockPower: number;
   efficiency: number;
+  extraction: number;
   resources: Record<string, Decimal>;
 }
 
-// Constants
-const MINING_CONSTANTS = {
-  BASE_ENERGY_COST: 0.05,
-  BASE_REGEN_RATE: 0.01,
-  DRONE_REGEN_BONUS: 0.002,
-  SPEED_CAP: 1000000,
-  TICK_RATE: 0.1, // Matches Forestry
-  BASE_MINING_RATE: 2, // Matches Forestry
-  DRONE_BONUS: 1, // Matches Forestry Chamber Bonus
-  AWAKENING_CHANCE_BASE: 0.001,
-  AWAKENING_CHANCE_PER_SENSOR: 0.0005,
-  AWAKENING_MULTIPLIER: 100,
-  REFINE_RATIO: 25,
-  OVERCLOCK_DURATION: 1200,
-  OVERCLOCK_BASE_MULTIPLIER: 3,
-  OVERCLOCK_POWER_BONUS: 0.5
-};
-
-export const tools: MiningTool[] = [
-  { tier: 1, name: 'Advanced Extraction Tool', speed: 2, yield: 2, luck: 2, dataCost: 0 },
-  { tier: 2, name: 'Laser Drill', speed: 10, yield: 10, luck: 4, dataCost: 50 },
-  { tier: 3, name: 'Plasma Extractor', speed: 40, yield: 35, luck: 8, dataCost: 250 },
-  { tier: 4, name: 'Quantum Drill', speed: 150, yield: 120, luck: 15, dataCost: 1000 },
-  { tier: 5, name: 'Singularity Harvester', speed: 600, yield: 500, luck: 30, dataCost: 5000 },
-  { tier: 6, name: 'Void Reaver', speed: 2500, yield: 2000, luck: 60, dataCost: 25000 },
-  { tier: 7, name: 'Cosmic Bore', speed: 10000, yield: 8000, luck: 120, dataCost: 100000 },
-  { tier: 8, name: 'Neutron Star Drill', speed: 50000, yield: 40000, luck: 250, dataCost: 500000 },
-  { tier: 9, name: 'Event Horizon Siphon', speed: 250000, yield: 200000, luck: 500, dataCost: 2500000 },
-  { tier: 10, name: 'Omni-Core Extractor', speed: 1000000, yield: 800000, luck: 1000, dataCost: 10000000 }
-];
+export const tools = makeTools([
+  'Advanced Extraction Tool',
+  'Laser Drill',
+  'Plasma Extractor',
+  'Quantum Drill',
+  'Singularity Harvester',
+  'Void Reaver',
+  'Cosmic Bore',
+  'Neutron Star Drill',
+  'Event Horizon Siphon',
+  'Omni-Core Extractor'
+]);
 
 export const miningState: MiningState = $state({
   unlocked: false,
@@ -82,13 +58,14 @@ export const miningState: MiningState = $state({
   overclockTicks: 0,
   miningProgress: 0,
   minesPerSecond: 0,
+  dataRate: 0,
   
-  // Calibration levels start at 0 (UI shows Lv.0). Tick math offsets keep base behavior identical.
   sharpness: 0,
   discovery: 0,
   sensors: 0,
   overclockPower: 0,
   efficiency: 0,
+  extraction: 0,
   
   resources: {
     ferrite: new Decimal(0), carbite: new Decimal(0), cuprite: new Decimal(0),
@@ -105,6 +82,11 @@ export const miningState: MiningState = $state({
     cosmicCore: new Decimal(0)
   }
 });
+
+let _dataAccum = 0;
+let _dataRateTimer = 0;
+const DATA_RATE_WINDOW = 5000;
+const MINING_CONSTANTS = { REFINE_RATIO: 50, OVERCLOCK_DURATION: 600 };
 
 const oreTiers: Array<{ id: string; tier: number }> = [
   { id: 'ferrite', tier: 1 }, { id: 'carbite', tier: 2 }, { id: 'cuprite', tier: 3 },
@@ -127,136 +109,123 @@ export function performMiningTick(ticks: number): void {
   checkMiningUnlock();
   if (!miningState.unlocked) return;
 
-  const energyEff = getEnergyEfficiencyBonus();
   const tool = tools[Math.max(0, miningState.toolTier - 1)];
   const bestiarySpeed = getMiningSpeedBonus();
+  const energyEff = getEnergyEfficiencyBonus();
   
-  // Normalized speed calculation
-  let activeSpeed = (MINING_CONSTANTS.BASE_MINING_RATE + 
-                    (miningState.drones * MINING_CONSTANTS.DRONE_BONUS)) * 
-                    tool.speed * 
-                    (miningState.sharpness + 1) * 
-                    bestiarySpeed * 2;
+  let activeSpeed =
+    (GATHERING_CONSTANTS.BASE_RATE + miningState.drones * GATHERING_CONSTANTS.AUTOMATION_BONUS) *
+    tool.speed *
+    (miningState.sharpness + 1) *
+    (miningState.extraction + 1) *
+    bestiarySpeed * 2;
 
-  // Overclock effect
   if (miningState.isOverclocked) {
-    const overclockMult = MINING_CONSTANTS.OVERCLOCK_BASE_MULTIPLIER + 
-                          ((miningState.overclockPower + 1) * MINING_CONSTANTS.OVERCLOCK_POWER_BONUS);
-    activeSpeed *= overclockMult;
+    const ocMult = GATHERING_CONSTANTS.OVERCLOCK_BASE_MULT +
+                   (miningState.overclockPower + 1) * GATHERING_CONSTANTS.OVERCLOCK_POWER_BONUS;
+    activeSpeed *= ocMult;
     miningState.overclockTicks -= ticks;
-    if (miningState.overclockTicks <= 0) {
-      miningState.isOverclocked = false;
-    }
+    if (miningState.overclockTicks <= 0) miningState.isOverclocked = false;
   }
 
-  // Energy Consumption & Yield Scaling
-  const effReduction = 1 / (1 + (miningState.efficiency * 0.1));
-
-  // FIXED: energy must scale sublinearly with speed to avoid a hard cap at high tiers.
-  // This prevents yield stalling due to insufficient maxEnergy.
+  const effReduction = 1 / (1 + miningState.efficiency * 0.1);
   const speedLog = Math.max(1, Math.log10(activeSpeed + 1));
-  const actualCostPerTick = (MINING_CONSTANTS.BASE_ENERGY_COST * speedLog * speedLog) * effReduction;
+  const actualCostPerTick = GATHERING_CONSTANTS.BASE_ENERGY_COST * speedLog * speedLog * effReduction;
 
-  // Regen scales with tool tier so capacity upgrades can keep up with speed scaling.
   const toolTierMult = miningState.toolTier;
   const regenPerTick =
-    (miningState.maxEnergy * MINING_CONSTANTS.BASE_REGEN_RATE * toolTierMult +
-      miningState.drones * (miningState.maxEnergy * MINING_CONSTANTS.DRONE_REGEN_BONUS * toolTierMult)) *
+    (miningState.maxEnergy * GATHERING_CONSTANTS.BASE_REGEN_RATE * toolTierMult +
+     miningState.drones * miningState.maxEnergy * GATHERING_CONSTANTS.AUTOMATION_REGEN * toolTierMult) *
     energyEff;
-  
-  let yieldMult = 1.0;
-  
-  if (!miningState.isOverclocked) {
-    const totalPotentialCost = actualCostPerTick * ticks;
-    const totalAvailableEnergy = miningState.energy + (regenPerTick * ticks);
 
-    if (totalPotentialCost > 0) {
-      if (totalAvailableEnergy < totalPotentialCost) {
-        yieldMult = Math.max(0, totalAvailableEnergy / totalPotentialCost);
+  let yieldMult = 1.0;
+  if (!miningState.isOverclocked) {
+    const totalCost = actualCostPerTick * ticks;
+    const totalAvail = miningState.energy + regenPerTick * ticks;
+    if (totalCost > 0) {
+      if (totalAvail < totalCost) {
+        yieldMult = Math.max(0, totalAvail / totalCost);
         miningState.energy = 0;
       } else {
-        miningState.energy = Math.max(
-          0,
-          Math.min(miningState.maxEnergy, totalAvailableEnergy - totalPotentialCost)
-        );
-        yieldMult = 1.0;
+        miningState.energy = Math.max(0, Math.min(miningState.maxEnergy, totalAvail - totalCost));
       }
     } else {
-      miningState.energy = Math.max(
-        0,
-        Math.min(miningState.maxEnergy, miningState.energy + (regenPerTick * ticks))
-      );
-      yieldMult = 1.0;
+      miningState.energy = Math.max(0, Math.min(miningState.maxEnergy, miningState.energy + regenPerTick * ticks));
     }
   } else {
-    miningState.energy = Math.max(
-      0,
-      Math.min(miningState.maxEnergy, miningState.energy + (regenPerTick * ticks))
-    );
-    yieldMult = 1.0;
+    miningState.energy = Math.max(0, Math.min(miningState.maxEnergy, miningState.energy + regenPerTick * ticks));
   }
 
-  // Mining Execution
   if (yieldMult > 0) {
-    const progressGain = (activeSpeed * MINING_CONSTANTS.TICK_RATE * yieldMult) * ticks;
-    
-    // Calculate display rate: completions per second
-    // Since progressGain is per 'ticks' interval, we divide by ticks and multiply by 10 (100ms ticks -> 1s)
-    // Then divide by threshold (100) to get "full mines per second"
-    miningState.minesPerSecond = (progressGain / ticks) * 10 / 100;
+    const progressGain = activeSpeed * GATHERING_CONSTANTS.TICK_RATE * yieldMult * ticks;
+    miningState.minesPerSecond = (progressGain / ticks) * 10 / GATHERING_CONSTANTS.PROGRESS_THRESHOLD;
+    miningState.miningProgress += progressGain;
 
-    miningState.miningProgress += progressGain + (Math.random() * 0.1);
-    
-    if (miningState.miningProgress >= 100) {
-      const totalMines = Math.floor(miningState.miningProgress / 100);
-      miningState.miningProgress %= 100;
-      
+    if (miningState.miningProgress >= GATHERING_CONSTANTS.PROGRESS_THRESHOLD) {
+      const totalMines = Math.floor(miningState.miningProgress / GATHERING_CONSTANTS.PROGRESS_THRESHOLD);
+      miningState.miningProgress %= GATHERING_CONSTANTS.PROGRESS_THRESHOLD;
       if (totalMines > 0) {
-        let activeYield = tool.yield * (1 + (miningState.sensors * 0.1)) + (miningState.autoExtractors * 5);
-        executeMine(activeYield * totalMines, tool.luck);
+        const activeYield = tool.yield * (1 + miningState.sensors * 0.1) + miningState.autoExtractors * 5;
+        executeMine(activeYield * totalMines, tool.luck, tool.tier);
       }
     }
   } else {
     miningState.minesPerSecond = 0;
   }
+
+  const elapsedMs = ticks * GATHERING_CONSTANTS.TICK_RATE * 1000;
+  _dataRateTimer += elapsedMs;
+  if (_dataRateTimer >= DATA_RATE_WINDOW && _dataAccum > 0) {
+    miningState.dataRate = _dataAccum / (_dataRateTimer / 1000);
+    _dataAccum = 0;
+    _dataRateTimer = 0;
+  } else if (_dataRateTimer >= DATA_RATE_WINDOW * 3) {
+    miningState.dataRate = 0;
+    _dataAccum = 0;
+    _dataRateTimer = 0;
+  }
 }
 
-function executeMine(amount: number, luck: number): void {
-  const awakenChance = MINING_CONSTANTS.AWAKENING_CHANCE_BASE + 
-                      (miningState.sensors * MINING_CONSTANTS.AWAKENING_CHANCE_PER_SENSOR);
-  let resonanceMult = 1;
-  
-  if (Math.random() < awakenChance) {
-    resonanceMult = MINING_CONSTANTS.AWAKENING_MULTIPLIER;
-    addLog(`[MINING] CRITICAL RESONANCE! ${MINING_CONSTANTS.AWAKENING_MULTIPLIER}x Resources!`, 'system');
+function executeMine(amount: number, luck: number, tier: number): void {
+  const critChance = GATHERING_CONSTANTS.CRIT_CHANCE_BASE +
+                     miningState.sensors * GATHERING_CONSTANTS.CRIT_CHANCE_PER_LUCK;
+  let critMult = 1;
+  if (Math.random() < critChance) {
+    critMult = GATHERING_CONSTANTS.CRIT_MULTIPLIER;
+    addLog(`[MINING] CRITICAL RESONANCE! ${GATHERING_CONSTANTS.CRIT_MULTIPLIER}x Resources!`, 'system');
   }
 
-  const availableOres = oreTiers.filter(o => o.tier <= (miningState.discovery + 1));
+  const availableOres = oreTiers.filter(o => o.tier <= miningState.discovery + 1);
   if (availableOres.length === 0) return;
 
-  // Scaling to 1A (10^33) per second at Tier 10.
-  // 1A = 10^33. At ~8 completions/s, target is ~10^32 per completion.
-  const harvestMultiplier = miningState.toolTier * 1e31; 
-  const totalAmount = new Decimal(amount).mul(resonanceMult).mul(harvestMultiplier);
-  
-  if (totalAmount.gt(1000000)) {
-     addLog(`[MINING] Massive Harvest! ${formatNumber(totalAmount)} resources collected.`, 'loot');
-  }
+  const yieldMult = new Decimal(10).pow(
+    (tier - 1) * GATHERING_CONSTANTS.YIELD_TIER_STEP + GATHERING_CONSTANTS.YIELD_BASE_EXPONENT
+  );
+  const totalAmount = new Decimal(amount).mul(critMult).mul(yieldMult);
 
-  // Distribution logic
   const amountPerOre = totalAmount.div(availableOres.length).floor();
   const remainder = totalAmount.mod(availableOres.length).toNumber();
 
   availableOres.forEach((ore, index) => {
     let finalAmount = amountPerOre;
     if (index < remainder) finalAmount = finalAmount.add(1);
-    
     if (finalAmount.gt(0)) {
       miningState.resources[ore.id] = miningState.resources[ore.id].add(finalAmount);
       handleRefining(ore.id);
     }
   });
+
+  if (Math.random() < GATHERING_CONSTANTS.FRAG_DROP_CHANCE) {
+    const fragGain = new Decimal(Math.pow(tier, GATHERING_CONSTANTS.FRAG_TIER_POWER))
+      .mul(miningState.sharpness + 1)
+      .mul(miningState.extraction + 1)
+      .mul(10)
+      .ceil();
+    bestiaryState.dataFragments = bestiaryState.dataFragments.add(fragGain);
+    _dataAccum += fragGain.toNumber();
+  }
 }
+
 
 const REFINE_MAP: Record<string, string> = {
   ferrite: 'alloyX', carbite: 'fuelX', cuprite: 'conduitX',
@@ -281,11 +250,12 @@ function handleRefining(id: string): void {
 
 export function buyMiningUpgrade(type: MiningUpgradeType, amount: number = 1): void {
   const getCost = (lv: number): Decimal => {
-    if (type === 'sharpness') return new Decimal(lv).mul(1000);
-    if (type === 'discovery') return new Decimal(10).pow(lv).mul(500);
-    if (type === 'sensors') return new Decimal(lv + 1).mul(2000);
+    if (type === 'sharpness')      return new Decimal(lv).mul(1000);
+    if (type === 'extraction')     return new Decimal(lv).mul(200);
+    if (type === 'discovery')      return new Decimal(10).pow(lv).mul(500);
+    if (type === 'sensors')        return new Decimal(lv + 1).mul(2000);
     if (type === 'overclockPower') return new Decimal(lv + 1).mul(2500);
-    if (type === 'efficiency') return new Decimal(lv + 1).mul(1500);
+    if (type === 'efficiency')     return new Decimal(lv + 1).mul(1500);
     return new Decimal(Infinity);
   };
 

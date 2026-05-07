@@ -4,15 +4,7 @@ import { getForestryYieldBonus, getForestrySpeedBonus, getEnergyEfficiencyBonus 
 import { bestiaryState, setDnaGainCallback } from './bestiary.svelte.js';
 import { Decimal } from '../systems/decimal.js';
 import { formatNumber } from '../systems/scalingSystem.js';
-
-export interface BioTool {
-  tier: number;
-  name: string;
-  speed: number;
-  yield: number;
-  luck: number;
-  dataCost: number;
-}
+import { GATHERING_CONSTANTS, makeTools, type GatheringTool } from '../data/gatheringConfig.js';
 
 export type ForestryUpgradeType =
   | 'chainsawFuel'
@@ -30,6 +22,7 @@ export interface ForestryState {
   dnaFragments: Decimal;
   growthProgress: number;
   harvestRate: number;
+  dnaRate: number;
   growthChambers: number;
   mutationChance: number;
   reforestation: number;
@@ -45,24 +38,18 @@ export interface ForestryState {
   resources: Record<string, Decimal>;
 }
 
-// Constants
-const FORESTRY_CONSTANTS = {
-  BASE_GROWTH_RATE: 2,
-  CHAMBER_BONUS: 1,
-  GROWTH_TICK_RATE: 0.1,
-  GROWTH_THRESHOLD: 100,
-  MUTATION_BASE_MULTIPLIER: 3,
-  MUTATION_POWER_BONUS: 0.5,
-  REFINE_RATIO: 25,
-  FRAGMENT_DROP_CHANCE: 0.15, // Unified chance
-  MAX_GROWTH_PER_TICK: 1000,
-  BASE_ENERGY_COST: 0.05,
-  BASE_REGEN_RATE: 0.01,
-  CHAMBER_REGEN_BONUS: 0.002,
-  OVERCLOCK_DURATION: 1200,
-  OVERCLOCK_BASE_MULTIPLIER: 3,
-  OVERCLOCK_POWER_BONUS: 0.5
-};
+export const bioTools = makeTools([
+  'Bio-Harvesting Tool',
+  'Nano Harvester',
+  'Molecular Extractor',
+  'DNA Synthesizer',
+  'Quantum Bio Reaper',
+  'Cellular Architect',
+  'Organoid Forge',
+  'Bio-Sphere Siphon',
+  'Genetic Overlord',
+  'Life-Stream Extractor'
+]);
 
 export const forestryState: ForestryState = $state({
   unlocked: false,
@@ -72,6 +59,7 @@ export const forestryState: ForestryState = $state({
   dnaFragments: new Decimal(0),
   growthProgress: 0,
   harvestRate: 0, 
+  dnaRate: 0,
   growthChambers: 1,
   mutationChance: 0.05,
   reforestation: 0,
@@ -81,8 +69,6 @@ export const forestryState: ForestryState = $state({
   isOverclocked: false,
   overclockTicks: 0,
 
-  // Calibration levels start at 0 (UI shows Lv.0).
-  // Tick math offsets keep base behavior identical.
   chainsawFuel: 0,
   ancientSaplings: 0,
   mutationPower: 0,
@@ -105,22 +91,14 @@ export const forestryState: ForestryState = $state({
   }
 });
 
+let _dnaAccum = 0;
+let _dnaRateTimer = 0;
+const DNA_RATE_WINDOW = 5000;
+const FORESTRY_CONSTANTS = { REFINE_RATIO: 50, OVERCLOCK_DURATION: 600 };
+
 setDnaGainCallback((amount: Decimal) => {
   forestryState.dnaFragments = forestryState.dnaFragments.add(amount);
 });
-
-export const bioTools: BioTool[] = [
-  { tier: 1, name: 'Bio-Harvesting Tool', speed: 2, yield: 2, luck: 2, dataCost: 0 },
-  { tier: 2, name: 'Nano Harvester', speed: 10, yield: 10, luck: 4, dataCost: 50 },
-  { tier: 3, name: 'Molecular Extractor', speed: 40, yield: 35, luck: 8, dataCost: 250 },
-  { tier: 4, name: 'DNA Synthesizer', speed: 150, yield: 120, luck: 15, dataCost: 1000 },
-  { tier: 5, name: 'Quantum Bio Reaper', speed: 600, yield: 500, luck: 30, dataCost: 5000 },
-  { tier: 6, name: 'Cellular Architect', speed: 2500, yield: 2000, luck: 60, dataCost: 25000 },
-  { tier: 7, name: 'Organoid Forge', speed: 10000, yield: 8000, luck: 120, dataCost: 100000 },
-  { tier: 8, name: 'Bio-Sphere Siphon', speed: 50000, yield: 40000, luck: 250, dataCost: 500000 },
-  { tier: 9, name: 'Genetic Overlord', speed: 250000, yield: 200000, luck: 500, dataCost: 2500000 },
-  { tier: 10, name: 'Life-Stream Extractor', speed: 1000000, yield: 800000, luck: 1000, dataCost: 10000000 }
-];
 
 export function checkForestryUnlock(): void {
   const isEligible = character.level.gte(200);
@@ -136,147 +114,127 @@ export function performForestryTick(ticks: number): void {
   checkForestryUnlock();
   if (!forestryState.unlocked) return;
 
-  const energyEff = getEnergyEfficiencyBonus();
   const tool = bioTools[Math.max(0, forestryState.toolTier - 1)];
   const speedBonus = getForestrySpeedBonus();
+  const energyEff = getEnergyEfficiencyBonus();
   
-  let activeSpeed = (FORESTRY_CONSTANTS.BASE_GROWTH_RATE + 
-                    (forestryState.growthChambers * FORESTRY_CONSTANTS.CHAMBER_BONUS)) * 
-                    tool.speed * 
-                    (forestryState.chainsawFuel + 1) * 
-                    (forestryState.reforestation + 1) * 
-                    speedBonus * 2;
+  let activeSpeed =
+    (GATHERING_CONSTANTS.BASE_RATE + forestryState.growthChambers * GATHERING_CONSTANTS.AUTOMATION_BONUS) *
+    tool.speed *
+    (forestryState.chainsawFuel + 1) *
+    (forestryState.reforestation + 1) *
+    speedBonus * 2;
 
-  // Overclock effect
   if (forestryState.isOverclocked) {
-    const overclockMult = FORESTRY_CONSTANTS.OVERCLOCK_BASE_MULTIPLIER + 
-                          ((forestryState.overclockPower + 1) * FORESTRY_CONSTANTS.OVERCLOCK_POWER_BONUS);
-    activeSpeed *= overclockMult;
+    const ocMult = GATHERING_CONSTANTS.OVERCLOCK_BASE_MULT +
+                   (forestryState.overclockPower + 1) * GATHERING_CONSTANTS.OVERCLOCK_POWER_BONUS;
+    activeSpeed *= ocMult;
     forestryState.overclockTicks -= ticks;
-    if (forestryState.overclockTicks <= 0) {
-      forestryState.isOverclocked = false;
-    }
+    if (forestryState.overclockTicks <= 0) forestryState.isOverclocked = false;
   }
 
-  // Energy Consumption & Yield Scaling
-  // FIXED: energy cost must scale sublinearly with speed to avoid hard caps at high tiers.
-  const effReduction = 1 / (1 + (forestryState.efficiency * 0.1));
-
+  const effReduction = 1 / (1 + forestryState.efficiency * 0.1);
   const speedLog = Math.max(1, Math.log10(activeSpeed + 1));
-  const actualCostPerTick = (FORESTRY_CONSTANTS.BASE_ENERGY_COST * speedLog * speedLog) * effReduction;
+  const actualCostPerTick = GATHERING_CONSTANTS.BASE_ENERGY_COST * speedLog * speedLog * effReduction;
 
-  // Regen scales with tool tier and chamber count so capacity upgrades keep pace.
   const toolTierMult = forestryState.toolTier;
   const regenPerTick =
-    (forestryState.maxEnergy * FORESTRY_CONSTANTS.BASE_REGEN_RATE * toolTierMult +
-      forestryState.growthChambers * (forestryState.maxEnergy * FORESTRY_CONSTANTS.CHAMBER_REGEN_BONUS * toolTierMult)) *
+    (forestryState.maxEnergy * GATHERING_CONSTANTS.BASE_REGEN_RATE * toolTierMult +
+     forestryState.growthChambers * forestryState.maxEnergy * GATHERING_CONSTANTS.AUTOMATION_REGEN * toolTierMult) *
     energyEff;
-  
-  let yieldMult = 1.0;
-  
-  if (!forestryState.isOverclocked) {
-    const totalPotentialCost = actualCostPerTick * ticks;
-    const totalAvailableEnergy = forestryState.energy + (regenPerTick * ticks);
 
-    if (totalPotentialCost > 0) {
-      if (totalAvailableEnergy < totalPotentialCost) {
-        yieldMult = Math.max(0, totalAvailableEnergy / totalPotentialCost);
+  let yieldMult = 1.0;
+  if (!forestryState.isOverclocked) {
+    const totalCost = actualCostPerTick * ticks;
+    const totalAvail = forestryState.energy + regenPerTick * ticks;
+    if (totalCost > 0) {
+      if (totalAvail < totalCost) {
+        yieldMult = Math.max(0, totalAvail / totalCost);
         forestryState.energy = 0;
       } else {
-        forestryState.energy = Math.max(
-          0,
-          Math.min(forestryState.maxEnergy, totalAvailableEnergy - totalPotentialCost)
-        );
-        yieldMult = 1.0;
+        forestryState.energy = Math.max(0, Math.min(forestryState.maxEnergy, totalAvail - totalCost));
       }
     } else {
-      forestryState.energy = Math.max(
-        0,
-        Math.min(forestryState.maxEnergy, forestryState.energy + (regenPerTick * ticks))
-      );
-      yieldMult = 1.0;
+      forestryState.energy = Math.max(0, Math.min(forestryState.maxEnergy, forestryState.energy + regenPerTick * ticks));
     }
   } else {
-    forestryState.energy = Math.max(
-      0,
-      Math.min(forestryState.maxEnergy, forestryState.energy + (regenPerTick * ticks))
-    );
-    yieldMult = 1.0;
+    forestryState.energy = Math.max(0, Math.min(forestryState.maxEnergy, forestryState.energy + regenPerTick * ticks));
   }
 
-  // Growth Execution
   if (yieldMult > 0) {
-    const progressGain = (activeSpeed * FORESTRY_CONSTANTS.GROWTH_TICK_RATE * yieldMult) * ticks;
-    
-    // Calculate display rate: completions per second
-    // Since progressGain is per 'ticks' interval, we divide by ticks and multiply by 10 (100ms ticks -> 1s)
-    // Then divide by threshold (100) to get "full harvests per second"
-    forestryState.harvestRate = (progressGain / ticks) * 10 / FORESTRY_CONSTANTS.GROWTH_THRESHOLD;
-    
+    const progressGain = activeSpeed * GATHERING_CONSTANTS.TICK_RATE * yieldMult * ticks;
+    forestryState.harvestRate = (progressGain / ticks) * 10 / GATHERING_CONSTANTS.PROGRESS_THRESHOLD;
     forestryState.growthProgress += progressGain;
-    
-    if (forestryState.growthProgress >= FORESTRY_CONSTANTS.GROWTH_THRESHOLD) {
-      const harvests = Math.floor(forestryState.growthProgress / FORESTRY_CONSTANTS.GROWTH_THRESHOLD);
-      forestryState.growthProgress %= FORESTRY_CONSTANTS.GROWTH_THRESHOLD;
-      executeHarvest(tool, harvests);
+
+    if (forestryState.growthProgress >= GATHERING_CONSTANTS.PROGRESS_THRESHOLD) {
+      const harvests = Math.floor(forestryState.growthProgress / GATHERING_CONSTANTS.PROGRESS_THRESHOLD);
+      forestryState.growthProgress %= GATHERING_CONSTANTS.PROGRESS_THRESHOLD;
+      if (harvests > 0) {
+        const activeYield = tool.yield * (1 + forestryState.chainsawFuel * 0.1) + forestryState.growthChambers * 5;
+        executeHarvest(tool, activeYield * harvests);
+      }
     }
   } else {
     forestryState.harvestRate = 0;
   }
+
+  const elapsedMs = ticks * GATHERING_CONSTANTS.TICK_RATE * 1000;
+  _dnaRateTimer += elapsedMs;
+  if (_dnaRateTimer >= DNA_RATE_WINDOW && _dnaAccum > 0) {
+    forestryState.dnaRate = _dnaAccum / (_dnaRateTimer / 1000);
+    _dnaAccum = 0;
+    _dnaRateTimer = 0;
+  } else if (_dnaRateTimer >= DNA_RATE_WINDOW * 3) {
+    forestryState.dnaRate = 0;
+    _dnaAccum = 0;
+    _dnaRateTimer = 0;
+  }
 }
 
-function executeHarvest(tool: BioTool, count: number = 1): void {
-  const yieldBonus = getForestryYieldBonus();
-  
-  const tiers = [
-    'biomass', 'oakron', 'birchon', 'pynex', 'willix', 'mahorix', 'tecron', 'ironwood',
-    'darkwood', 'voidwood'
-  ];
-  const maxTier = Math.max(1, Math.min(tiers.length, forestryState.ancientSaplings + 1));
-  const availableTiers = tiers.slice(0, maxTier);
-
-  const isMutated = Math.random() < (forestryState.mutationChance + (tool.luck / 1000));
-  let mutationMult = 1;
-  if (isMutated) {
-    mutationMult = FORESTRY_CONSTANTS.MUTATION_BASE_MULTIPLIER + 
-                   (forestryState.mutationPower * FORESTRY_CONSTANTS.MUTATION_POWER_BONUS);
-    addLog(`[FORESTRY] Mutation Cluster harvested!`, 'loot');
+function executeHarvest(tool: GatheringTool, amount: number): void {
+  const critChance = GATHERING_CONSTANTS.CRIT_CHANCE_BASE +
+                     (tool.luck / 1000) * GATHERING_CONSTANTS.CRIT_CHANCE_PER_LUCK;
+  let critMult = 1;
+  if (Math.random() < critChance) {
+    critMult = GATHERING_CONSTANTS.CRIT_MULTIPLIER;
+    addLog(`[FORESTRY] MUTATION CLUSTER! ${GATHERING_CONSTANTS.CRIT_MULTIPLIER}x Resources!`, 'loot');
   }
 
-  // Scaling to 1A (10^33) per second at Tier 10.
-  // 1A = 10^33. At ~8 completions/s, target is ~10^32 per completion.
-  const harvestMultiplier = tool.tier * 1e31;
-  const totalBaseAmount = new Decimal(tool.yield).mul(yieldBonus).mul(count).mul(mutationMult).mul(harvestMultiplier);
-  
-  if (totalBaseAmount.gt(1000000)) {
-     addLog(`[FORESTRY] Massive Harvest! ${formatNumber(totalBaseAmount)} resources collected.`, 'loot');
-  }
+  const maxTier = Math.max(1, Math.min(10, forestryState.ancientSaplings + 1));
+  const availableTiers = [
+    'biomass','oakron','birchon','pynex','willix',
+    'mahorix','tecron','ironwood','darkwood','voidwood'
+  ].slice(0, maxTier);
 
-  const amountPerTier = totalBaseAmount.div(availableTiers.length).floor();
-  const remainder = totalBaseAmount.mod(availableTiers.length).toNumber();
+  const yieldMult = new Decimal(10).pow(
+    (tool.tier - 1) * GATHERING_CONSTANTS.YIELD_TIER_STEP + GATHERING_CONSTANTS.YIELD_BASE_EXPONENT
+  );
+  const totalAmount = new Decimal(amount).mul(critMult).mul(yieldMult);
 
-  availableTiers.forEach((oreId, index) => {
+  const amountPerTier = totalAmount.div(availableTiers.length).floor();
+  const remainder = totalAmount.mod(availableTiers.length).toNumber();
+
+  availableTiers.forEach((id, index) => {
     let finalAmount = amountPerTier;
     if (index < remainder) finalAmount = finalAmount.add(1);
-    
     if (finalAmount.gt(0)) {
-      forestryState.resources[oreId] = (forestryState.resources[oreId] || new Decimal(0)).add(finalAmount);
-      handleBioRefining(oreId);
+      forestryState.resources[id] = (forestryState.resources[id] || new Decimal(0)).add(finalAmount);
+      handleBioRefining(id);
     }
   });
-  
-  const expectedGain = count * FORESTRY_CONSTANTS.FRAGMENT_DROP_CHANCE;
-  const actualDrops = Math.floor(expectedGain) + (Math.random() < (expectedGain % 1) ? 1 : 0);
-  
-  if (actualDrops > 0) {
-    const tierMult = Math.pow(tool.tier, 4); 
-    const efficiencyMult = (forestryState.chainsawFuel * forestryState.reforestation);
-    const gain = new Decimal(actualDrops).mul(tierMult).mul(efficiencyMult).mul(10).ceil();
-    
-    forestryState.dnaFragments = forestryState.dnaFragments.add(gain);
-    bestiaryState.dataFragments = bestiaryState.dataFragments.add(gain);
+
+  if (Math.random() < GATHERING_CONSTANTS.FRAG_DROP_CHANCE) {
+    const fragGain = new Decimal(Math.pow(tool.tier, GATHERING_CONSTANTS.FRAG_TIER_POWER))
+      .mul(forestryState.chainsawFuel + 1)
+      .mul(forestryState.reforestation + 1)
+      .mul(10)
+      .ceil();
+    forestryState.dnaFragments = forestryState.dnaFragments.add(fragGain);
+    bestiaryState.dataFragments = bestiaryState.dataFragments.add(fragGain);
+    _dnaAccum += fragGain.toNumber();
   }
 }
+
 
 const BIO_REFINE_MAP: Record<string, string> = {
   biomass: 'biofiber', oakron: 'reinforcedFiber', birchon: 'lightPanel',

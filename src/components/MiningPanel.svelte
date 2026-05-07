@@ -17,6 +17,7 @@ function handleOverclock(): void { triggerOverclock(); showToast('Overclock acti
 function calculateMiningCost(type: MiningUpgradeType, amount: number): Decimal {
   const getCost = (lv: number): Decimal => {
     if (type === 'sharpness')      return new Decimal(lv).mul(1000);
+    if (type === 'extraction')     return new Decimal(lv).mul(200);
     if (type === 'discovery')      return new Decimal(10).pow(lv).mul(500);
     if (type === 'sensors')        return new Decimal(lv).mul(2000);
     if (type === 'overclockPower') return new Decimal(lv).mul(2500);
@@ -61,6 +62,10 @@ let currentDisplayTab = $state('basic');
       <div class="header-stat-box">
         <span class="stat-label">DATA FRAGS</span>
         <span class="stat-value" style="color: var(--neon-gold);">{formatNumber(bestiaryState.dataFragments)}</span>
+      </div>
+      <div class="header-stat-box">
+        <span class="stat-label">DATA/s</span>
+        <span class="stat-value" style="color: var(--neon-gold);">{formatNumber(miningState.dataRate)}/s</span>
       </div>
     </div>
   </div>
@@ -136,6 +141,10 @@ let currentDisplayTab = $state('basic');
           <button onclick={() => buyMiningUpgrade('sharpness', buyAmount)} class="btn-u">
             <span class="u-name">Drill Sharpness [Lv.{miningState.sharpness}]</span>
             <small>+Speed Mult | Cost: {formatNumber(calculateMiningCost('sharpness', buyAmount))} Data</small>
+          </button>
+          <button onclick={() => buyMiningUpgrade('extraction', buyAmount)} class="btn-u">
+            <span class="u-name">Extraction Power [Lv.{miningState.extraction}]</span>
+            <small>+Speed Mult | Cost: {formatNumber(calculateMiningCost('extraction', buyAmount))} Data</small>
           </button>
           <button onclick={() => buyMiningUpgrade('discovery', buyAmount)} class="btn-u" disabled={miningState.discovery >= 10}>
             <span class="u-name">Vein Discovery [Lv.{miningState.discovery}]</span>

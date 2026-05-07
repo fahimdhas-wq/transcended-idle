@@ -84,6 +84,10 @@ let currentDisplayTab = $state('basic');
         <span class="stat-label">DNA FRAGS</span>
         <span class="stat-value" style="color: var(--neon-green);">{formatNumber(forestryState.dnaFragments)}</span>
       </div>
+      <div class="header-stat-box">
+        <span class="stat-label">DNA/s</span>
+        <span class="stat-value" style="color: var(--neon-green);">{formatNumber(forestryState.dnaRate)}/s</span>
+      </div>
     </div>
   </div>
   
