@@ -1,0 +1,7 @@
+{
+  "title": "9Router Claude",
+  "model": "kr/claude-3-5-sonnet",
+  "apiBase": "http://localhost:20128/v1",
+  "apiKey": "YOUR_9ROUTER_KEY",
+  "provider": "openai"
+}

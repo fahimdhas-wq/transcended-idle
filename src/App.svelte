@@ -92,7 +92,7 @@
           {/if}
         {/each}
       </div>
-      <button class="btn-global-max" onclick={() => { applyGlobalMaxUpgrade(); showToast('MAX applied to all upgrades!', 'success'); }}>⚡ MAX</button>
+
       <div class="tab-fade-right"></div>
     </div>
 
@@ -278,32 +278,35 @@
     50% { box-shadow: 0 0 12px var(--neon-gold); }
   }
 
-  .btn-global-max {
-    position: absolute;
-    right: 50px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: rgba(0, 220, 255, 0.1);
-    border: 2px solid var(--neon-blue);
+.btn-global-max { /* removed MAX button; orphaned style for legacy references */
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    background: rgba(0, 190, 255, 0.1);
+    border: 1px solid var(--neon-blue);
     color: var(--neon-blue);
     font-family: var(--font-cyber);
-    font-size: 0.85rem;
-    padding: 8px 16px;
+    font-size: 0.8rem;
+    padding: 8px 14px;
     cursor: pointer;
     border-radius: 4px;
     white-space: nowrap;
-    transition: all 0.2s;
+    transition: all 0.15s ease;
     font-weight: bold;
     letter-spacing: 1px;
     text-transform: uppercase;
+    z-index: 100;
   }
-  .btn-global-max:hover {
-    background: rgba(0, 220, 255, 0.2);
-    box-shadow: 0 0 15px rgba(0, 220, 255, 0.4), inset 0 0 5px rgba(0, 220, 255, 0.2);
-    transform: translateY(-50%) scale(1.05);
+  .btn-global-max:hover:not(:disabled) {
+    background: rgba(0, 190, 255, 0.2);
+    border-color: var(--neon-blue);
+    color: #fff;
+    box-shadow: 0 0 8px rgba(0, 190, 255, 0.4);
+    transform: scale(1.05);
   }
   .btn-global-max:active {
-    transform: translateY(-50%) scale(0.95);
+    transform: scale(0.95);
+    box-shadow: inset 0 0 4px rgba(0, 190, 255, 0.2);
   }
 
   .new-dot {

@@ -257,7 +257,10 @@ function handleBioRefining(id: string): void {
   }
 }
 
-export function buyForestryUpgrade(type: ForestryUpgradeType, amount: number = 1): void {
+import { calculateBulkCost } from '../utils/bulkCost.js';
+import { maxAffordable } from '../utils/maxAffordable.js';
+
+export function buyForestryUpgrade(type: ForestryUpgradeType, amount: number | 'max' = 1): void {
   const getCost = (lv: number): Decimal => {
     if (type === 'chainsawFuel')    return new Decimal(lv).mul(500);
     if (type === 'reforestation')   return new Decimal(lv).mul(200);
@@ -268,18 +271,23 @@ export function buyForestryUpgrade(type: ForestryUpgradeType, amount: number = 1
     return new Decimal(Infinity);
   };
 
-  let totalCost = new Decimal(0);
+  const currentLv = (forestryState[type] || 0);
   let count = 0;
-  for (let i = 0; i < amount; i++) {
-    const nextLv = (forestryState[type] || 0) + count;
-    if (type === 'ancientSaplings' && nextLv >= 10) break;
-    const cost = getCost(nextLv);
-    if (forestryState.dnaFragments.sub(totalCost).lt(cost)) break;
-    totalCost = totalCost.add(cost);
-    count++;
+
+  if (amount === 'max') {
+    count = maxAffordable(forestryState.dnaFragments, currentLv, getCost);
+  } else {
+    count = amount;
   }
 
-  if (count > 0) {
+  if (type === 'ancientSaplings') {
+    count = Math.min(count, 10 - currentLv);
+  }
+
+  if (count <= 0) return;
+  const totalCost = calculateBulkCost(getCost, currentLv, count);
+
+  if (forestryState.dnaFragments.gte(totalCost)) {
     forestryState.dnaFragments = forestryState.dnaFragments.sub(totalCost);
     forestryState[type] += count;
     addLog(`[FORESTRY] Upgrade complete: ${type} x${count}.`, 'system');
@@ -297,41 +305,68 @@ export function upgradeBioTool(): void {
   }
 }
 
-export function addGrowthChamber(amount: number = 1): void {
-  let totalCost = new Decimal(0);
-  for (let i = 0; i < amount; i++) {
-    const lv = (forestryState.growthChambers - 1) + i; // Start from 0
-    totalCost = totalCost.add(Math.floor(Math.pow(lv, 1.5) * 50));
+export function addGrowthChamber(amount: number | 'max' = 1): void {
+  const getCost = (lv: number): Decimal => new Decimal(Math.floor(Math.pow(lv, 1.5) * 50));
+  
+  const currentLv = forestryState.growthChambers - 1;
+  let count = 0;
+  if (amount === 'max') {
+    count = maxAffordable(forestryState.resources.biofiber || new Decimal(0), currentLv, getCost);
+  } else {
+    count = amount;
   }
+
+  if (count <= 0) return;
+  const totalCost = calculateBulkCost(getCost, currentLv, count);
+
   if (forestryState.resources.biofiber && forestryState.resources.biofiber.gte(totalCost)) {
     forestryState.resources.biofiber = forestryState.resources.biofiber.sub(totalCost);
-    forestryState.growthChambers += amount;
-    addLog(`[FORESTRY] Built ${amount} Chambers.`, 'system');
+    forestryState.growthChambers += count;
+    addLog(`[FORESTRY] Built ${count} Chambers.`, 'system');
   }
 }
 
-export function upgradeMutationChance(amount: number = 1): void {
-  let totalCost = new Decimal(0);
-  for (let i = 0; i < amount; i++) {
-    const currentMut = (forestryState.mutationChance / 0.01) + (i - 1); // Start from 0
-    totalCost = totalCost.add(Math.floor(currentMut * 500));
+export function upgradeMutationChance(amount: number | 'max' = 1): void {
+  const getCost = (lv: number): Decimal => new Decimal(Math.floor(lv * 500));
+  
+  const currentLv = (forestryState.mutationChance / 0.01) - 1;
+  let count = 0;
+  if (amount === 'max') {
+    count = maxAffordable(forestryState.resources.resinGel || new Decimal(0), currentLv, getCost);
+  } else {
+    count = amount;
   }
+
+  if (count <= 0) return;
+  const totalCost = calculateBulkCost(getCost, currentLv, count);
+
   if (forestryState.resources.resinGel && forestryState.resources.resinGel.gte(totalCost)) {
     forestryState.resources.resinGel = forestryState.resources.resinGel.sub(totalCost);
-    forestryState.mutationChance += (0.01 * amount);
-    addLog(`[FORESTRY] Mutation chance increased.`, 'system');
+    forestryState.mutationChance += (0.01 * count);
+    addLog(`[FORESTRY] Mutation chance increased by ${Math.floor(count)}%.`, 'system');
   }
 }
 
-export function upgradeForestryEnergy(amount: number = 1): void {
-  let totalCost = new Decimal(0);
-  for (let i = 0; i < amount; i++) {
-    const currentMax = forestryState.maxEnergy + (i * 100);
-    totalCost = totalCost.add(new Decimal((currentMax / 100) * 25));
+export function upgradeForestryEnergy(amount: number | 'max' = 1): void {
+  const getCost = (lv: number): Decimal => {
+    const currentMax = 100 + (lv * 100);
+    return new Decimal((currentMax / 100) * 25);
+  };
+
+  const currentLv = (forestryState.maxEnergy - 100) / 100;
+  let count = 0;
+  if (amount === 'max') {
+    count = maxAffordable(forestryState.resources.reinforcedFiber || new Decimal(0), currentLv, getCost);
+  } else {
+    count = amount;
   }
+
+  if (count <= 0) return;
+  const totalCost = calculateBulkCost(getCost, currentLv, count);
+
   if (forestryState.resources.reinforcedFiber && forestryState.resources.reinforcedFiber.gte(totalCost)) {
     forestryState.resources.reinforcedFiber = forestryState.resources.reinforcedFiber.sub(totalCost);
-    forestryState.maxEnergy += (100 * amount);
+    forestryState.maxEnergy += (100 * count);
     forestryState.energy = forestryState.maxEnergy;
     addLog(`[FORESTRY] Nutrient capacity expanded.`, 'system');
   }

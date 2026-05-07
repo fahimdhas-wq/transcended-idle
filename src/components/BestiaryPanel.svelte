@@ -4,18 +4,21 @@
   import { formatNumber } from '../systems/scalingSystem.js';
   import { uiStore } from '../stores/uiStore.svelte.js';
   import { calculateBulkCost } from '../utils/bulkCost.js';
+  import { maxAffordable } from '../utils/maxAffordable.js';
   import { Decimal } from '../systems/decimal.js';
 
   let buyAmount = $derived(uiStore.buyAmount);
 
-  function calculateBestiaryCost(type: BestiaryUpgradeType, amount: number): Decimal {
+  function calculateBestiaryCost(type: BestiaryUpgradeType, amount: number | 'max'): Decimal {
     const getCost = (lv: number): number => {
       if (type === 'anatomy') return lv * 500;
       if (type === 'huntersGreed') return (lv + 1) * 1000;
       if (type === 'soulExtraction') return lv * 2500;
       return Infinity;
     };
-    return calculateBulkCost(getCost, bestiaryState[type], amount);
+    const currentLv = Number(bestiaryState[type]);
+    const count = amount === 'max' ? maxAffordable(bestiaryState.dataFragments, currentLv, (lv) => new Decimal(getCost(lv))) : amount;
+    return calculateBulkCost((lv) => new Decimal(getCost(lv)), currentLv, count);
   }
 </script>
 
@@ -44,9 +47,10 @@
     <div class="section-header">
       <h4 class="transcended-sub">UPGRADES</h4>
       <div class="buy-selector">
-        {#each [1, 10, 100, 1000, 10000] as amt}
-          <button class="amt-btn" class:active={uiStore.buyAmount === amt} onclick={() => uiStore.buyAmount = amt}>x{amt}</button>
-        {/each}
+         {#each [1, 10, 100, 1000, 10000] as amt}
+           <button class="amt-btn" class:active={uiStore.buyAmount === amt} onclick={() => uiStore.buyAmount = amt}>x{amt}</button>
+         {/each}
+         <button class="amt-btn" class:active={uiStore.buyAmount === 'max'} onclick={() => uiStore.buyAmount = 'max'}>MAX</button>
       </div>
     </div>
 

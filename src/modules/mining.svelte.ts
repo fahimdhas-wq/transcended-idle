@@ -248,7 +248,10 @@ function handleRefining(id: string): void {
   }
 }
 
-export function buyMiningUpgrade(type: MiningUpgradeType, amount: number = 1): void {
+import { calculateBulkCost } from '../utils/bulkCost.js';
+import { maxAffordable } from '../utils/maxAffordable.js';
+
+export function buyMiningUpgrade(type: MiningUpgradeType, amount: number | 'max' = 1): void {
   const getCost = (lv: number): Decimal => {
     if (type === 'sharpness')      return new Decimal(lv).mul(1000);
     if (type === 'extraction')     return new Decimal(lv).mul(200);
@@ -259,18 +262,24 @@ export function buyMiningUpgrade(type: MiningUpgradeType, amount: number = 1): v
     return new Decimal(Infinity);
   };
 
-  let totalCost = new Decimal(0);
+  const currentLv = Number(miningState[type] || 0);
   let count = 0;
-  for (let i = 0; i < amount; i++) {
-    const nextLv = (miningState[type] || 0) + count;
-    if (type === 'discovery' && nextLv >= 10) break;
-    const cost = getCost(nextLv);
-    if (bestiaryState.dataFragments.sub(totalCost).lt(cost)) break;
-    totalCost = totalCost.add(cost);
-    count++;
+
+  if (amount === 'max') {
+    count = maxAffordable(bestiaryState.dataFragments, currentLv, getCost);
+  } else {
+    count = amount;
+  }
+  
+  if (type === 'discovery') {
+    count = Math.min(count, 10 - currentLv);
   }
 
-  if (count > 0) {
+  if (count <= 0) return;
+
+  const totalCost = calculateBulkCost(getCost, currentLv, count);
+
+  if (bestiaryState.dataFragments.gte(totalCost)) {
     bestiaryState.dataFragments = bestiaryState.dataFragments.sub(totalCost);
     miningState[type] += count;
     addLog(`[MINING] Upgraded ${type} x${count}.`, 'system');
@@ -288,33 +297,51 @@ export function upgradeTool(): void {
   }
 }
 
-export function upgradeEnergy(amount: number = 1): void {
-  let totalCost = new Decimal(0);
-  for (let i = 0; i < amount; i++) {
-    const currentMax = miningState.maxEnergy + (i * 100);
-    totalCost = totalCost.add(new Decimal((currentMax / 100) * 25));
+export function upgradeEnergy(amount: number | 'max' = 1): void {
+  const getCost = (lv: number): Decimal => {
+    const currentMax = 100 + (lv * 100);
+    return new Decimal((currentMax / 100) * 25);
+  };
+
+  const currentLv = (miningState.maxEnergy - 100) / 100;
+  let count = 0;
+  if (amount === 'max') {
+    count = maxAffordable(miningState.resources.fuelX, currentLv, getCost);
+  } else {
+    count = amount;
   }
+
+  if (count <= 0) return;
+  const totalCost = calculateBulkCost(getCost, currentLv, count);
+
   if (miningState.resources.fuelX.gte(totalCost)) {
     miningState.resources.fuelX = miningState.resources.fuelX.sub(totalCost);
-    miningState.maxEnergy += (100 * amount);
+    miningState.maxEnergy += (100 * count);
     miningState.energy = miningState.maxEnergy;
     addLog(`[MINING] Energy expanded.`, 'system');
   }
 }
 
-export function upgradeAutomation(type: MiningAutomationType, amount: number = 1): void {
+export function upgradeAutomation(type: MiningAutomationType, amount: number | 'max' = 1): void {
   const isDrone = type === 'drone';
   const getCost = (lv: number): Decimal => new Decimal(lv).mul(isDrone ? 50 : 100);
-  let totalCost = new Decimal(0);
-  for (let i = 0; i < amount; i++) {
-    const lv = (isDrone ? miningState.drones : miningState.autoExtractors) + i;
-    totalCost = totalCost.add(getCost(lv));
+  
+  const currentLv = isDrone ? miningState.drones : miningState.autoExtractors;
+  let count = 0;
+  if (amount === 'max') {
+    count = maxAffordable(miningState.resources.alloyX, currentLv, getCost);
+  } else {
+    count = amount;
   }
+
+  if (count <= 0) return;
+  const totalCost = calculateBulkCost(getCost, currentLv, count);
+
   if (miningState.resources.alloyX.gte(totalCost)) {
     miningState.resources.alloyX = miningState.resources.alloyX.sub(totalCost);
-    if (isDrone) miningState.drones += amount;
-    else miningState.autoExtractors += amount;
-    addLog(`[MINING] Purchased ${amount} ${type}(s).`, 'system');
+    if (isDrone) miningState.drones += count;
+    else miningState.autoExtractors += count;
+    addLog(`[MINING] Purchased ${count} ${type}(s).`, 'system');
   }
 }
 

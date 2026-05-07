@@ -14,7 +14,7 @@ export interface OfflineSummary {
 }
 
 export interface UIStore {
-  buyAmount: number;
+  buyAmount: number | 'max';
   toast: Toast | null;
   offlineSummary: OfflineSummary | null;
 }

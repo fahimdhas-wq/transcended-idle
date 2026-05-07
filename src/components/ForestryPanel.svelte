@@ -15,310 +15,547 @@ import { formatNumber } from '../systems/scalingSystem.js';
 import { uiStore, showToast } from '../stores/uiStore.svelte.js';
 import { Decimal } from '../systems/decimal.js';
 import { calculateBulkCost } from '../utils/bulkCost.js';
+import { maxAffordable } from '../utils/maxAffordable.js';
 import { basicTrees, refinedTrees, advancedTrees } from '../data/resources.js';
 
 let buyAmount = $derived(uiStore.buyAmount);
 
-function handleOverclock(): void { 
-  triggerForestryOverclock(); 
-  showToast('Growth Surge activated!', 'warn'); 
-}
-
-function calculateForestryCost(type: ForestryUpgradeType, amount: number): Decimal {
-  const getCost = (lv: number): Decimal => {
-    if (type === 'chainsawFuel')    return new Decimal(lv).mul(500);
-    if (type === 'reforestation')   return new Decimal(lv).mul(150);
-    if (type === 'ancientSaplings') {
-      if (lv >= 10) return new Decimal(Infinity); 
-      return new Decimal(10).pow(lv).mul(100);
-    }
-    if (type === 'mutationPower')   return new Decimal(lv).mul(1500);
-    if (type === 'overclockPower')  return new Decimal(lv).mul(2000);
-    if (type === 'efficiency')      return new Decimal(lv).mul(1000);
-    return new Decimal(0);
-  };
-  return calculateBulkCost(getCost, Number(forestryState[type] || 0), amount);
-}
-
-function calculateEnergyCost(amount: number): Decimal {
+function calculateEnergyCost(amount: number | 'max'): Decimal {
   const getCost = (i: number): Decimal => {
     const currentMax = Number(forestryState.maxEnergy) + (i * 100);
     return new Decimal((currentMax / 100) * 25);
   };
-  return calculateBulkCost(getCost, 0, amount);
+  const currentLv = (Number(forestryState.maxEnergy) - 100) / 100;
+  const count = amount === 'max' ? maxAffordable(forestryState.resources.reinforcedFiber || new Decimal(0), currentLv, getCost) : amount;
+  return calculateBulkCost(getCost, currentLv, count);
 }
 
-function calculateChamberCost(amount: number): Decimal {
-  const getCost = (lv: number): Decimal => new Decimal(Math.floor(Math.pow(lv, 1.5) * 20));
-  return calculateBulkCost(getCost, Number(forestryState.growthChambers || 0), amount);
-}
-
-function calculateMutationCost(amount: number): Decimal {
-  const getCost = (i: number): Decimal => {
-    const currentMut = Number(forestryState.mutationChance) + (i * 0.02);
-    return new Decimal(Math.floor(currentMut * 200));
+function calculateForestryCost(type: ForestryUpgradeType, amount: number | 'max'): Decimal {
+  const getCost = (lv: number): Decimal => {
+    if (type === 'chainsawFuel')    return new Decimal(lv).mul(500);
+    if (type === 'reforestation')   return new Decimal(lv).mul(200);
+    if (type === 'ancientSaplings') return new Decimal(10).pow(lv).mul(100);
+    if (type === 'mutationPower')   return new Decimal(lv + 1).mul(1500);
+    if (type === 'overclockPower')  return new Decimal(lv + 1).mul(2000);
+    if (type === 'efficiency')      return new Decimal(lv + 1).mul(1000);
+    return new Decimal(0);
   };
-  return calculateBulkCost(getCost, 0, amount);
+  const currentLv = Number(forestryState[type] || 0);
+  const count = amount === 'max' ? maxAffordable(forestryState.dnaFragments, currentLv, getCost) : amount;
+  return calculateBulkCost(getCost, currentLv, count);
+}
+
+function calculateChamberCost(amount: number | 'max'): Decimal {
+  const getCost = (lv: number): Decimal => {
+    return new Decimal(Math.floor(Math.pow(lv, 1.5) * 50));
+  };
+  const currentLv = forestryState.growthChambers - 1;
+  const count = amount === 'max' ? maxAffordable(forestryState.resources.biofiber || new Decimal(0), currentLv, getCost) : amount;
+  return calculateBulkCost(getCost, currentLv, count);
+}
+
+function calculateMutationCost(amount: number | 'max'): Decimal {
+  const getCost = (lv: number): Decimal => {
+    return new Decimal(Math.floor(lv * 500));
+  };
+  const currentLv = (forestryState.mutationChance / 0.01) - 1;
+  const count = amount === 'max' ? maxAffordable(forestryState.resources.resinGel || new Decimal(0), currentLv, getCost) : amount;
+  return calculateBulkCost(getCost, currentLv, count);
+}
+
+function handleOverclock(): void {
+  triggerForestryOverclock();
+  showToast('Growth Surge activated!', 'warn');
 }
 
 let currentDisplayTab = $state('basic');
 </script>
 
-<div class="forestry-panel">
-  <div class="premium-header">
+<div class="forestry-panel cyberpunk-container">
+  <!-- Top Header Section -->
+  <div class="panel-header">
     <div class="header-main">
-      <div class="header-icon">🌿</div>
-      <div class="header-title-box">
-        <h2 class="transcended-text">BIO HARVESTER</h2>
-        <div class="header-subtitle">ORGANIC SYNTHESIS</div>
-      </div>
+      <div class="glitch-title" data-text="BIO HARVESTER">BIO HARVESTER</div>
+      <div class="subtitle">GENETIC RECLAMATION PROTOCOL</div>
     </div>
     <div class="header-stats">
-      <div class="header-stat-box">
-        <span class="stat-label">HARVEST RATE</span>
-        <span class="stat-value" style="color: var(--neon-blue);">
-          {formatNumber(forestryState.harvestRate)}/s
-        </span>
+      <div class="stat-card">
+        <span class="label">HARVEST</span>
+        <span class="value cyan">{formatNumber(forestryState.harvestRate)}/s</span>
       </div>
-      <div class="header-stat-box">
-        <span class="stat-label">DNA FRAGS</span>
-        <span class="stat-value" style="color: var(--neon-green);">{formatNumber(forestryState.dnaFragments)}</span>
-      </div>
-      <div class="header-stat-box">
-        <span class="stat-label">DNA/s</span>
-        <span class="stat-value" style="color: var(--neon-green);">{formatNumber(forestryState.dnaRate)}/s</span>
+      <div class="stat-card">
+        <span class="label">DNA</span>
+        <span class="value green">{formatNumber(forestryState.dnaFragments)}</span>
       </div>
     </div>
   </div>
-  
-  <div class="content-container">
-    {#if !forestryState.unlocked}
-    <div class="locked-msg">
-      <div class="lock-icon">🌿</div>
-      <div>Unlocks at Level 200</div>
+
+  {#if !forestryState.unlocked}
+    <div class="locked-overlay">
+      <div class="lock-icon">🔒</div>
+      <div class="lock-text">PROTOCOL ENCRYPTED</div>
+      <div class="lock-hint">ACCESS GRANTED AT LEVEL 200</div>
     </div>
   {:else}
-    <div class="forestry-status">
-      <div class="tool-info">
-        <span class="stat-label" style="color: var(--color-muted);">ACTIVE HARVESTER:</span>
-        <span class="highlight" style="font-family: var(--font-cyber); font-size: 0.8rem;">{forestryState.toolName}</span>
-      </div>
-
-      <div class="bar-group">
-        <div class="bar-label">
-          <span>HARVEST PROGRESS</span>
-          {#if forestryState.harvestRate >= 100}
-            <span style="color: #4CAF50;">{formatNumber(forestryState.harvestRate)}/s</span>
-          {:else}
-            <span>{Math.floor(forestryState.growthProgress)}%</span>
-          {/if}
+    <!-- Status Bars Section -->
+    <div class="status-section">
+      <div class="status-row">
+        <div class="bar-info">
+          <span class="bar-label">GROWTH PROGRESS</span>
+          <span class="bar-value">{forestryState.harvestRate >= 100 ? 'MAXED' : Math.floor(forestryState.growthProgress) + '%'}</span>
         </div>
-        <div class="progress-bar-container">
-          {#if forestryState.harvestRate >= 100}
-            <div class="progress-fill progress-maxed" style="width: 100%"></div>
-          {:else}
-            <div class="progress-fill" style="width: {forestryState.growthProgress}%"></div>
-          {/if}
+        <div class="progress-bar">
+          <div class="fill green" style="width: {forestryState.harvestRate >= 100 ? 100 : forestryState.growthProgress}%"></div>
         </div>
       </div>
-
-      <div class="bar-group">
-        <div class="bar-label">
-          <span>NUTRIENT ENERGY</span>
-          <span>{Math.floor((Number(forestryState.energy) / Math.max(1, Number(forestryState.maxEnergy))) * 100)}%</span>
+      <div class="status-row">
+        <div class="bar-info">
+          <span class="bar-label">NUTRIENT ENERGY</span>
+          <span class="bar-value">{Math.floor((forestryState.energy / forestryState.maxEnergy) * 100)}%</span>
         </div>
-        <div class="energy-bar-container">
-          <div class="energy-fill" style="width: {Math.max(0, Math.min(100, (Number(forestryState.energy) / Math.max(1, Number(forestryState.maxEnergy))) * 100))}%"></div>
+        <div class="progress-bar">
+          <div class="fill blue" style="width: {(forestryState.energy / forestryState.maxEnergy) * 100}%"></div>
         </div>
       </div>
     </div>
 
-    <div class="action-grid">
-      <button onclick={upgradeBioTool} class="btn-u" disabled={forestryState.toolTier >= 10}>
-        <span class="u-name">TOOL UPGRADE</span>
-        <small>{forestryState.toolTier >= 10 ? 'MAX' : 'Cost: ' + formatNumber(bioTools[forestryState.toolTier]?.dataCost) + ' DNA'}</small>
-      </button>
-      <button onclick={handleOverclock} class="btn-u" disabled={forestryState.isOverclocked}>
-        <span class="u-name">{forestryState.isOverclocked ? 'SURGE ACTIVE' : 'GROWTH SURGE'}</span>
-        <small>Cost: 25 Reinforced Fiber</small>
-      </button>
-      <button onclick={() => upgradeForestryEnergy(buyAmount)} class="btn-u">
-        <span class="u-name">+NUTRIENT CAP</span>
-        <small>Cost: {formatNumber(calculateEnergyCost(buyAmount))} Reinforced Fiber</small>
-      </button>
-    </div>
+    <!-- Main Grid Layout -->
+    <div class="panel-grid">
+      <!-- Left Column: Primary Actions & Upgrades -->
+      <div class="grid-column">
+        <div class="section-title">SYSTEM CORE</div>
+        <div class="action-buttons">
+          <button onclick={upgradeBioTool} class="cyber-btn tool-btn" disabled={forestryState.toolTier >= 10}>
+            <div class="btn-content">
+              <span class="main">UPGRADE TOOL</span>
+              <span class="sub">{forestryState.toolTier >= 10 ? 'TIER MAX' : 'TIER ' + (forestryState.toolTier + 1)}</span>
+              <span class="cost">{forestryState.toolTier >= 10 ? '-' : formatNumber(bioTools[forestryState.toolTier]?.dataCost) + ' DNA'}</span>
+            </div>
+          </button>
+          
+          <button onclick={handleOverclock} class="cyber-btn surge-btn" disabled={forestryState.isOverclocked}>
+            <div class="btn-content">
+              <span class="main">GROWTH SURGE</span>
+              <span class="sub">{forestryState.isOverclocked ? 'ACTIVE' : 'READY'}</span>
+              <span class="cost">25 R-FIBER</span>
+            </div>
+          </button>
 
-    <div class="upgrades-section">
-      <div class="section-header">
-        <h4 class="transcended-sub">SYSTEM CALIBRATION</h4>
-        <div class="buy-selector">
-          {#each [1, 10, 100, 1000, 10000] as amt}
-            <button class="amt-btn" class:active={uiStore.buyAmount === amt} onclick={() => uiStore.buyAmount = amt}>x{amt}</button>
+          <button onclick={() => upgradeForestryEnergy(buyAmount)} class="cyber-btn energy-btn">
+            <div class="btn-content">
+              <span class="main">+ENERGY CAP</span>
+              <span class="sub">LVL {Math.floor((forestryState.maxEnergy - 100) / 100)}</span>
+              <span class="cost">{formatNumber(calculateEnergyCost(buyAmount))} R-FIBER</span>
+            </div>
+          </button>
+        </div>
+
+        <div class="section-title">CALIBRATION</div>
+        <div class="buy-selector-box">
+          {#each [1, 10, 100, 1000] as amt}
+            <button class="selector-btn" class:active={uiStore.buyAmount === amt} onclick={() => uiStore.buyAmount = amt}>x{amt}</button>
+          {/each}
+          <button class="selector-btn" class:active={uiStore.buyAmount === 'max'} onclick={() => uiStore.buyAmount = 'max'}>MAX</button>
+        </div>
+
+        <div class="upgrades-list">
+          {#each ['chainsawFuel', 'ancientSaplings', 'mutationPower', 'overclockPower', 'efficiency', 'reforestation'] as type}
+            <button onclick={() => buyForestryUpgrade(type as ForestryUpgradeType, buyAmount)} class="upgrade-card" disabled={type === 'ancientSaplings' && forestryState.ancientSaplings >= 10}>
+              <div class="card-info">
+                <span class="name">{type.replace(/([A-Z])/g, ' $1').toUpperCase()}</span>
+                <span class="level">LVL {forestryState[type as ForestryUpgradeType]}</span>
+              </div>
+              <div class="card-cost">{type === 'ancientSaplings' && forestryState.ancientSaplings >= 10 ? 'MAX' : formatNumber(calculateForestryCost(type as ForestryUpgradeType, buyAmount))} DNA</div>
+            </button>
           {/each}
         </div>
       </div>
-      
-      <div class="upgrade-row">
-        <div class="upgrade-item">
-          <button onclick={() => buyForestryUpgrade('chainsawFuel', buyAmount)} class="btn-u">
-              <span class="u-name">Harvest Efficiency [Lv.{forestryState.chainsawFuel}]</span>
-              <small>+Speed | Cost: {formatNumber(calculateForestryCost('chainsawFuel', buyAmount))} DNA</small>
-          </button>
-        </div>
-        <div class="upgrade-item">
-          <button onclick={() => buyForestryUpgrade('ancientSaplings', buyAmount)} class="btn-u" disabled={forestryState.ancientSaplings >= 10}>
-              <span class="u-name">Vein Discovery [Lv.{forestryState.ancientSaplings}]</span>
-              <small>Unlock Trees | Cost: {forestryState.ancientSaplings >= 10 ? 'MAX' : formatNumber(calculateForestryCost('ancientSaplings', buyAmount)) + ' DNA'}</small>
-          </button>
-        </div>
-        <div class="upgrade-item">
-          <button onclick={() => buyForestryUpgrade('mutationPower', buyAmount)} class="btn-u">
-              <span class="u-name">Mutation Power [Lv.{forestryState.mutationPower || 0}]</span>
-              <small>+Mut | Cost: {formatNumber(calculateForestryCost('mutationPower', buyAmount))} DNA</small>
-          </button>
-        </div>
-        <div class="upgrade-item">
-          <button onclick={() => buyForestryUpgrade('overclockPower', buyAmount)} class="btn-u">
-              <span class="u-name">OC Capacitor [Lv.{forestryState.overclockPower || 0}]</span>
-              <small>+OC | Cost: {formatNumber(calculateForestryCost('overclockPower', buyAmount))} DNA</small>
-          </button>
-        </div>
-        <div class="upgrade-item">
-          <button onclick={() => buyForestryUpgrade('efficiency', buyAmount)} class="btn-u">
-              <span class="u-name">Energy Efficiency [Lv.{forestryState.efficiency || 0}]</span>
-              <small>-Energy | Cost: {formatNumber(calculateForestryCost('efficiency', buyAmount))} DNA</small>
-          </button>
-        </div>
-        <div class="upgrade-item">
-          <button onclick={() => buyForestryUpgrade('reforestation', buyAmount)} class="btn-u">
-              <span class="u-name">Reforestation [Lv.{forestryState.reforestation || 1}]</span>
-              <small>+Growth | Cost: {formatNumber(calculateForestryCost('reforestation', buyAmount))} DNA</small>
-          </button>
-        </div>
-      </div>
-    </div>
 
-    <div class="automation-section">
-      <div class="section-header">
-        <h4 class="transcended-sub">BIOME LOGISTICS</h4>
-      </div>
-      <div class="auto-row">
-        <button onclick={() => addGrowthChamber(buyAmount)} class="btn-u">
-          <span class="u-name">Growth Chambers ({forestryState.growthChambers})</span>
-          <small>+Speed/Regen | Cost: {formatNumber(calculateChamberCost(buyAmount))} Biofiber</small>
-        </button>
-        <button onclick={() => upgradeMutationChance(buyAmount)} class="btn-u">
-          <span class="u-name">Mutation Chance ({Math.floor(forestryState.mutationChance * 100)}%)</span>
-          <small>+Mut Chance | Cost: {formatNumber(calculateMutationCost(buyAmount))} Resin Gel</small>
-        </button>
-      </div>
-    </div>
+      <!-- Right Column: Logistics & Resources -->
+      <div class="grid-column">
+        <div class="section-title">BIOME LOGISTICS</div>
+        <div class="automation-grid">
+          <button onclick={() => addGrowthChamber(buyAmount)} class="auto-card">
+            <span class="label">CHAMBERS</span>
+            <span class="value">{forestryState.growthChambers}</span>
+            <span class="cost">{formatNumber(calculateChamberCost(buyAmount))} BIOFIBER</span>
+          </button>
+          <button onclick={() => upgradeMutationChance(buyAmount)} class="auto-card">
+            <span class="label">MUTATION</span>
+            <span class="value">{Math.floor(forestryState.mutationChance * 100)}%</span>
+            <span class="cost">{formatNumber(calculateMutationCost(buyAmount))} RESIN</span>
+          </button>
+        </div>
 
-    <div class="resource-tabs">
-        <button class:active={currentDisplayTab === 'basic'} onclick={() => currentDisplayTab = 'basic'}>BASIC</button>
-        <button class:active={currentDisplayTab === 'refined'} onclick={() => currentDisplayTab = 'refined'}>REFINED</button>
-        <button class:active={currentDisplayTab === 'advanced'} onclick={() => currentDisplayTab = 'advanced'}>ADVANCED</button>
-    </div>
+        <div class="section-title">RESOURCE MATRIX</div>
+        <div class="tab-header">
+          <button class:active={currentDisplayTab === 'basic'} onclick={() => currentDisplayTab = 'basic'}>BASIC</button>
+          <button class:active={currentDisplayTab === 'refined'} onclick={() => currentDisplayTab = 'refined'}>REFINED</button>
+          <button class:active={currentDisplayTab === 'advanced'} onclick={() => currentDisplayTab = 'advanced'}>CORE</button>
+        </div>
 
-    <div class="resources-grid">
-      {#if currentDisplayTab === 'basic'}
-        {#each basicTrees as tree (tree.id)}
-          <div class="res-item" class:inactive={(tree.tier ?? 0) > forestryState.ancientSaplings}>
-            <div class="res-name">{tree.name}</div>
-            <div class="res-amount">{formatNumber(forestryState.resources[tree.id] || 0)}</div>
-            <div class="res-actions">
-              <label class="toggle-sm">
-                <input type="checkbox" checked={forestryState.autoRefine[tree.id]} onchange={(e) => forestryState.autoRefine[tree.id] = (e.currentTarget as HTMLInputElement).checked}>
-                <span class="slider"></span>
-              </label>
-              <button class="refine-item-btn" onclick={() => refineBioSingle(tree.id)} disabled={!forestryState.resources[tree.id] || forestryState.resources[tree.id].lt(25)}>EVOLVE</button>
+        <div class="resources-scroll-area">
+          {#if currentDisplayTab === 'basic'}
+            <div class="resource-grid">
+              {#each basicTrees as tree}
+                <div class="res-card" class:locked={(tree.tier ?? 0) > forestryState.ancientSaplings}>
+                  <div class="res-main">
+                    <span class="res-name">{tree.name}</span>
+                    <span class="res-amt">{formatNumber(forestryState.resources[tree.id] || 0)}</span>
+                  </div>
+                  <div class="res-actions">
+                    <label class="auto-toggle">
+                      <input type="checkbox" checked={forestryState.autoRefine[tree.id]} onchange={(e) => forestryState.autoRefine[tree.id] = e.currentTarget.checked}>
+                      <span class="slider"></span>
+                      <span class="label">AUTO</span>
+                    </label>
+                    <button class="refine-btn" onclick={() => refineBioSingle(tree.id)} disabled={!forestryState.resources[tree.id] || forestryState.resources[tree.id].lt(25)}>EVOLVE</button>
+                  </div>
+                </div>
+              {/each}
             </div>
-          </div>
-        {/each}
-      {:else if currentDisplayTab === 'refined'}
-        {#each refinedTrees as res (res.id)}
-          <div class="res-item">
-            <div class="res-name">{res.name}</div>
-            <div class="res-amount">{formatNumber(forestryState.resources[res.id] || 0)}</div>
-            <div class="res-actions">
-              <label class="toggle-sm">
-                <input type="checkbox" checked={forestryState.autoRefine[res.id]} onchange={(e) => forestryState.autoRefine[res.id] = (e.currentTarget as HTMLInputElement).checked}>
-                <span class="slider"></span>
-              </label>
-              <button class="refine-item-btn" onclick={() => refineBioSingle(res.id)} disabled={!forestryState.resources[res.id] || forestryState.resources[res.id].lt(25)}>EVOLVE</button>
+          {:else if currentDisplayTab === 'refined'}
+            <div class="resource-grid">
+              {#each refinedTrees as res}
+                <div class="res-card">
+                  <div class="res-main">
+                    <span class="res-name">{res.name}</span>
+                    <span class="res-amt">{formatNumber(forestryState.resources[res.id] || 0)}</span>
+                  </div>
+                  <div class="res-actions">
+                    <label class="auto-toggle">
+                      <input type="checkbox" checked={forestryState.autoRefine[res.id]} onchange={(e) => forestryState.autoRefine[res.id] = e.currentTarget.checked}>
+                      <span class="slider"></span>
+                      <span class="label">AUTO</span>
+                    </label>
+                    <button class="refine-btn" onclick={() => refineBioSingle(res.id)} disabled={!forestryState.resources[res.id] || forestryState.resources[res.id].lt(25)}>EVOLVE</button>
+                  </div>
+                </div>
+              {/each}
             </div>
-          </div>
-        {/each}
-      {:else}
-        {#each advancedTrees as res (res.id)}
-          <div class="res-item">
-            <div class="res-name">{res.name}</div>
-            <div class="res-amount">{formatNumber(forestryState.resources[res.id] || 0)}</div>
-          </div>
-        {/each}
-      {/if}
+          {:else}
+            <div class="resource-grid">
+              {#each advancedTrees as res}
+                <div class="res-card core-card">
+                  <span class="res-name">{res.name}</span>
+                  <span class="res-amt highlight">{formatNumber(forestryState.resources[res.id] || 0)}</span>
+                </div>
+              {/each}
+            </div>
+          {/if}
+        </div>
+      </div>
     </div>
   {/if}
 </div>
-</div>
 
 <style>
-.forestry-panel { display: flex; flex-direction: column; height: 100%; overflow-y: auto; padding: 10px; }
-.content-container { display: flex; flex-direction: column; gap: 10px; }
-.locked-msg { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 200px; color: var(--color-muted); }
-.lock-icon { font-size: 3rem; margin-bottom: 10px; }
-
-.forestry-status { display: flex; flex-direction: column; gap: 12px; background: rgba(0,0,0,0.3); padding: 12px; border: 1px solid var(--border-subtle); border-radius: 4px; }
-.tool-info { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px; margin-bottom: 4px; }
-.bar-group { display: flex; flex-direction: column; gap: 4px; }
-.bar-label { display: flex; justify-content: space-between; font-size: 0.65rem; font-family: var(--font-cyber); color: var(--color-muted); letter-spacing: 1px; }
-.progress-bar-container, .energy-bar-container { height: 10px; background: #000; border: 1px solid #333; position: relative; border-radius: 2px; overflow: hidden; }
-.progress-fill { height: 100%; background: #4CAF50; transition: width 0.1s linear; box-shadow: 0 0 10px #4CAF50; }
-
-.progress-maxed {
-  transition: none;
-  animation: maxed-pulse 1s ease-in-out infinite;
+.cyberpunk-container {
+  background: #050505;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 15px;
+  gap: 15px;
+  overflow: hidden;
 }
 
-@keyframes maxed-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
+/* Header Styles */
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 2px solid #1a1a1a;
+  padding-bottom: 10px;
 }
-.energy-fill { height: 100%; background: var(--neon-blue); transition: width 0.1s linear; box-shadow: 0 0 10px var(--neon-blue); }
-.highlight { color: #4CAF50; font-weight: bold; }
+.glitch-title {
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: 2px;
+  position: relative;
+  text-shadow: 0 0 10px rgba(0, 255, 157, 0.3);
+}
+.subtitle {
+  font-size: 0.7rem;
+  color: #666;
+  letter-spacing: 1px;
+}
+.header-stats {
+  display: flex;
+  gap: 15px;
+}
+.stat-card {
+  background: #111;
+  padding: 5px 12px;
+  border: 1px solid #222;
+  display: flex;
+  flex-direction: column;
+  min-width: 100px;
+}
+.stat-card .label { font-size: 0.6rem; color: #555; }
+.stat-card .value { font-size: 1.1rem; font-weight: bold; }
+.value.cyan { color: #00e5ff; text-shadow: 0 0 5px rgba(0, 229, 255, 0.4); }
+.value.green { color: #00ff9d; text-shadow: 0 0 5px rgba(0, 255, 157, 0.4); }
 
-.action-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
-.upgrades-section, .automation-section { background: rgba(0,0,0,0.2); padding: 10px; border: 1px solid var(--border-subtle); }
-.section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-.buy-selector { display: flex; gap: 2px; }
-.amt-btn { background: #111; border: 1px solid #333; color: #666; font-size: 0.6rem; padding: 2px 6px; cursor: pointer; }
-.amt-btn.active { border-color: #4CAF50; color: #4CAF50; }
-.upgrade-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-.auto-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+/* Status Bars */
+.status-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  background: #0a0a0a;
+  padding: 12px;
+  border: 1px solid #1a1a1a;
+}
+.status-row { display: flex; flex-direction: column; gap: 5px; }
+.bar-info { display: flex; justify-content: space-between; font-size: 0.65rem; color: #888; }
+.progress-bar {
+  height: 8px;
+  background: #000;
+  border: 1px solid #222;
+  overflow: hidden;
+  border-radius: 2px;
+}
+.fill { height: 100%; transition: width 0.2s ease; }
+.fill.green { background: linear-gradient(90deg, #004422, #00ff9d); box-shadow: 0 0 10px rgba(0, 255, 157, 0.4); }
+.fill.blue { background: linear-gradient(90deg, #003366, #00e5ff); box-shadow: 0 0 10px rgba(0, 229, 255, 0.4); }
 
-.btn-u { background: #1a1a1a; border: 1px solid #333; color: #ccc; padding: 8px; cursor: pointer; display: flex; flex-direction: column; text-align: left; transition: 0.1s; }
-.btn-u:hover:not(:disabled) { border-color: #4CAF50; background: #222; }
-.btn-u:disabled { opacity: 0.5; cursor: not-allowed; }
-.u-name { font-size: 0.75rem; font-weight: bold; color: #fff; }
-.btn-u small { font-size: 0.6rem; color: #888; margin-top: 2px; }
+/* Main Grid */
+.panel-grid {
+  display: grid;
+  grid-template-columns: 350px 1fr;
+  gap: 20px;
+  flex: 1;
+  overflow: hidden;
+}
+.grid-column {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: hidden;
+}
+.section-title {
+  font-size: 0.75rem;
+  font-weight: bold;
+  color: #444;
+  border-left: 3px solid #00ff9d;
+  padding-left: 8px;
+  margin-bottom: 4px;
+}
 
-.resource-tabs { display: flex; gap: 5px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 5px; }
-.resource-tabs button { background: transparent; border: 1px solid transparent; color: #666; font-size: 0.7rem; padding: 4px 10px; cursor: pointer; }
-.resource-tabs button.active { border-color: #4CAF50; color: #4CAF50; background: rgba(76,175,80,0.05); }
+/* Buttons */
+.action-buttons {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+.cyber-btn {
+  background: #111;
+  border: 1px solid #222;
+  color: #fff;
+  padding: 10px;
+  cursor: pointer;
+  text-align: left;
+  position: relative;
+  transition: all 0.2s;
+}
+.cyber-btn:hover:not(:disabled) {
+  background: #161616;
+  border-color: #444;
+}
+.cyber-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-content { display: flex; flex-direction: column; }
+.btn-content .main { font-weight: bold; font-size: 0.9rem; }
+.btn-content .sub { font-size: 0.65rem; color: #666; }
+.btn-content .cost { font-size: 0.75rem; color: #00ff9d; margin-top: 4px; font-family: monospace; }
 
-.resources-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-.res-item { background: var(--panel-bg); padding: 8px; border: 1px solid var(--border-subtle); display: flex; flex-direction: column; align-items: center; }
-.res-item.inactive { opacity: 0.2; }
-.res-name { font-size: 0.7rem; color: var(--color-muted); text-transform: uppercase; }
-.res-amount { font-size: 0.9rem; color: #fff; font-weight: bold; margin: 4px 0; }
-.res-actions { display: flex; align-items: center; gap: 8px; width: 100%; justify-content: center; }
+.surge-btn { border-left: 3px solid #ff0055; }
+.energy-btn { border-left: 3px solid #00e5ff; }
 
-.toggle-sm { cursor: pointer; height: 14px; }
-.toggle-sm input { display: none; }
-.toggle-sm .slider { width: 24px; height: 12px; background: #333; display: block; border-radius: 6px; position: relative; }
-.toggle-sm .slider:before { content: ''; position: absolute; width: 8px; height: 8px; background: #fff; border-radius: 50%; top: 2px; left: 2px; transition: 0.2s; }
-input:checked + .slider { background: #4CAF50; }
-input:checked + .slider:before { transform: translateX(12px); }
-.refine-item-btn { background: #000; border: 1px solid #444; color: #fff; font-size: 0.6rem; padding: 2px 8px; cursor: pointer; }
-.refine-item-btn:hover:not(:disabled) { border-color: #fff; }
+/* Selector */
+.buy-selector-box {
+  display: flex;
+  gap: 4px;
+}
+.selector-btn {
+  flex: 1;
+  background: #000;
+  border: 1px solid #222;
+  color: #666;
+  font-size: 0.7rem;
+  padding: 4px;
+  cursor: pointer;
+}
+.selector-btn.active {
+  border-color: #00ff9d;
+  color: #00ff9d;
+  background: rgba(0, 255, 157, 0.05);
+}
+
+/* Upgrades */
+.upgrades-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  padding-right: 5px;
+}
+.upgrade-card {
+  background: #0a0a0a;
+  border: 1px solid #1a1a1a;
+  padding: 8px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+}
+.upgrade-card:hover:not(:disabled) { border-color: #333; }
+.card-info { display: flex; flex-direction: column; }
+.card-info .name { font-size: 0.75rem; color: #ccc; }
+.card-info .level { font-size: 0.6rem; color: #555; }
+.card-cost { font-size: 0.8rem; color: #00ff9d; font-family: monospace; }
+
+/* Right Column: Logistics & Resources */
+.automation-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.auto-card {
+  background: #0a0a0a;
+  border: 1px solid #1a1a1a;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  border-top: 2px solid #333;
+}
+.auto-card:hover { border-top-color: #00ff9d; background: #111; }
+.auto-card .label { font-size: 0.6rem; color: #666; }
+.auto-card .value { font-size: 1.2rem; font-weight: bold; color: #fff; margin: 4px 0; }
+.auto-card .cost { font-size: 0.7rem; color: #00ff9d; font-family: monospace; }
+
+.tab-header {
+  display: flex;
+  gap: 10px;
+  border-bottom: 1px solid #222;
+  margin-bottom: 10px;
+}
+.tab-header button {
+  background: none;
+  border: none;
+  color: #555;
+  padding: 6px 15px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+.tab-header button.active {
+  color: #00ff9d;
+  border-bottom: 2px solid #00ff9d;
+}
+
+.resources-scroll-area {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 5px;
+}
+.resource-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
+}
+.res-card {
+  background: #0a0a0a;
+  border: 1px solid #1a1a1a;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.res-card.locked { opacity: 0.3; }
+.res-main { display: flex; justify-content: space-between; align-items: baseline; }
+.res-name { font-size: 0.75rem; color: #888; text-transform: uppercase; }
+.res-amt { font-size: 1rem; font-weight: bold; color: #fff; }
+.res-actions { display: flex; justify-content: space-between; align-items: center; }
+.refine-btn {
+  background: #000;
+  border: 1px solid #333;
+  color: #fff;
+  font-size: 0.65rem;
+  padding: 3px 10px;
+  cursor: pointer;
+}
+.refine-btn:hover:not(:disabled) { border-color: #00ff9d; color: #00ff9d; }
+
+.auto-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 0.6rem;
+  color: #555;
+}
+.auto-toggle input { display: none; }
+.auto-toggle .slider {
+  width: 24px;
+  height: 12px;
+  background: #222;
+  border-radius: 6px;
+  position: relative;
+  transition: 0.3s;
+}
+.auto-toggle .slider::before {
+  content: '';
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: #555;
+  border-radius: 50%;
+  top: 2px;
+  left: 2px;
+  transition: 0.3s;
+}
+input:checked + .slider { background: #004422; }
+input:checked + .slider::before { background: #00ff9d; transform: translateX(12px); }
+input:checked ~ .label { color: #00ff9d; }
+
+.core-card {
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  border-left: 2px solid #00e5ff;
+}
+.highlight { color: #00e5ff; }
+
+/* Custom Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: #050505; }
+::-webkit-scrollbar-thumb { background: #222; border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: #333; }
+
+/* Animations */
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.7; }
+  100% { opacity: 1; }
+}
+.fill.green { animation: pulse 2s infinite ease-in-out; }
+
+.locked-overlay {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.8);
+  border: 1px dashed #333;
+  gap: 10px;
+}
+.lock-icon { font-size: 3rem; }
+.lock-text { font-weight: bold; color: #ff0055; letter-spacing: 2px; }
+.lock-hint { font-size: 0.8rem; color: #666; }
 </style>

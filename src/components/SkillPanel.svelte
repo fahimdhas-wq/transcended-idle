@@ -82,7 +82,7 @@
           <button onclick={() => feed(skill, 1)}   disabled={character.skillFragments.lt(1)}>+1</button>
           <button onclick={() => feed(skill, 10)}  disabled={character.skillFragments.lt(10)}>+10</button>
           <button onclick={() => feed(skill, 50)}  disabled={character.skillFragments.lt(50)}>+50</button>
-          <button onclick={() => feedAll(skill)}   disabled={character.skillFragments.lt(1)}>MAX</button>
+          <button onclick={() => feedAll(skill)}   disabled={character.skillFragments.lt(1)} style="background: rgba(0, 190, 255, 0.1); border: 1px solid var(--neon-blue); color: var(--neon-blue);">MAX</button>
           {#if skill.tierIndex > 0}
             <label class="auto-tog">
               <input type="checkbox" bind:checked={skill.autoCast} />AUTO

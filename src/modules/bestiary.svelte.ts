@@ -121,22 +121,31 @@ export function recordKill(mob: MobDefinition, count: DecimalSource = 1): void {
   }
 }
 
-export function buyBestiaryUpgrade(type: BestiaryUpgradeType, amount: number = 1): void {
-  const getCost = (lv: number): number => {
-    if (type === 'anatomy') return lv * 500;
-    if (type === 'huntersGreed') return (lv + 1) * 1000;
-    if (type === 'soulExtraction') return lv * 2500;
-    return Infinity;
+import { calculateBulkCost } from '../utils/bulkCost.js';
+import { maxAffordable } from '../utils/maxAffordable.js';
+
+export function buyBestiaryUpgrade(type: BestiaryUpgradeType, amount: number | 'max' = 1): void {
+  const getCost = (lv: number): Decimal => {
+    if (type === 'anatomy') return new Decimal(lv).mul(500);
+    if (type === 'huntersGreed') return new Decimal(lv + 1).mul(1000);
+    if (type === 'soulExtraction') return new Decimal(lv).mul(2500);
+    return new Decimal(Infinity);
   };
 
-  let totalCost = new Decimal(0);
-  for (let i = 0; i < amount; i++) {
-    totalCost = totalCost.add(getCost(bestiaryState[type] + i));
+  const currentLv = Number(bestiaryState[type]);
+  let count = 0;
+  if (amount === 'max') {
+    count = maxAffordable(bestiaryState.dataFragments, currentLv, getCost);
+  } else {
+    count = amount;
   }
+
+  if (count <= 0) return;
+  const totalCost = calculateBulkCost(getCost, currentLv, count);
 
   if (bestiaryState.dataFragments.gte(totalCost)) {
     bestiaryState.dataFragments = bestiaryState.dataFragments.sub(totalCost);
-    bestiaryState[type] += amount;
+    bestiaryState[type] += count;
 
     if (type === 'anatomy') {
       updateGlobalBoost();
@@ -145,7 +154,7 @@ export function buyBestiaryUpgrade(type: BestiaryUpgradeType, amount: number = 1
       character.quality = bestiaryState.huntersGreed;
       character.stats.quality = bestiaryState.huntersGreed;
     }
-    addLog(`[BESTIARY] Upgraded ${type} x${amount}!`, 'system');
+    addLog(`[BESTIARY] Upgraded ${type} x${count}!`, 'system');
   }
 }
 
