@@ -1,5 +1,6 @@
-<script>
+<script lang="ts">
   import { onMount } from 'svelte';
+  import type { Component } from 'svelte';
   import CombatArena       from './components/CombatArena.svelte';
   import MiningPanel       from './components/MiningPanel.svelte';
   import ForestryPanel     from './components/ForestryPanel.svelte';
@@ -17,11 +18,12 @@
   import OfflineModal      from './components/OfflineModal.svelte';
   import { startGameLoop } from './core/gameLoop.svelte.js';
   import { character }     from './modules/character.svelte.js';
-  import { overclockState } from './modules/overclock.svelte.js';
+  import { overclockState } from './modules/overclockState.svelte.js';
 
-  const tabs = ['COMBAT', 'CHARACTER', 'MINING', 'FORESTRY', 'BESTIARY', 'INVENTORY', 'SKILLS', 'SEALS', 'ACHIEVE', 'OVERCLOCK', 'MATRIX', 'SYSTEM'];
+  const tabs = ['COMBAT', 'CHARACTER', 'MINING', 'FORESTRY', 'BESTIARY', 'INVENTORY', 'SKILLS', 'SEALS', 'ACHIEVE', 'OVERCLOCK', 'MATRIX', 'SYSTEM'] as const;
+  type Tab = typeof tabs[number];
 
-  const componentMap = {
+  const componentMap: Record<Tab, Component> = {
     'COMBAT':     CombatArena,
     'CHARACTER':  CharacterPanel,
     'MINING':     MiningPanel,
@@ -36,9 +38,9 @@
     'MATRIX':     MatrixPanel
   };
 
-  let activeTab = $state('CHARACTER');
+  let activeTab = $state<Tab>('CHARACTER');
 
-  function isTabUnlocked(tab) {
+  function isTabUnlocked(tab: Tab): boolean {
     const oc = overclockState.timesOverclocked > 0;
     if (tab === 'MINING')    return character.level.gte(100) || oc;
     if (tab === 'FORESTRY')  return character.level.gte(200) || oc;
@@ -48,8 +50,8 @@
   }
 
   // Track previously unlocked tabs to detect new unlocks
-  let prevUnlocked = $state(new Set(['COMBAT', 'CHARACTER', 'BESTIARY', 'INVENTORY', 'SKILLS', 'SEALS', 'ACHIEVE', 'SYSTEM']));
-  let newlyUnlocked = $state(new Set());
+  let prevUnlocked = $state(new Set<Tab>(['COMBAT', 'CHARACTER', 'BESTIARY', 'INVENTORY', 'SKILLS', 'SEALS', 'ACHIEVE', 'SYSTEM']));
+  let newlyUnlocked = $state(new Set<Tab>());
 
   $effect(() => {
     tabs.forEach(t => {

@@ -1,0 +1,107 @@
+/* Base button */
+button {
+  background: #1a1a1a;
+  border: 1px solid var(--border-subtle);
+  color: #ccc;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: var(--font-cyber);
+  font-size: 0.7rem;
+  padding: 6px 10px;
+}
+button:hover:not(:disabled) {
+  border-color: var(--neon-blue);
+  color: #fff;
+  box-shadow: var(--glow-blue);
+}
+button.active {
+  border-color: var(--neon-blue);
+  color: var(--neon-blue);
+}
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Premium Panel Header */
+.premium-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(90deg, rgba(0, 190, 255, 0.1) 0%, rgba(0,0,0,0) 100%);
+  border-left: 3px solid var(--neon-blue);
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 12px 15px;
+  margin-bottom: 15px;
+  position: relative;
+  flex-shrink: 0;
+}
+.premium-header::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 190, 255, 0.03) 2px, rgba(0, 190, 255, 0.03) 4px);
+  pointer-events: none;
+}
+
+/* Global Tier Badges */
+.tier-badge { 
+  font-weight: bold; 
+  padding: 2px 6px; 
+  border-radius: 2px; 
+  font-size: 0.75rem; 
+  text-transform: uppercase; 
+  font-family: var(--font-cyber); 
+}
+
+/* Common style for high tiers (Gradients) */
+.tier-Transcendent,
+.tier-Ethereal,
+.tier-Cosmic,
+.tier-Omni,
+.tier-Singularity,
+.tier-Continuum,
+.tier-Paradox,
+.tier-Reality,
+.tier-Chronos,
+.tier-Eternal,
+.tier-Absolute,
+.tier-Omega,
+.tier-Zenith,
+.tier-Apotheosis,
+.tier-Infinite {
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  font-weight: 900;
+  display: inline-block;
+}
+
+.tier-Fminus, .tier-F, .tier-Fplus { color: #888; border: 1px solid #555; background: rgba(136, 136, 136, 0.1); }
+.tier-Eminus, .tier-E, .tier-Eplus { color: #b8860b; border: 1px solid #8b6508; background: rgba(184, 134, 11, 0.1); }
+.tier-Dminus, .tier-D, .tier-Dplus { color: #2ecc71; border: 1px solid #27ae60; background: rgba(46, 204, 113, 0.1); }
+.tier-Cminus, .tier-C, .tier-Cplus { color: #3498db; border: 1px solid #2980b9; background: rgba(52, 152, 219, 0.1); }
+.tier-Bminus, .tier-B, .tier-Bplus { color: #9b59b6; border: 1px solid #8e44ad; background: rgba(155, 89, 182, 0.1); }
+.tier-Aminus, .tier-A, .tier-Aplus { color: #f1c40f; border: 1px solid #f39c12; background: rgba(241, 196, 15, 0.1); }
+.tier-Sminus, .tier-S, .tier-Splus { color: #e74c3c; border: 1px solid #c0392b; text-shadow: 0 0 4px #e74c3c; background: rgba(231, 76, 60, 0.1); }
+.tier-SSminus, .tier-SS, .tier-SSplus { color: #ff00ff; border: 1px solid #c700c7; text-shadow: 0 0 6px #ff00ff; background: rgba(255, 0, 255, 0.1); }
+.tier-SSSminus, .tier-SSS, .tier-SSSplus { color: #1abc9c; border: 1px solid #16a085; text-shadow: 0 0 8px #1abc9c; background: rgba(26, 188, 156, 0.1); }
+.tier-SSR, .tier-SSRplus { color: #fff; border: 1px solid #fff; text-shadow: 0 0 8px #fff; background: rgba(255, 255, 255, 0.1); }
+.tier-UR, .tier-URplus, .tier-URR { color: #e67e22; border: 1px solid #d35400; text-shadow: 0 0 10px #e67e22; background: rgba(230, 126, 34, 0.1); }
+.tier-EX { color: #ff4757; border: 1px solid #ff4757; text-shadow: 0 0 12px #ff4757; font-style: italic; background: rgba(255, 71, 87, 0.1); }
+
+.tier-Transcendent { background: linear-gradient(90deg, #ff00ff, #00ffff); border: 1px solid #fff; color: #fff; }
+.tier-Ethereal { background: linear-gradient(90deg, #74b9ff, #a29bfe); border: 1px solid #a29bfe; color: #a29bfe; }
+.tier-Cosmic { background: linear-gradient(90deg, #fd79a8, #6c5ce7); border: 1px solid #fd79a8; color: #fd79a8; }
+.tier-Omni { background: linear-gradient(90deg, #ffeaa7, #fab1a0); border: 1px solid #ffeaa7; color: #ffeaa7; }
+.tier-Singularity { background: linear-gradient(90deg, #b2bec3, #636e72); border: 1px solid #b2bec3; color: #b2bec3; }
+.tier-Continuum { background: linear-gradient(90deg, #55efc4, #81ecec); border: 1px solid #55efc4; color: #55efc4; }
+.tier-Paradox { background: linear-gradient(90deg, #a29bfe, #6c5ce7); border: 1px solid #a29bfe; color: #a29bfe; }
+.tier-Reality { background: linear-gradient(90deg, #fab1a0, #e17055); border: 1px solid #fab1a0; color: #fab1a0; }
+.tier-Chronos { background: linear-gradient(90deg, #ffeaa7, #fdcb6e); border: 1px solid #ffeaa7; color: #ffeaa7; }
+.tier-Eternal { background: linear-gradient(90deg, #81ecec, #0984e3); border: 1px solid #81ecec; color: #81ecec; }
+.tier-Absolute { background: linear-gradient(90deg, #e17055, #d63031); border: 1px solid #e17055; color: #e17055; }
+.tier-Omega { background: linear-gradient(90deg, #6c5ce7, #2d3436); border: 1px solid #6c5ce7; color: #6c5ce7; }
+.tier-Zenith { background: linear-gradient(90deg, #fdcb6e, #e67e22); border: 1px solid #fdcb6e; color: #fdcb6e; }
+.tier-Apotheosis { background: linear-gradient(90deg, #00cec9, #0984e3); border: 1px solid #00cec9; text-shadow: 0 0 5px #00cec9; color: #00cec9; }
+.tier-Infinite { background: linear-gradient(90deg, var(--neon-gold), #fff); border: 1px solid var(--neon-gold); text-shadow: 0 0 10px var(--neon-gold); color: var(--neon-gold); }

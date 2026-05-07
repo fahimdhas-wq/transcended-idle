@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import { saveSystem } from '../core/saveSystem.js';
   import { addLog } from '../ui/LogPanelState.svelte.js';
   import ConfirmationModal from './ConfirmationModal.svelte';
@@ -8,7 +8,7 @@
   let lastSaveTime = $state('—');
   let showWipeModal = $state(false);
 
-  function saveGame() {
+  function saveGame(): void {
     try {
       saveSystem.save();
       lastSaveTime = new Date().toLocaleTimeString();
@@ -19,13 +19,13 @@
     }
   }
 
-  function exportGame() {
+  function exportGame(): void {
     try {
       saveSystem.save();
       const raw = localStorage.getItem('cyber_idle_save_v3');
       if (raw) {
         // Robust UTF-8 to Base64
-        exportedStr = btoa(encodeURIComponent(raw).replace(/%([0-9A-F]{2})/g, (match, p1) => {
+        exportedStr = btoa(encodeURIComponent(raw).replace(/%([0-9A-F]{2})/g, (_match: string, p1: string) => {
           return String.fromCharCode(parseInt(p1, 16));
         }));
         
@@ -48,7 +48,7 @@
     }
   }
 
-  function importGame() {
+  function importGame(): void {
     try {
       if (!importString.trim()) {
         addLog('Please paste a save code to import.', 'system');
@@ -69,16 +69,16 @@
     }
   }
 
-  function requestWipe() {
+  function requestWipe(): void {
     showWipeModal = true;
   }
 
-  function confirmWipe() {
+  function confirmWipe(): void {
     saveSystem.wipeSave();
   }
 
-  function selectAll(e) {
-    e.target.select();
+  function selectAll(e: MouseEvent): void {
+    (e.currentTarget as HTMLTextAreaElement).select();
   }
 </script>
 

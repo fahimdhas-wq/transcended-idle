@@ -1,5 +1,6 @@
-<script>
+<script lang="ts">
 import { miningState, tools, upgradeTool, triggerOverclock, upgradeEnergy, upgradeAutomation, buyMiningUpgrade, refineSingle } from '../modules/mining.svelte.js';
+import type { MiningAutomationType, MiningUpgradeType } from '../modules/mining.svelte.js';
 import { bestiaryState } from '../modules/bestiary.svelte.js';
 import { formatNumber } from '../systems/scalingSystem.js';
 import { Decimal } from '../systems/decimal.js';
@@ -10,11 +11,11 @@ import { calculateBulkCost } from '../utils/bulkCost.js';
 // Use shared buy amount so it persists across tab switches
 let buyAmount = $derived(uiStore.buyAmount);
 
-function handleUpgradeTool() { upgradeTool(); showToast('Drill upgraded!', 'success'); }
-function handleOverclock()    { triggerOverclock(); showToast('Overclock activated!', 'warn'); }
+function handleUpgradeTool(): void { upgradeTool(); showToast('Drill upgraded!', 'success'); }
+function handleOverclock(): void { triggerOverclock(); showToast('Overclock activated!', 'warn'); }
 
-function calculateMiningCost(type, amount) {
-  const getCost = (lv) => {
+function calculateMiningCost(type: MiningUpgradeType, amount: number): Decimal {
+  const getCost = (lv: number): Decimal => {
     if (type === 'sharpness')      return new Decimal(lv).mul(1000);
     if (type === 'discovery')      return new Decimal(10).pow(lv).mul(500);
     if (type === 'sensors')        return new Decimal(lv).mul(2000);
@@ -25,17 +26,17 @@ function calculateMiningCost(type, amount) {
   return calculateBulkCost(getCost, Number(miningState[type] || 0), amount);
 }
 
-function calculateEnergyCost(amount) {
-  const getCost = (i) => {
+function calculateEnergyCost(amount: number): Decimal {
+  const getCost = (i: number): Decimal => {
     const currentMax = Number(miningState.maxEnergy) + (i * 100);
     return new Decimal((currentMax / 100) * 25);
   };
   return calculateBulkCost(getCost, 0, amount);
 }
 
-function calculateAutoCost(type, amount) {
+function calculateAutoCost(type: MiningAutomationType, amount: number): Decimal {
   const isDrone = type === 'drone';
-  const getCost = (lv) => new Decimal(lv).mul(isDrone ? 50 : 100);
+  const getCost = (lv: number): Decimal => new Decimal(lv).mul(isDrone ? 50 : 100);
   return calculateBulkCost(getCost, Number(isDrone ? miningState.drones : miningState.autoExtractors), amount);
 }
 
@@ -178,12 +179,12 @@ let currentDisplayTab = $state('basic');
       <div class="resources-grid">
         {#if currentDisplayTab === 'basic'}
           {#each basicOres as ore (ore.id)}
-            <div class="res-item" class:inactive={ore.tier > miningState.discovery}>
+            <div class="res-item" class:inactive={(ore.tier ?? 0) > miningState.discovery}>
               <div class="res-name">{ore.name}</div>
               <div class="res-amount">{formatNumber(miningState.resources[ore.id])}</div>
               <div class="res-actions">
                 <label class="toggle-sm">
-                  <input type="checkbox" checked={miningState.autoRefine[ore.id]} onchange={(e) => miningState.autoRefine[ore.id] = e.target.checked}>
+                  <input type="checkbox" checked={miningState.autoRefine[ore.id]} onchange={(e) => miningState.autoRefine[ore.id] = (e.currentTarget as HTMLInputElement).checked}>
                   <span class="slider"></span>
                 </label>
                 <button class="refine-item-btn" onclick={() => refineSingle(ore.id)} disabled={miningState.resources[ore.id].lt(50)}>REFINE</button>
@@ -197,7 +198,7 @@ let currentDisplayTab = $state('basic');
               <div class="res-amount">{formatNumber(miningState.resources[ore.id])}</div>
               <div class="res-actions">
                 <label class="toggle-sm">
-                  <input type="checkbox" checked={miningState.autoRefine[ore.id]} onchange={(e) => miningState.autoRefine[ore.id] = e.target.checked}>
+                  <input type="checkbox" checked={miningState.autoRefine[ore.id]} onchange={(e) => miningState.autoRefine[ore.id] = (e.currentTarget as HTMLInputElement).checked}>
                   <span class="slider"></span>
                 </label>
                 <button class="refine-item-btn" onclick={() => refineSingle(ore.id)} disabled={miningState.resources[ore.id].lt(50)}>REFINE</button>

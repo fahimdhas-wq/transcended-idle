@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 import { 
   forestryState, 
   bioTools,
@@ -10,6 +10,7 @@ import {
   triggerForestryOverclock,
   upgradeForestryEnergy
 } from '../modules/forestry.svelte.js';
+import type { ForestryUpgradeType } from '../modules/forestry.svelte.js';
 import { formatNumber } from '../systems/scalingSystem.js';
 import { uiStore, showToast } from '../stores/uiStore.svelte.js';
 import { Decimal } from '../systems/decimal.js';
@@ -18,13 +19,13 @@ import { basicTrees, refinedTrees, advancedTrees } from '../data/resources.js';
 
 let buyAmount = $derived(uiStore.buyAmount);
 
-function handleOverclock() { 
+function handleOverclock(): void { 
   triggerForestryOverclock(); 
   showToast('Growth Surge activated!', 'warn'); 
 }
 
-function calculateForestryCost(type, amount) {
-  const getCost = (lv) => {
+function calculateForestryCost(type: ForestryUpgradeType, amount: number): Decimal {
+  const getCost = (lv: number): Decimal => {
     if (type === 'chainsawFuel')    return new Decimal(lv).mul(500);
     if (type === 'reforestation')   return new Decimal(lv).mul(150);
     if (type === 'ancientSaplings') {
@@ -39,21 +40,21 @@ function calculateForestryCost(type, amount) {
   return calculateBulkCost(getCost, Number(forestryState[type] || 0), amount);
 }
 
-function calculateEnergyCost(amount) {
-  const getCost = (i) => {
+function calculateEnergyCost(amount: number): Decimal {
+  const getCost = (i: number): Decimal => {
     const currentMax = Number(forestryState.maxEnergy) + (i * 100);
     return new Decimal((currentMax / 100) * 25);
   };
   return calculateBulkCost(getCost, 0, amount);
 }
 
-function calculateChamberCost(amount) {
-  const getCost = (lv) => new Decimal(Math.floor(Math.pow(lv, 1.5) * 20));
+function calculateChamberCost(amount: number): Decimal {
+  const getCost = (lv: number): Decimal => new Decimal(Math.floor(Math.pow(lv, 1.5) * 20));
   return calculateBulkCost(getCost, Number(forestryState.growthChambers || 0), amount);
 }
 
-function calculateMutationCost(amount) {
-  const getCost = (i) => {
+function calculateMutationCost(amount: number): Decimal {
+  const getCost = (i: number): Decimal => {
     const currentMut = Number(forestryState.mutationChance) + (i * 0.02);
     return new Decimal(Math.floor(currentMut * 200));
   };
@@ -206,12 +207,12 @@ let currentDisplayTab = $state('basic');
     <div class="resources-grid">
       {#if currentDisplayTab === 'basic'}
         {#each basicTrees as tree (tree.id)}
-          <div class="res-item" class:inactive={tree.tier > forestryState.ancientSaplings}>
+          <div class="res-item" class:inactive={(tree.tier ?? 0) > forestryState.ancientSaplings}>
             <div class="res-name">{tree.name}</div>
             <div class="res-amount">{formatNumber(forestryState.resources[tree.id] || 0)}</div>
             <div class="res-actions">
               <label class="toggle-sm">
-                <input type="checkbox" checked={forestryState.autoRefine[tree.id]} onchange={(e) => forestryState.autoRefine[tree.id] = e.target.checked}>
+                <input type="checkbox" checked={forestryState.autoRefine[tree.id]} onchange={(e) => forestryState.autoRefine[tree.id] = (e.currentTarget as HTMLInputElement).checked}>
                 <span class="slider"></span>
               </label>
               <button class="refine-item-btn" onclick={() => refineBioSingle(tree.id)} disabled={!forestryState.resources[tree.id] || forestryState.resources[tree.id].lt(25)}>EVOLVE</button>
@@ -225,7 +226,7 @@ let currentDisplayTab = $state('basic');
             <div class="res-amount">{formatNumber(forestryState.resources[res.id] || 0)}</div>
             <div class="res-actions">
               <label class="toggle-sm">
-                <input type="checkbox" checked={forestryState.autoRefine[res.id]} onchange={(e) => forestryState.autoRefine[res.id] = e.target.checked}>
+                <input type="checkbox" checked={forestryState.autoRefine[res.id]} onchange={(e) => forestryState.autoRefine[res.id] = (e.currentTarget as HTMLInputElement).checked}>
                 <span class="slider"></span>
               </label>
               <button class="refine-item-btn" onclick={() => refineBioSingle(res.id)} disabled={!forestryState.resources[res.id] || forestryState.resources[res.id].lt(25)}>EVOLVE</button>

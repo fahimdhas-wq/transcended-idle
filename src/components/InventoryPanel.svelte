@@ -1,19 +1,22 @@
-<script>
+<script lang="ts">
   import { inventory } from '../modules/inventory.svelte.js';
   import { formatNumber } from '../systems/scalingSystem.js';
+  import type { ItemRarity } from '../data/items.js';
 
-  const rarityOrder = { Common: 0, Rare: 1, Epic: 2, Legendary: 3, Mythic: 4 };
+  type SortKey = 'name' | 'rarity' | 'count';
 
-  let sortKey = $state('rarity');
+  const rarityOrder: Record<ItemRarity, number> = { Common: 0, Rare: 1, Epic: 2, Legendary: 3, Mythic: 4 };
+
+  let sortKey = $state<SortKey>('rarity');
   let sortAsc = $state(false);
 
-  const sortOptions = [
+  const sortOptions: Array<{ key: SortKey; label: string }> = [
     { key: 'name',   label: 'NAME'   },
     { key: 'rarity', label: 'RARITY' },
     { key: 'count',  label: 'COUNT'  },
   ];
 
-  function setSort(key) {
+  function setSort(key: SortKey): void {
     if (sortKey === key) {
       sortAsc = !sortAsc;
     } else {

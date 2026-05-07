@@ -1,10 +1,10 @@
-<script>
+<script lang="ts">
   import { uiStore, dismissOfflineSummary } from '../stores/uiStore.svelte.js';
   import { formatValue } from '../systems/formatValue.js';
 
-  function fmt(s) {
-    if (!s) return '';
+  function fmt() {
     const summary = uiStore.offlineSummary;
+    if (!summary) return '';
     const mins = Math.floor(summary.seconds / 60);
     const hrs  = Math.floor(mins / 60);
     const days = Math.floor(hrs / 24);

@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import { achievementDefs, achievementState } from '../systems/achievementSystem.svelte.js';
 
   let unlockedCount = $derived(Object.keys(achievementState.unlocked).length);

@@ -1,10 +1,10 @@
-<script>
+<script lang="ts">
   import { summaryState } from '../ui/LogPanelState.svelte.js';
   import { formatValue } from '../systems/formatValue.js';
 
-  let mode = $state('summary'); // 'summary' | 'events'
+  let mode = $state<'summary' | 'events'>('summary');
 
-  function eventColor(type) {
+  function eventColor(type: string): string {
     if (type === 'loot')      return 'var(--neon-pink)';
     if (type === 'awakening') return 'var(--neon-red)';
     if (type === 'system')    return 'var(--neon-blue)';

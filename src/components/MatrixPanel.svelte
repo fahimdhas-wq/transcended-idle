@@ -1,15 +1,15 @@
-<script>
+<script lang="ts">
   import { matrixState } from "../modules/matrix.svelte.js";
-  import { overclockState } from "../modules/overclock.svelte.js";
+  import { overclockState } from "../modules/overclockState.svelte.js";
 
   // Requires at least 1 Overclock to access the Auto-Matrix
   let isUnlocked = $derived(overclockState.timesOverclocked > 0);
-  let localTarget = $state(matrixState.targetOverclockLevel);
+  let localTarget = $state<number>(matrixState.targetOverclockLevel);
   let validationError = $state('');
 
-  function applyTarget() {
+  function applyTarget(): void {
     // FIXED: Input validation
-    const parsed = parseInt(localTarget, 10);
+    const parsed = Number(localTarget);
     
     if (isNaN(parsed)) {
       validationError = 'Must be a valid number';

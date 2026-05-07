@@ -1,0 +1,44 @@
+body {
+  margin: 0; padding: 0;
+  background: radial-gradient(circle at center, hsl(210, 30%, 10%) 0%, hsl(0, 0%, 0%) 100%);
+  color: var(--color-text);
+  font-family: var(--font-data);
+  overflow: hidden;
+  font-size: 13px;
+}
+
+#app { max-width: none; padding: 0; margin: 0; text-align: left; }
+
+/* Custom Cyberpunk Scrollbars */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--panel-bg);
+  border-left: 1px solid var(--border-subtle);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--neon-blue);
+  box-shadow: 0 0 5px var(--neon-blue);
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--neon-pink);
+  box-shadow: 0 0 8px var(--neon-pink);
+}
+
+/* Firefox support */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--neon-blue) var(--panel-bg);
+}
+
+/* Base button accessibility */
+button:focus-visible {
+  outline: 2px solid var(--neon-blue);
+  outline-offset: 2px;
+}

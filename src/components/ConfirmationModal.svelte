@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   let { show = $bindable(false), message = '', onConfirm = () => {} } = $props();
 
   function handleConfirm() {

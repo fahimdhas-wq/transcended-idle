@@ -1,11 +1,13 @@
-<script>
+<script lang="ts">
   import { uiStore } from '../stores/uiStore.svelte.js';
 </script>
 
 {#if uiStore.toast}
-  <div class="toast toast-{uiStore.toast.type}" key={uiStore.toast.id}>
-    {uiStore.toast.message}
-  </div>
+  {#key uiStore.toast.id}
+    <div class="toast toast-{uiStore.toast.type}">
+      {uiStore.toast.message}
+    </div>
+  {/key}
 {/if}
 
 <style>

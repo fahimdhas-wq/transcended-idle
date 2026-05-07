@@ -1,4 +1,4 @@
-# V1.2 — Complete Overhaul
+# V2.0 — The Transcendence Update
 
 ## Critical Bugs Fixed
 - **CharacterPanel CSS**: Fixed all undefined CSS variable references (--neon-pink, --neon-blue, --border-color)

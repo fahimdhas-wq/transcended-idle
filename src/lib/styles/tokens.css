@@ -1,0 +1,42 @@
+:root {
+  /* Core palette */
+  --bg-dark:        hsl(0, 0%, 3%);
+  --panel-bg:       hsl(0, 0%, 7%);
+  --border-subtle:  hsl(0, 0%, 15%);
+  --border-active:  hsl(190, 100%, 50%);
+
+  /* Text */
+  --color-text:     hsl(0, 0%, 90%);
+  --color-muted:    hsl(0, 0%, 50%);
+
+  /* Neon accents — single source of truth */
+  --neon-blue:      hsl(190, 100%, 50%);
+  --neon-pink:      hsl(300, 100%, 50%);
+  --neon-red:       hsl(0, 100%, 50%);
+  --neon-green:     hsl(120, 100%, 45%);
+  --neon-gold:      hsl(50, 80%, 50%);
+
+  /* Glow tokens */
+  --glow-blue:      0 0 10px hsla(190, 100%, 50%, 0.5);
+  --glow-pink:      0 0 10px hsla(300, 100%, 50%, 0.5);
+  --glow-green:     0 0 10px hsla(120, 100%, 45%, 0.4);
+  --glow-gold:      0 0 10px hsla(50, 80%, 50%, 0.5);
+  --glow-red:       0 0 10px hsla(0, 100%, 50%, 0.5);
+  --glow-text:      0 0 4px currentColor;
+
+  /* Fonts */
+  --font-cyber:     'Oxanium', sans-serif;
+  --font-data:      'JetBrains Mono', monospace;
+
+  /* Aliases (TODO: Remove once all components are migrated) */
+  --hsl-blue:       var(--neon-blue);
+  --hsl-pink:       var(--neon-pink);
+  --hsl-red:        var(--neon-red);
+  --hsl-text:       var(--color-text);
+  --hsl-border:     var(--border-subtle);
+  --hsl-panel:      var(--panel-bg);
+  --hsl-bg:         var(--bg-dark);
+  --color-primary:  var(--neon-blue);
+  --color-accent:   var(--neon-pink);
+  --border-color:   var(--border-subtle);
+}

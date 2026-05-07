@@ -1,9 +1,10 @@
-<script>
+<script lang="ts">
 import { combatState, getEffectiveCombatStats } from '../modules/combat.svelte.js';
 import { character } from '../modules/character.svelte.js';
 import { formatValue } from '../systems/formatValue.js';
 import { getPowerTier } from '../systems/powerTier.js';
 import { Decimal } from '../systems/decimal.js';
+import type { MobType } from '../data/mobs.js';
 
 let showAdvanced = $state(false);
 
@@ -50,18 +51,13 @@ let enemyHpPct = $derived.by(() => {
   return isNaN(pct) ? 0 : Math.min(100, pct);
 });
 
-const typeColors = {
-  organic:  { color: '#4caf50', label: 'ORGANIC' },
-  robotic:  { color: 'var(--neon-blue)', label: 'ROBOTIC' },
-  spectral: { color: 'var(--neon-pink)', label: 'SPECTRAL' },
-};
-function enemyTypeColor(type) {
+function enemyTypeColor(type: MobType) {
   if (type === 'organic')  return '#4caf50';
   if (type === 'robotic')  return '#00beff';
   if (type === 'spectral') return '#ff00ff';
   return '#888';
 }
-function enemyTypeLabel(type) {
+function enemyTypeLabel(type: MobType) {
   return (type || 'UNKNOWN').toUpperCase();
 }
 
@@ -95,9 +91,9 @@ let hpIsLow = $derived(playerHpPct < 25);
 
   {#if showAdvanced}
     <div class="stats-secondary">
-      <div class="s-cell">CRIT: {(character.stats?.critChance * 100 ?? 0).toFixed(1)}%</div>
+      <div class="s-cell">CRIT: {(character.stats.critChance * 100).toFixed(1)}%</div>
       <div class="s-cell">KILLS: {formatValue(character.kills ?? 0)}</div>
-      <div class="s-cell">SKIP: {(character.stats?.skipDamageChance * 100 ?? 0).toFixed(1)}%</div>
+      <div class="s-cell">SKIP: {(character.stats.skipDamageChance * 100).toFixed(1)}%</div>
       <div class="s-cell">HP/s: {formatValue(regenHpVal)}</div>
       <div class="s-cell">SH/s: {formatValue(regenDefVal)}</div>
       <div class="s-cell">SEALS: {character.seals}</div>

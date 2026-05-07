@@ -1,13 +1,15 @@
-<script>
+<script lang="ts">
   import { bestiaryState, buyBestiaryUpgrade } from '../modules/bestiary.svelte.js';
+  import type { BestiaryUpgradeType } from '../modules/bestiary.svelte.js';
   import { formatNumber } from '../systems/scalingSystem.js';
   import { uiStore } from '../stores/uiStore.svelte.js';
   import { calculateBulkCost } from '../utils/bulkCost.js';
+  import { Decimal } from '../systems/decimal.js';
 
   let buyAmount = $derived(uiStore.buyAmount);
 
-  function calculateBestiaryCost(type, amount) {
-    const getCost = (lv) => {
+  function calculateBestiaryCost(type: BestiaryUpgradeType, amount: number): Decimal {
+    const getCost = (lv: number): number => {
       if (type === 'anatomy') return lv * 500;
       if (type === 'huntersGreed') return (lv + 1) * 1000;
       if (type === 'soulExtraction') return lv * 2500;

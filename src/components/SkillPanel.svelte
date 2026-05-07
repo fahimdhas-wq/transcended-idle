@@ -1,39 +1,44 @@
-<script>
+<script lang="ts">
   import { skillsState, tiers } from '../modules/skills.svelte.js';
+  import type { Skill } from '../modules/skills.svelte.js';
   import { character } from '../modules/character.svelte.js';
   import { formatNumber } from '../systems/scalingSystem.js';
+  import { Decimal } from '../systems/decimal.js';
 
-  function currentTier(skill) { return tiers[skill.tierIndex] || 'F-'; }
-  function tierClass(skill) { 
-    let t = currentTier(skill);
+  function currentTier(skill: Skill): string { return tiers[skill.tierIndex] || 'F-'; }
+  function tierClass(skill: Skill): string { 
+    const t = currentTier(skill);
     return 'tier-' + t.replace(/\+/g, 'plus').replace(/-/g, 'minus'); 
   }
-  function nextTier(skill) { return tiers[skill.tierIndex + 1] || 'MAX'; }
-  function fragPct(skill) { return Math.min(100, (skill.fragments / skill.fragmentsNeeded) * 100); }
+  function nextTier(skill: Skill): string { return tiers[skill.tierIndex + 1] || 'MAX'; }
+  function fragPct(skill: Skill): number {
+    if (skill.fragmentsNeeded.lte(0)) return 100;
+    return Math.min(100, skill.fragments.div(skill.fragmentsNeeded).mul(100).toNumber());
+  }
 
-  function feed(skill, amount) {
-    const needed = skill.fragmentsNeeded - skill.fragments;
-    const give   = Math.min(amount, character.skillFragments.toNumber(), needed);
-    if (give <= 0) return;
+  function feed(skill: Skill, amount: number): void {
+    const needed = skill.fragmentsNeeded.sub(skill.fragments);
+    const give = Decimal.min(Decimal.min(character.skillFragments, amount), needed);
+    if (give.lte(0)) return;
     character.skillFragments = character.skillFragments.sub(give);
-    skill.fragments          += give;
+    skill.fragments = skill.fragments.add(give);
     checkEvolve(skill);
   }
 
-  function feedAll(skill) {
-    const needed = skill.fragmentsNeeded - skill.fragments;
-    const give   = Math.min(needed, character.skillFragments.toNumber());
-    if (give <= 0) return;
+  function feedAll(skill: Skill): void {
+    const needed = skill.fragmentsNeeded.sub(skill.fragments);
+    const give = Decimal.min(needed, character.skillFragments);
+    if (give.lte(0)) return;
     character.skillFragments = character.skillFragments.sub(give);
-    skill.fragments          += give;
+    skill.fragments = skill.fragments.add(give);
     checkEvolve(skill);
   }
 
-  function checkEvolve(skill) {
-    while (skill.fragments >= skill.fragmentsNeeded && skill.tierIndex < tiers.length - 1) {
-      skill.fragments      -= skill.fragmentsNeeded;
+  function checkEvolve(skill: Skill): void {
+    while (skill.fragments.gte(skill.fragmentsNeeded) && skill.tierIndex < tiers.length - 1) {
+      skill.fragments = skill.fragments.sub(skill.fragmentsNeeded);
       skill.tierIndex++;
-      skill.fragmentsNeeded = Math.floor(skill.fragmentsNeeded * 2.5);
+      skill.fragmentsNeeded = skill.fragmentsNeeded.mul(2.5).floor();
     }
   }
 </script>

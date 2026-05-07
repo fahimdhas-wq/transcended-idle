@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import { character } from '../modules/character.svelte.js';
   import { formatNumber } from '../systems/scalingSystem.js';
   import { showToast } from '../stores/uiStore.svelte.js';
@@ -12,22 +12,22 @@
     '1e500', '1e1000', '1e5000'
   ];
 
-  let pendingSealIdx = $state(null);
+  let pendingSealIdx = $state<number | null>(null);
   let showModal = $state(false);
 
-  function killPct(reqRaw) {
+  function killPct(reqRaw: string): number {
     const req = Decimal.from(reqRaw);
     const kills = character.kills;
     if (kills.gte(req)) return 100;
     return Math.min(100, kills.div(req).mul(100).toNumber());
   }
 
-  function requestBreak(idx) {
+  function requestBreak(idx: number): void {
     pendingSealIdx = idx;
     showModal = true;
   }
 
-  function confirmBreak() {
+  function confirmBreak(): void {
     const idx = pendingSealIdx;
     if (idx === null) return;
     // FIX: Decimal.gte() instead of >=
@@ -38,7 +38,7 @@
     pendingSealIdx = null;
   }
 
-  function canBreak(idx) {
+  function canBreak(idx: number): boolean {
     return character.seals === idx && character.kills.gte(Decimal.from(sealRequirements[idx]));
   }
 </script>

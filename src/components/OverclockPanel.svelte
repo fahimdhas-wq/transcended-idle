@@ -1,6 +1,7 @@
-<script>
+<script lang="ts">
   import { character } from '../modules/character.svelte.js';
-  import { overclockState, doOverclock, getPendingThreads, LEVEL_REQ, LEVEL_WALL } from '../modules/overclock.svelte.js';
+  import { overclockState } from '../modules/overclockState.svelte.js';
+  import { doOverclock, getPendingThreads, LEVEL_REQ, LEVEL_WALL } from '../modules/overclock.svelte.js';
   import { formatValue } from '../systems/formatValue.js';
 
   // Three states: locked | optional | required
