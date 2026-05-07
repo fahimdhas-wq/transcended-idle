@@ -259,25 +259,27 @@ function handleBioRefining(id: string): void {
 
 export function buyForestryUpgrade(type: ForestryUpgradeType, amount: number = 1): void {
   const getCost = (lv: number): Decimal => {
-    if (type === 'chainsawFuel') return new Decimal(lv).mul(500);
-    if (type === 'reforestation') return new Decimal(lv).mul(200);
+    if (type === 'chainsawFuel')    return new Decimal(lv).mul(500);
+    if (type === 'reforestation')   return new Decimal(lv).mul(200);
     if (type === 'ancientSaplings') return new Decimal(10).pow(lv).mul(100);
-    if (type === 'mutationPower') return new Decimal(lv + 1).mul(1500);
-    if (type === 'overclockPower') return new Decimal(lv + 1).mul(2000);
-    if (type === 'efficiency') return new Decimal(lv + 1).mul(1000);
+    if (type === 'mutationPower')   return new Decimal(lv + 1).mul(1500);
+    if (type === 'overclockPower')  return new Decimal(lv + 1).mul(2000);
+    if (type === 'efficiency')      return new Decimal(lv + 1).mul(1000);
     return new Decimal(Infinity);
   };
 
   let totalCost = new Decimal(0);
   let count = 0;
   for (let i = 0; i < amount; i++) {
-    const nextLv = (forestryState[type] || 0) + i;
+    const nextLv = (forestryState[type] || 0) + count;
     if (type === 'ancientSaplings' && nextLv >= 10) break;
-    totalCost = totalCost.add(getCost(nextLv));
+    const cost = getCost(nextLv);
+    if (forestryState.dnaFragments.sub(totalCost).lt(cost)) break;
+    totalCost = totalCost.add(cost);
     count++;
   }
 
-  if (forestryState.dnaFragments.gte(totalCost) && count > 0) {
+  if (count > 0) {
     forestryState.dnaFragments = forestryState.dnaFragments.sub(totalCost);
     forestryState[type] += count;
     addLog(`[FORESTRY] Upgrade complete: ${type} x${count}.`, 'system');

@@ -19,6 +19,8 @@
   import { startGameLoop } from './core/gameLoop.svelte.js';
   import { character }     from './modules/character.svelte.js';
   import { overclockState } from './modules/overclockState.svelte.js';
+  import { applyGlobalMaxUpgrade } from './utils/globalMaxUpgrade.js';
+  import { showToast } from './stores/uiStore.svelte.js';
 
   const tabs = ['COMBAT', 'CHARACTER', 'MINING', 'FORESTRY', 'BESTIARY', 'INVENTORY', 'SKILLS', 'SEALS', 'ACHIEVE', 'OVERCLOCK', 'MATRIX', 'SYSTEM'] as const;
   type Tab = typeof tabs[number];
@@ -90,6 +92,7 @@
           {/if}
         {/each}
       </div>
+      <button class="btn-global-max" onclick={() => { applyGlobalMaxUpgrade(); showToast('MAX applied to all upgrades!', 'success'); }}>⚡ MAX</button>
       <div class="tab-fade-right"></div>
     </div>
 
@@ -273,6 +276,34 @@
   @keyframes tab-pulse {
     0%, 100% { box-shadow: 0 0 4px var(--neon-gold); }
     50% { box-shadow: 0 0 12px var(--neon-gold); }
+  }
+
+  .btn-global-max {
+    position: absolute;
+    right: 50px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0, 220, 255, 0.1);
+    border: 2px solid var(--neon-blue);
+    color: var(--neon-blue);
+    font-family: var(--font-cyber);
+    font-size: 0.85rem;
+    padding: 8px 16px;
+    cursor: pointer;
+    border-radius: 4px;
+    white-space: nowrap;
+    transition: all 0.2s;
+    font-weight: bold;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .btn-global-max:hover {
+    background: rgba(0, 220, 255, 0.2);
+    box-shadow: 0 0 15px rgba(0, 220, 255, 0.4), inset 0 0 5px rgba(0, 220, 255, 0.2);
+    transform: translateY(-50%) scale(1.05);
+  }
+  .btn-global-max:active {
+    transform: translateY(-50%) scale(0.95);
   }
 
   .new-dot {

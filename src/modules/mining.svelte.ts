@@ -262,13 +262,15 @@ export function buyMiningUpgrade(type: MiningUpgradeType, amount: number = 1): v
   let totalCost = new Decimal(0);
   let count = 0;
   for (let i = 0; i < amount; i++) {
-    const nextLv = (miningState[type] || 0) + i;
+    const nextLv = (miningState[type] || 0) + count;
     if (type === 'discovery' && nextLv >= 10) break;
-    totalCost = totalCost.add(getCost(nextLv));
+    const cost = getCost(nextLv);
+    if (bestiaryState.dataFragments.sub(totalCost).lt(cost)) break;
+    totalCost = totalCost.add(cost);
     count++;
   }
 
-  if (bestiaryState.dataFragments.gte(totalCost) && count > 0) {
+  if (count > 0) {
     bestiaryState.dataFragments = bestiaryState.dataFragments.sub(totalCost);
     miningState[type] += count;
     addLog(`[MINING] Upgraded ${type} x${count}.`, 'system');

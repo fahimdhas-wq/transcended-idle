@@ -138,30 +138,42 @@ let currentDisplayTab = $state('basic');
         </div>
         
         <div class="upgrade-row">
-          <button onclick={() => buyMiningUpgrade('sharpness', buyAmount)} class="btn-u">
-            <span class="u-name">Drill Sharpness [Lv.{miningState.sharpness}]</span>
-            <small>+Speed Mult | Cost: {formatNumber(calculateMiningCost('sharpness', buyAmount))} Data</small>
-          </button>
-          <button onclick={() => buyMiningUpgrade('extraction', buyAmount)} class="btn-u">
-            <span class="u-name">Extraction Power [Lv.{miningState.extraction}]</span>
-            <small>+Speed Mult | Cost: {formatNumber(calculateMiningCost('extraction', buyAmount))} Data</small>
-          </button>
-          <button onclick={() => buyMiningUpgrade('discovery', buyAmount)} class="btn-u" disabled={miningState.discovery >= 10}>
-            <span class="u-name">Vein Discovery [Lv.{miningState.discovery}]</span>
-            <small>Unlock Ores | Cost: {miningState.discovery >= 10 ? 'MAX' : formatNumber(calculateMiningCost('discovery', buyAmount)) + ' Data'}</small>
-          </button>
-          <button onclick={() => buyMiningUpgrade('sensors', buyAmount)} class="btn-u">
-            <span class="u-name">Resonance Sensors [Lv.{miningState.sensors}]</span>
-            <small>+Yield/Crit | Cost: {formatNumber(calculateMiningCost('sensors', buyAmount))} Data</small>
-          </button>
-          <button onclick={() => buyMiningUpgrade('overclockPower', buyAmount)} class="btn-u">
-            <span class="u-name">OC Capacitor [Lv.{miningState.overclockPower}]</span>
-            <small>+OC Power | Cost: {formatNumber(calculateMiningCost('overclockPower', buyAmount))} Data</small>
-          </button>
-          <button onclick={() => buyMiningUpgrade('efficiency', buyAmount)} class="btn-u">
-            <span class="u-name">Energy Efficiency [Lv.{miningState.efficiency}]</span>
-            <small>-Energy Cost | Cost: {formatNumber(calculateMiningCost('efficiency', buyAmount))} Data</small>
-          </button>
+          <div class="upgrade-item">
+            <button onclick={() => buyMiningUpgrade('sharpness', buyAmount)} class="btn-u">
+              <span class="u-name">Drill Sharpness [Lv.{miningState.sharpness}]</span>
+              <small>+Speed | Cost: {formatNumber(calculateMiningCost('sharpness', buyAmount))} Data</small>
+            </button>
+          </div>
+          <div class="upgrade-item">
+            <button onclick={() => buyMiningUpgrade('extraction', buyAmount)} class="btn-u">
+              <span class="u-name">Extraction Power [Lv.{miningState.extraction}]</span>
+              <small>+Speed | Cost: {formatNumber(calculateMiningCost('extraction', buyAmount))} Data</small>
+            </button>
+          </div>
+          <div class="upgrade-item">
+            <button onclick={() => buyMiningUpgrade('discovery', buyAmount)} class="btn-u" disabled={miningState.discovery >= 10}>
+              <span class="u-name">Vein Discovery [Lv.{miningState.discovery}]</span>
+              <small>Unlock Ores | Cost: {miningState.discovery >= 10 ? 'MAX' : formatNumber(calculateMiningCost('discovery', buyAmount)) + ' Data'}</small>
+            </button>
+          </div>
+          <div class="upgrade-item">
+            <button onclick={() => buyMiningUpgrade('sensors', buyAmount)} class="btn-u">
+              <span class="u-name">Resonance Sensors [Lv.{miningState.sensors}]</span>
+              <small>+Yield | Cost: {formatNumber(calculateMiningCost('sensors', buyAmount))} Data</small>
+            </button>
+          </div>
+          <div class="upgrade-item">
+            <button onclick={() => buyMiningUpgrade('overclockPower', buyAmount)} class="btn-u">
+              <span class="u-name">OC Capacitor [Lv.{miningState.overclockPower}]</span>
+              <small>+OC Power | Cost: {formatNumber(calculateMiningCost('overclockPower', buyAmount))} Data</small>
+            </button>
+          </div>
+          <div class="upgrade-item">
+            <button onclick={() => buyMiningUpgrade('efficiency', buyAmount)} class="btn-u">
+              <span class="u-name">Energy Efficiency [Lv.{miningState.efficiency}]</span>
+              <small>-Energy | Cost: {formatNumber(calculateMiningCost('efficiency', buyAmount))} Data</small>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -246,8 +258,9 @@ let currentDisplayTab = $state('basic');
 .amt-btn { background: #111; border: 1px solid #333; color: #666; font-size: 0.6rem; padding: 2px 6px; cursor: pointer; }
 .amt-btn.active { border-color: var(--color-primary); color: var(--color-primary); }
 .upgrade-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-.auto-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-.btn-u { background: #1a1a1a; border: 1px solid #333; color: #ccc; padding: 8px; cursor: pointer; display: flex; flex-direction: column; text-align: left; transition: 0.1s; }
+.upgrade-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.upgrade-item { display: flex; gap: 2px; }
+.btn-u { background: #1a1a1a; border: 1px solid #333; color: #ccc; padding: 8px; cursor: pointer; display: flex; flex-direction: column; text-align: left; transition: 0.1s; flex: 1; }
 .btn-u:hover:not(:disabled) { border-color: var(--color-primary); background: #222; }
 .btn-u:disabled { opacity: 0.5; cursor: not-allowed; }
 .u-name { font-size: 0.75rem; font-weight: bold; color: #fff; }

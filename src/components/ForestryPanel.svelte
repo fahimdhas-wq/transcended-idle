@@ -159,30 +159,42 @@ let currentDisplayTab = $state('basic');
       </div>
       
       <div class="upgrade-row">
-        <button onclick={() => buyForestryUpgrade('chainsawFuel', buyAmount)} class="btn-u">
-            <span class="u-name">Harvest Efficiency [Lv.{forestryState.chainsawFuel}]</span>
-            <small>+Speed Mult | Cost: {formatNumber(calculateForestryCost('chainsawFuel', buyAmount))} DNA</small>
-        </button>
-        <button onclick={() => buyForestryUpgrade('ancientSaplings', buyAmount)} class="btn-u" disabled={forestryState.ancientSaplings >= 10}>
-            <span class="u-name">Vein Discovery [Lv.{forestryState.ancientSaplings}]</span>
-            <small>Unlock Trees | Cost: {forestryState.ancientSaplings >= 10 ? 'MAX' : formatNumber(calculateForestryCost('ancientSaplings', buyAmount)) + ' DNA'}</small>
-        </button>
-        <button onclick={() => buyForestryUpgrade('mutationPower', buyAmount)} class="btn-u">
-            <span class="u-name">Mutation Power [Lv.{forestryState.mutationPower || 0}]</span>
-            <small>+Mut Power | Cost: {formatNumber(calculateForestryCost('mutationPower', buyAmount))} DNA</small>
-        </button>
-        <button onclick={() => buyForestryUpgrade('overclockPower', buyAmount)} class="btn-u">
-            <span class="u-name">OC Capacitor [Lv.{forestryState.overclockPower || 0}]</span>
-            <small>+OC Power | Cost: {formatNumber(calculateForestryCost('overclockPower', buyAmount))} DNA</small>
-        </button>
-        <button onclick={() => buyForestryUpgrade('efficiency', buyAmount)} class="btn-u">
-            <span class="u-name">Energy Efficiency [Lv.{forestryState.efficiency || 0}]</span>
-            <small>-Energy Cost | Cost: {formatNumber(calculateForestryCost('efficiency', buyAmount))} DNA</small>
-        </button>
-        <button onclick={() => buyForestryUpgrade('reforestation', buyAmount)} class="btn-u">
-            <span class="u-name">Reforestation [Lv.{forestryState.reforestation || 1}]</span>
-            <small>+Growth Mult | Cost: {formatNumber(calculateForestryCost('reforestation', buyAmount))} DNA</small>
-        </button>
+        <div class="upgrade-item">
+          <button onclick={() => buyForestryUpgrade('chainsawFuel', buyAmount)} class="btn-u">
+              <span class="u-name">Harvest Efficiency [Lv.{forestryState.chainsawFuel}]</span>
+              <small>+Speed | Cost: {formatNumber(calculateForestryCost('chainsawFuel', buyAmount))} DNA</small>
+          </button>
+        </div>
+        <div class="upgrade-item">
+          <button onclick={() => buyForestryUpgrade('ancientSaplings', buyAmount)} class="btn-u" disabled={forestryState.ancientSaplings >= 10}>
+              <span class="u-name">Vein Discovery [Lv.{forestryState.ancientSaplings}]</span>
+              <small>Unlock Trees | Cost: {forestryState.ancientSaplings >= 10 ? 'MAX' : formatNumber(calculateForestryCost('ancientSaplings', buyAmount)) + ' DNA'}</small>
+          </button>
+        </div>
+        <div class="upgrade-item">
+          <button onclick={() => buyForestryUpgrade('mutationPower', buyAmount)} class="btn-u">
+              <span class="u-name">Mutation Power [Lv.{forestryState.mutationPower || 0}]</span>
+              <small>+Mut | Cost: {formatNumber(calculateForestryCost('mutationPower', buyAmount))} DNA</small>
+          </button>
+        </div>
+        <div class="upgrade-item">
+          <button onclick={() => buyForestryUpgrade('overclockPower', buyAmount)} class="btn-u">
+              <span class="u-name">OC Capacitor [Lv.{forestryState.overclockPower || 0}]</span>
+              <small>+OC | Cost: {formatNumber(calculateForestryCost('overclockPower', buyAmount))} DNA</small>
+          </button>
+        </div>
+        <div class="upgrade-item">
+          <button onclick={() => buyForestryUpgrade('efficiency', buyAmount)} class="btn-u">
+              <span class="u-name">Energy Efficiency [Lv.{forestryState.efficiency || 0}]</span>
+              <small>-Energy | Cost: {formatNumber(calculateForestryCost('efficiency', buyAmount))} DNA</small>
+          </button>
+        </div>
+        <div class="upgrade-item">
+          <button onclick={() => buyForestryUpgrade('reforestation', buyAmount)} class="btn-u">
+              <span class="u-name">Reforestation [Lv.{forestryState.reforestation || 1}]</span>
+              <small>+Growth | Cost: {formatNumber(calculateForestryCost('reforestation', buyAmount))} DNA</small>
+          </button>
+        </div>
       </div>
     </div>
 

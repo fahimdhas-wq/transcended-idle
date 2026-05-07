@@ -1,6 +1,6 @@
 import { bestiaryState } from './bestiary.svelte.js';
 import { Decimal } from '../systems/decimal.js';
-import type { MobType } from '../data/mobs.js';
+import { mobs, type MobType } from '../data/mobs.js';
 
 export function getDamageMultiplier(): number {
   return 1 + bestiaryState.anatomy * 0.1;
@@ -39,13 +39,22 @@ export function getSpeciesDropBonus(mobId: string): number {
 }
 
 function getTypedMilestoneBonus(type: MobType): number {
-  let bonus = 1;
+  let totalBonus = 0;
+  let count = 0;
+
   Object.values(bestiaryState.entries).forEach(entry => {
-    if (entry.type !== type) return;
+    // We need to look up the mob type from the mobs array definition
+    const mobDef = mobs.find(m => m.id === entry.id);
+    if (!mobDef || mobDef.type !== type) return;
+    
+    count++;
+    let bonus = 0;
     if (entry.kills.gte(100)) bonus += 0.25;
     if (entry.kills.gte(1000)) bonus += 0.75;
+    totalBonus += bonus;
   });
-  return bonus;
+
+  return count > 0 ? 1 + (totalBonus / count) : 1;
 }
 
 export function getMiningSpeedBonus(): number {
