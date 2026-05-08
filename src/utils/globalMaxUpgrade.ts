@@ -1,175 +1,113 @@
 import { Decimal } from '../systems/decimal.js';
-import { miningState, buyMiningUpgrade } from '../modules/mining.svelte.js';
-import { forestryState, buyForestryUpgrade } from '../modules/forestry.svelte.js';
-import { bestiaryState } from '../modules/bestiary.svelte.js';
-import { calculateMaxLevels } from './maxUpgrade.js';
+import { miningState, buyMiningUpgrade, upgradeTool } from '../modules/mining.svelte.js';
+import { forestryState, buyForestryUpgrade, upgradeBioTool } from '../modules/forestry.svelte.js';
+import { bestiaryState, buyBestiaryUpgrade } from '../modules/bestiary.svelte.js';
+import { maxAffordable } from './maxAffordable.js';
+import type { CostFormula } from './bulkCost.js';
 
 /**
- * Distributes all available resources equally across all upgradable skills
- * This is efficient - only triggers state updates once
+ * Distributes available resources equally across all upgradable skills.
+ * Uses O(1) formulas where possible to prevent lag.
  */
+export function autoUpgradeMining(): void {
+  if (!miningState.unlocked) return;
+
+  const upgrades: Array<{ key: any, formula: CostFormula, cap?: number }> = [
+    { key: 'sharpness',      formula: { type: 'linear', base: 0, gain: 1000 } },
+    { key: 'extraction',     formula: { type: 'linear', base: 0, gain: 200 } },
+    { key: 'discovery',      formula: { type: 'geometric', base: 500, multiplier: 10 }, cap: 10 },
+    { key: 'sensors',        formula: { type: 'linear', base: 2000, gain: 2000 } },
+    { key: 'overclockPower', formula: { type: 'linear', base: 2500, gain: 2500 } },
+    { key: 'efficiency',     formula: { type: 'linear', base: 1500, gain: 1500 } }
+  ];
+
+  const budget = bestiaryState.dataFragments;
+  if (budget.lte(0)) {
+    upgradeTool();
+    return;
+  }
+
+  const available = upgrades.filter(u => {
+    const lv = Number(miningState[u.key as keyof typeof miningState] || 0);
+    return u.cap === undefined || lv < u.cap;
+  });
+
+  if (available.length > 0) {
+    const share = budget.div(available.length);
+    for (const upgrade of available) {
+      const currentLv = Number(miningState[upgrade.key as keyof typeof miningState] || 0);
+      const count = maxAffordable(share, currentLv, upgrade.formula, upgrade.cap ? upgrade.cap - currentLv : 1000000);
+      if (count > 0) buyMiningUpgrade(upgrade.key, count);
+    }
+  }
+
+  upgradeTool();
+}
+
+export function autoUpgradeForestry(): void {
+  if (!forestryState.unlocked) return;
+
+  const upgrades: Array<{ key: any, formula: CostFormula, cap?: number }> = [
+    { key: 'chainsawFuel',    formula: { type: 'linear', base: 0, gain: 500 } },
+    { key: 'reforestation',   formula: { type: 'linear', base: 0, gain: 200 } },
+    { key: 'ancientSaplings', formula: { type: 'geometric', base: 100, multiplier: 10 }, cap: 10 },
+    { key: 'mutationPower',   formula: { type: 'linear', base: 1500, gain: 1500 } },
+    { key: 'overclockPower',  formula: { type: 'linear', base: 2000, gain: 2000 } },
+    { key: 'efficiency',      formula: { type: 'linear', base: 1000, gain: 1000 } }
+  ];
+
+  const budget = forestryState.dnaFragments;
+  if (budget.lte(0)) {
+    upgradeBioTool();
+    return;
+  }
+
+  const available = upgrades.filter(u => {
+    const lv = Number(forestryState[u.key as keyof typeof forestryState] || 0);
+    return u.cap === undefined || lv < u.cap;
+  });
+
+  if (available.length > 0) {
+    const share = budget.div(available.length);
+    for (const upgrade of available) {
+      const currentLv = Number(forestryState[upgrade.key as keyof typeof forestryState] || 0);
+      const count = maxAffordable(share, currentLv, upgrade.formula, upgrade.cap ? upgrade.cap - currentLv : 1000000);
+      if (count > 0) buyForestryUpgrade(upgrade.key, count);
+    }
+  }
+
+  upgradeBioTool();
+}
+
+export function autoUpgradeBestiary(): void {
+  const upgrades: Array<{ key: any, formula: CostFormula, cap?: number }> = [
+    { key: 'anatomy',           formula: { type: 'linear', base: 0, gain: 500 } },
+    { key: 'huntersGreed',      formula: { type: 'linear', base: 1000, gain: 1000 } },
+    { key: 'soulExtraction',    formula: { type: 'linear', base: 0, gain: 2500 } }
+  ];
+
+  const budget = bestiaryState.dataFragments;
+  if (budget.lte(0)) return;
+
+  const available = upgrades.filter(u => {
+    const lv = Number(bestiaryState[u.key as keyof typeof bestiaryState] || 0);
+    return u.cap === undefined || lv < u.cap;
+  });
+
+  if (available.length === 0) return;
+
+  const share = budget.div(available.length);
+
+  for (const upgrade of available) {
+    const currentLv = Number(bestiaryState[upgrade.key as keyof typeof bestiaryState] || 0);
+    const count = maxAffordable(share, currentLv, upgrade.formula, upgrade.cap ? upgrade.cap - currentLv : 1000000);
+    if (count > 0) buyBestiaryUpgrade(upgrade.key, count);
+  }
+}
+
+/** Legacy support or combined trigger */
 export function applyGlobalMaxUpgrade(): void {
-  // Define all mining upgrades
-  const miningUpgrades = [
-    { 
-      key: 'sharpness' as const, 
-      getCost: (lv: number) => new Decimal(lv).mul(1000),
-      cap: undefined,
-      resource: () => bestiaryState.dataFragments 
-    },
-    { 
-      key: 'extraction' as const, 
-      getCost: (lv: number) => new Decimal(lv).mul(200),
-      cap: undefined,
-      resource: () => bestiaryState.dataFragments 
-    },
-    { 
-      key: 'discovery' as const, 
-      getCost: (lv: number) => new Decimal(10).pow(lv).mul(500),
-      cap: 10,
-      resource: () => bestiaryState.dataFragments 
-    },
-    { 
-      key: 'sensors' as const, 
-      getCost: (lv: number) => new Decimal(lv).mul(2000),
-      cap: undefined,
-      resource: () => bestiaryState.dataFragments 
-    },
-    { 
-      key: 'overclockPower' as const, 
-      getCost: (lv: number) => new Decimal(lv).mul(2500),
-      cap: undefined,
-      resource: () => bestiaryState.dataFragments 
-    },
-    { 
-      key: 'efficiency' as const, 
-      getCost: (lv: number) => new Decimal(lv).mul(1500),
-      cap: undefined,
-      resource: () => bestiaryState.dataFragments 
-    }
-  ];
-
-  // Define all forestry upgrades
-  const forestryUpgrades = [
-    { 
-      key: 'chainsawFuel' as const, 
-      getCost: (lv: number) => new Decimal(lv).mul(500),
-      cap: undefined,
-      resource: () => forestryState.dnaFragments 
-    },
-    { 
-      key: 'reforestation' as const, 
-      getCost: (lv: number) => new Decimal(lv).mul(150),
-      cap: undefined,
-      resource: () => forestryState.dnaFragments 
-    },
-    { 
-      key: 'ancientSaplings' as const, 
-      getCost: (lv: number) => new Decimal(10).pow(lv).mul(100),
-      cap: 10,
-      resource: () => forestryState.dnaFragments 
-    },
-    { 
-      key: 'mutationPower' as const, 
-      getCost: (lv: number) => new Decimal(lv).mul(1500),
-      cap: undefined,
-      resource: () => forestryState.dnaFragments 
-    },
-    { 
-      key: 'overclockPower' as const, 
-      getCost: (lv: number) => new Decimal(lv).mul(2000),
-      cap: undefined,
-      resource: () => forestryState.dnaFragments 
-    },
-    { 
-      key: 'efficiency' as const, 
-      getCost: (lv: number) => new Decimal(lv).mul(1000),
-      cap: undefined,
-      resource: () => forestryState.dnaFragments 
-    }
-  ];
-
-  // Check if mining is unlocked
-  let canUpgradeMining = miningState.unlocked && bestiaryState.dataFragments.gt(0);
-  
-  // Check if forestry is unlocked  
-  let canUpgradeForestry = forestryState.unlocked && forestryState.dnaFragments.gt(0);
-
-  // If nothing to upgrade, return early
-  if (!canUpgradeMining && !canUpgradeForestry) return;
-
-  // Calculate how many upgrades are available
-  let totalUpgradesAvailable = 0;
-  const miningUpdates: Array<[typeof miningUpgrades[number]['key'], number]> = [];
-  const forestryUpdates: Array<[typeof forestryUpgrades[number]['key'], number]> = [];
-
-  if (canUpgradeMining) {
-    for (const upgrade of miningUpgrades) {
-      const currentLevel = Number(miningState[upgrade.key] || 0);
-      const isMaxed = upgrade.cap !== undefined && currentLevel >= upgrade.cap;
-      if (!isMaxed) {
-        totalUpgradesAvailable++;
-      }
-    }
-  }
-
-  if (canUpgradeForestry) {
-    for (const upgrade of forestryUpgrades) {
-      const currentLevel = Number(forestryState[upgrade.key] || 0);
-      const isMaxed = upgrade.cap !== undefined && currentLevel >= upgrade.cap;
-      if (!isMaxed) {
-        totalUpgradesAvailable++;
-      }
-    }
-  }
-
-  // If no upgrades available, return
-  if (totalUpgradesAvailable === 0) return;
-
-  // For each upgrade, calculate max levels with its share of resources
-  if (canUpgradeMining) {
-    for (const upgrade of miningUpgrades) {
-      const currentLevel = Number(miningState[upgrade.key] || 0);
-      const isMaxed = upgrade.cap !== undefined && currentLevel >= upgrade.cap;
-      if (!isMaxed) {
-        const max = calculateMaxLevels(
-          upgrade.getCost,
-          currentLevel,
-          upgrade.resource(),
-          upgrade.cap
-        );
-        if (max > 0) {
-          miningUpdates.push([upgrade.key, max]);
-        }
-      }
-    }
-  }
-
-  if (canUpgradeForestry) {
-    for (const upgrade of forestryUpgrades) {
-      const currentLevel = Number(forestryState[upgrade.key] || 0);
-      const isMaxed = upgrade.cap !== undefined && currentLevel >= upgrade.cap;
-      if (!isMaxed) {
-        const max = calculateMaxLevels(
-          upgrade.getCost,
-          currentLevel,
-          upgrade.resource(),
-          upgrade.cap
-        );
-        if (max > 0) {
-          forestryUpdates.push([upgrade.key, max]);
-        }
-      }
-    }
-  }
-
-  // Apply all mining updates
-  for (const [key, amount] of miningUpdates) {
-    buyMiningUpgrade(key, amount);
-  }
-
-  // Apply all forestry updates
-  for (const [key, amount] of forestryUpdates) {
-    buyForestryUpgrade(key, amount);
-  }
+  autoUpgradeMining();
+  autoUpgradeForestry();
+  autoUpgradeBestiary();
 }

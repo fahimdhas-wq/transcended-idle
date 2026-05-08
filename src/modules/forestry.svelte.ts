@@ -257,27 +257,30 @@ function handleBioRefining(id: string): void {
   }
 }
 
-import { calculateBulkCost } from '../utils/bulkCost.js';
+import { calculateBulkCost, type CostFormula } from '../utils/bulkCost.js';
 import { maxAffordable } from '../utils/maxAffordable.js';
+import { getAffordableAmount } from '../utils/adjustUpgradeAmount.js';
+
 
 export function buyForestryUpgrade(type: ForestryUpgradeType, amount: number | 'max' = 1): void {
-  const getCost = (lv: number): Decimal => {
-    if (type === 'chainsawFuel')    return new Decimal(lv).mul(500);
-    if (type === 'reforestation')   return new Decimal(lv).mul(200);
-    if (type === 'ancientSaplings') return new Decimal(10).pow(lv).mul(100);
-    if (type === 'mutationPower')   return new Decimal(lv + 1).mul(1500);
-    if (type === 'overclockPower')  return new Decimal(lv + 1).mul(2000);
-    if (type === 'efficiency')      return new Decimal(lv + 1).mul(1000);
-    return new Decimal(Infinity);
-  };
+  let formula: CostFormula;
+
+  if (type === 'chainsawFuel')    formula = { type: 'linear', base: 0, gain: 500 };
+  else if (type === 'reforestation')   formula = { type: 'linear', base: 0, gain: 200 };
+  else if (type === 'ancientSaplings') formula = { type: 'geometric', base: 100, multiplier: 10 };
+  else if (type === 'mutationPower')   formula = { type: 'linear', base: 1500, gain: 1500 };
+  else if (type === 'overclockPower')  formula = { type: 'linear', base: 2000, gain: 2000 };
+  else if (type === 'efficiency')      formula = { type: 'linear', base: 1000, gain: 1000 };
+  else return;
 
   const currentLv = (forestryState[type] || 0);
   let count = 0;
 
   if (amount === 'max') {
-    count = maxAffordable(forestryState.dnaFragments, currentLv, getCost);
+    count = maxAffordable(forestryState.dnaFragments, currentLv, formula).toNumber();
   } else {
-    count = amount;
+    // Dynamically adjust the requested amount if it's too expensive
+    count = getAffordableAmount(forestryState.dnaFragments, currentLv, formula, amount);
   }
 
   if (type === 'ancientSaplings') {
@@ -285,8 +288,9 @@ export function buyForestryUpgrade(type: ForestryUpgradeType, amount: number | '
   }
 
   if (count <= 0) return;
-  const totalCost = calculateBulkCost(getCost, currentLv, count);
+  const totalCost = calculateBulkCost(formula, currentLv, count);
 
+  // Already checked via getAffordableAmount
   if (forestryState.dnaFragments.gte(totalCost)) {
     forestryState.dnaFragments = forestryState.dnaFragments.sub(totalCost);
     forestryState[type] += count;
@@ -311,7 +315,7 @@ export function addGrowthChamber(amount: number | 'max' = 1): void {
   const currentLv = forestryState.growthChambers - 1;
   let count = 0;
   if (amount === 'max') {
-    count = maxAffordable(forestryState.resources.biofiber || new Decimal(0), currentLv, getCost);
+    count = maxAffordable(forestryState.resources.biofiber || new Decimal(0), currentLv, getCost).toNumber();
   } else {
     count = amount;
   }
@@ -327,18 +331,18 @@ export function addGrowthChamber(amount: number | 'max' = 1): void {
 }
 
 export function upgradeMutationChance(amount: number | 'max' = 1): void {
-  const getCost = (lv: number): Decimal => new Decimal(Math.floor(lv * 500));
-  
   const currentLv = (forestryState.mutationChance / 0.01) - 1;
+  const formula: CostFormula = { type: 'linear', base: 0, gain: 500 };
+
   let count = 0;
   if (amount === 'max') {
-    count = maxAffordable(forestryState.resources.resinGel || new Decimal(0), currentLv, getCost);
+    count = maxAffordable(forestryState.resources.resinGel || new Decimal(0), currentLv, formula).toNumber();
   } else {
     count = amount;
   }
 
   if (count <= 0) return;
-  const totalCost = calculateBulkCost(getCost, currentLv, count);
+  const totalCost = calculateBulkCost(formula, currentLv, count);
 
   if (forestryState.resources.resinGel && forestryState.resources.resinGel.gte(totalCost)) {
     forestryState.resources.resinGel = forestryState.resources.resinGel.sub(totalCost);
@@ -348,21 +352,18 @@ export function upgradeMutationChance(amount: number | 'max' = 1): void {
 }
 
 export function upgradeForestryEnergy(amount: number | 'max' = 1): void {
-  const getCost = (lv: number): Decimal => {
-    const currentMax = 100 + (lv * 100);
-    return new Decimal((currentMax / 100) * 25);
-  };
-
   const currentLv = (forestryState.maxEnergy - 100) / 100;
+  const formula: CostFormula = { type: 'linear', base: (currentLv + 1) * 25, gain: 25 };
+
   let count = 0;
   if (amount === 'max') {
-    count = maxAffordable(forestryState.resources.reinforcedFiber || new Decimal(0), currentLv, getCost);
+    count = maxAffordable(forestryState.resources.reinforcedFiber || new Decimal(0), 0, formula).toNumber();
   } else {
     count = amount;
   }
 
   if (count <= 0) return;
-  const totalCost = calculateBulkCost(getCost, currentLv, count);
+  const totalCost = calculateBulkCost(formula, 0, count);
 
   if (forestryState.resources.reinforcedFiber && forestryState.resources.reinforcedFiber.gte(totalCost)) {
     forestryState.resources.reinforcedFiber = forestryState.resources.reinforcedFiber.sub(totalCost);
@@ -390,9 +391,3 @@ export function refineBioSingle(id: string): void {
   }
 }
 
-export function autoUpgradeForestry(): void {
-  if (!forestryState.unlocked) return;
-  const bulk = 1000;
-  (['chainsawFuel', 'reforestation', 'ancientSaplings', 'mutationPower', 'overclockPower', 'efficiency'] as ForestryUpgradeType[]).forEach(t => buyForestryUpgrade(t, bulk));
-  upgradeBioTool();
-}

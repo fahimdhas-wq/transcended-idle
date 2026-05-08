@@ -1,4 +1,4 @@
-import type { Decimal } from '../systems/decimal';
+import { Decimal } from '../systems/decimal';
 import { calculateBulkCost, type CostFormula } from './bulkCost';
 
 /**
@@ -6,34 +6,32 @@ import { calculateBulkCost, type CostFormula } from './bulkCost';
  * @param budget The total resource available.
  * @param currentLv The current level of the upgrade.
  * @param formula A function or formula object that returns the cost for a given level.
- * @param cap The maximum number of levels to check (performance cap).
- * @returns The maximum number of levels that can be afforded.
+ * @returns The maximum number of levels that can be afforded as a Decimal.
  */
 export function maxAffordable(
   budget: Decimal,
   currentLv: number,
-  formula: CostFormula,
-  cap = 10000000
-): number {
-  let low = 0;
-  let high = cap;
-  let affordable = 0;
+  formula: CostFormula
+): Decimal {
+  let low = new Decimal(0);
+  let high = new Decimal(1000000000000); // Start with a sufficiently large initial guess
+  let affordable = new Decimal(0);
 
   // If budget is 0, we can afford 0
-  if (budget.m === 0) return 0;
+  if (budget.m === 0) return new Decimal(0);
 
-  while (low <= high) {
-    const mid = Math.floor((low + high) / 2);
-    if (mid === 0) {
-      low = 1;
+  while (low.lte(high)) {
+    const mid = low.add(high).div(2).floor();
+    if (mid.lte(0)) {
+      low = new Decimal(1);
       continue;
     }
-    const cost = calculateBulkCost(formula, currentLv, mid);
+    const cost = calculateBulkCost(formula, currentLv, mid.toNumber());
     if (cost.lte(budget)) {
       affordable = mid;
-      low = mid + 1;
+      low = mid.add(1);
     } else {
-      high = mid - 1;
+      high = mid.sub(1);
     }
   }
   return affordable;

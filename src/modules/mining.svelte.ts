@@ -2,9 +2,12 @@ import { character } from './character.svelte.js';
 import { addLog } from '../ui/LogPanelState.svelte.js';
 import { getMiningSpeedBonus, getEnergyEfficiencyBonus } from './bestiaryBonuses.js';
 import { bestiaryState } from './bestiary.svelte.js';
+import { getAffordableAmount } from '../utils/adjustUpgradeAmount.js';
 import { Decimal } from '../systems/decimal.js';
+import { calculateBulkCost, type CostFormula } from '../utils/bulkCost.js';
 import { formatNumber } from '../systems/scalingSystem.js';
 import { GATHERING_CONSTANTS, makeTools, type GatheringTool } from '../data/gatheringConfig.js';
+import { maxAffordable } from '../utils/maxAffordable.js';
 
 export type MiningUpgradeType = 'sharpness' | 'discovery' | 'sensors' | 'overclockPower' | 'efficiency' | 'extraction';
 export type MiningAutomationType = 'drone' | 'extractor';
@@ -248,27 +251,25 @@ function handleRefining(id: string): void {
   }
 }
 
-import { calculateBulkCost } from '../utils/bulkCost.js';
-import { maxAffordable } from '../utils/maxAffordable.js';
-
 export function buyMiningUpgrade(type: MiningUpgradeType, amount: number | 'max' = 1): void {
-  const getCost = (lv: number): Decimal => {
-    if (type === 'sharpness')      return new Decimal(lv).mul(1000);
-    if (type === 'extraction')     return new Decimal(lv).mul(200);
-    if (type === 'discovery')      return new Decimal(10).pow(lv).mul(500);
-    if (type === 'sensors')        return new Decimal(lv + 1).mul(2000);
-    if (type === 'overclockPower') return new Decimal(lv + 1).mul(2500);
-    if (type === 'efficiency')     return new Decimal(lv + 1).mul(1500);
-    return new Decimal(Infinity);
-  };
+  let formula: CostFormula;
+  
+  if (type === 'sharpness')      formula = { type: 'linear', base: 0, gain: 1000 };
+  else if (type === 'extraction') formula = { type: 'linear', base: 0, gain: 200 };
+  else if (type === 'discovery')  formula = { type: 'geometric', base: 500, multiplier: 10 };
+  else if (type === 'sensors')    formula = { type: 'linear', base: 2000, gain: 2000 };
+  else if (type === 'overclockPower') formula = { type: 'linear', base: 2500, gain: 2500 };
+  else if (type === 'efficiency') formula = { type: 'linear', base: 1500, gain: 1500 };
+  else return;
 
   const currentLv = Number(miningState[type] || 0);
   let count = 0;
 
   if (amount === 'max') {
-    count = maxAffordable(bestiaryState.dataFragments, currentLv, getCost);
+    count = maxAffordable(bestiaryState.dataFragments, currentLv, formula).toNumber();
   } else {
-    count = amount;
+    // Dynamically adjust the requested amount if it's too expensive
+    count = getAffordableAmount(bestiaryState.dataFragments, currentLv, formula, amount);
   }
   
   if (type === 'discovery') {
@@ -277,8 +278,9 @@ export function buyMiningUpgrade(type: MiningUpgradeType, amount: number | 'max'
 
   if (count <= 0) return;
 
-  const totalCost = calculateBulkCost(getCost, currentLv, count);
+  const totalCost = calculateBulkCost(formula, currentLv, count);
 
+  // We already checked affordability via getAffordableAmount, but keeping the check for safety
   if (bestiaryState.dataFragments.gte(totalCost)) {
     bestiaryState.dataFragments = bestiaryState.dataFragments.sub(totalCost);
     miningState[type] += count;
@@ -298,21 +300,18 @@ export function upgradeTool(): void {
 }
 
 export function upgradeEnergy(amount: number | 'max' = 1): void {
-  const getCost = (lv: number): Decimal => {
-    const currentMax = 100 + (lv * 100);
-    return new Decimal((currentMax / 100) * 25);
-  };
-
   const currentLv = (miningState.maxEnergy - 100) / 100;
+  const formula: CostFormula = { type: 'linear', base: (currentLv + 1) * 25, gain: 25 };
+
   let count = 0;
   if (amount === 'max') {
-    count = maxAffordable(miningState.resources.fuelX, currentLv, getCost);
+    count = maxAffordable(miningState.resources.fuelX, 0, formula).toNumber();
   } else {
     count = amount;
   }
 
   if (count <= 0) return;
-  const totalCost = calculateBulkCost(getCost, currentLv, count);
+  const totalCost = calculateBulkCost(formula, 0, count);
 
   if (miningState.resources.fuelX.gte(totalCost)) {
     miningState.resources.fuelX = miningState.resources.fuelX.sub(totalCost);
@@ -324,18 +323,18 @@ export function upgradeEnergy(amount: number | 'max' = 1): void {
 
 export function upgradeAutomation(type: MiningAutomationType, amount: number | 'max' = 1): void {
   const isDrone = type === 'drone';
-  const getCost = (lv: number): Decimal => new Decimal(lv).mul(isDrone ? 50 : 100);
-  
   const currentLv = isDrone ? miningState.drones : miningState.autoExtractors;
+  const formula: CostFormula = { type: 'linear', base: 0, gain: isDrone ? 50 : 100 };
+  
   let count = 0;
   if (amount === 'max') {
-    count = maxAffordable(miningState.resources.alloyX, currentLv, getCost);
+    count = maxAffordable(miningState.resources.alloyX, currentLv, formula).toNumber();
   } else {
     count = amount;
   }
 
   if (count <= 0) return;
-  const totalCost = calculateBulkCost(getCost, currentLv, count);
+  const totalCost = calculateBulkCost(formula, currentLv, count);
 
   if (miningState.resources.alloyX.gte(totalCost)) {
     miningState.resources.alloyX = miningState.resources.alloyX.sub(totalCost);
@@ -363,9 +362,3 @@ export function refineSingle(id: string): void {
   }
 }
 
-export function autoUpgradeMining(): void {
-  if (!miningState.unlocked) return;
-  const bulk = 1000;
-  (['sharpness', 'discovery', 'sensors', 'overclockPower', 'efficiency'] as MiningUpgradeType[]).forEach(t => buyMiningUpgrade(t, bulk));
-  upgradeTool();
-}

@@ -25,6 +25,8 @@ export interface BestiaryState {
   cachedBoost: number;
 }
 
+let dnaGainCallback: ((amount: Decimal) => void) | null = null;
+
 const BESTIARY_CONSTANTS = {
   SOUL_KILL_RATIO: 100,
   FRAGMENT_DROP_CHANCE: 0.15,
@@ -51,8 +53,6 @@ export const bestiaryState: BestiaryState = $state({
 mobs.forEach(mob => {
   bestiaryState.entries[mob.id] = createEntry(mob);
 });
-
-let dnaGainCallback: ((amount: Decimal) => void) | null = null;
 
 export function setDnaGainCallback(cb: (amount: Decimal) => void): void {
   dnaGainCallback = cb;
@@ -121,28 +121,31 @@ export function recordKill(mob: MobDefinition, count: DecimalSource = 1): void {
   }
 }
 
-import { calculateBulkCost } from '../utils/bulkCost.js';
+import { calculateBulkCost, type CostFormula } from '../utils/bulkCost.js';
 import { maxAffordable } from '../utils/maxAffordable.js';
+import { getAffordableAmount } from '../utils/adjustUpgradeAmount.js';
 
 export function buyBestiaryUpgrade(type: BestiaryUpgradeType, amount: number | 'max' = 1): void {
-  const getCost = (lv: number): Decimal => {
-    if (type === 'anatomy') return new Decimal(lv).mul(500);
-    if (type === 'huntersGreed') return new Decimal(lv + 1).mul(1000);
-    if (type === 'soulExtraction') return new Decimal(lv).mul(2500);
-    return new Decimal(Infinity);
-  };
+  let formula: CostFormula;
+  
+  if (type === 'anatomy')           formula = { type: 'linear', base: 0, gain: 500 };
+  else if (type === 'huntersGreed')  formula = { type: 'linear', base: 1000, gain: 1000 };
+  else if (type === 'soulExtraction') formula = { type: 'linear', base: 0, gain: 2500 };
+  else return;
 
   const currentLv = Number(bestiaryState[type]);
   let count = 0;
   if (amount === 'max') {
-    count = maxAffordable(bestiaryState.dataFragments, currentLv, getCost);
+    count = maxAffordable(bestiaryState.dataFragments, currentLv, formula).toNumber();
   } else {
-    count = amount;
+    // Dynamically adjust the requested amount if it's too expensive
+    count = getAffordableAmount(bestiaryState.dataFragments, currentLv, formula, amount);
   }
 
   if (count <= 0) return;
-  const totalCost = calculateBulkCost(getCost, currentLv, count);
+  const totalCost = calculateBulkCost(formula, currentLv, count);
 
+  // Already checked via getAffordableAmount
   if (bestiaryState.dataFragments.gte(totalCost)) {
     bestiaryState.dataFragments = bestiaryState.dataFragments.sub(totalCost);
     bestiaryState[type] += count;
@@ -169,7 +172,3 @@ export function updateGlobalBoost(): void {
 
 updateGlobalBoost();
 
-export function autoUpgradeBestiary(): void {
-  const bulk = 1000;
-  (['anatomy', 'huntersGreed', 'soulExtraction'] as BestiaryUpgradeType[]).forEach(t => buyBestiaryUpgrade(t, bulk));
-}

@@ -2,13 +2,15 @@
 import {
   forestryState, bioTools, upgradeBioTool, buyForestryUpgrade,
   refineBioSingle, addGrowthChamber, upgradeMutationChance,
-  triggerForestryOverclock, upgradeForestryEnergy, autoUpgradeForestry
+  triggerForestryOverclock, upgradeForestryEnergy
 } from '../modules/forestry.svelte.js';
+import { autoUpgradeForestry } from '../utils/globalMaxUpgrade.js';
 import type { ForestryUpgradeType } from '../modules/forestry.svelte.js';
 import { formatNumber } from '../systems/scalingSystem.js';
 import { uiStore, showToast } from '../stores/uiStore.svelte.js';
 import { Decimal } from '../systems/decimal.js';
-import { calculateBulkCost, invalidateBulkCostCache } from '../utils/bulkCost.js';
+import { calculateBulkCost, invalidateBulkCostCache, type CostFormula } from '../utils/bulkCost.js';
+import { maxAffordable } from '../utils/maxAffordable.js';
 import { basicTrees, refinedTrees, advancedTrees } from '../data/resources.js';
 
 let buyAmount = $derived(uiStore.buyAmount);
@@ -23,6 +25,13 @@ function toggle(key: string) { openSections[key] = !openSections[key]; }
 
 let resourceTab = $state<'basic' | 'refined' | 'advanced'>('basic');
 
+// Helper to resolve cost for both number and 'max'
+function resolveCost(formula: CostFormula, currentLevel: number, amount: number | 'max', budget: Decimal): { cost: Decimal, count: number } {
+  const count = amount === 'max' ? maxAffordable(budget, currentLevel, formula) : amount;
+  const cost = calculateBulkCost(formula, currentLevel, count);
+  return { cost, count };
+}
+
 // ── Fallback cost functions (for non-linear/geometric cases) ──
 function chamberCostFn(i: number): Decimal {
   const lv = (forestryState.growthChambers - 1) + i;
@@ -32,16 +41,23 @@ function chamberCostFn(i: number): Decimal {
 // Derived costs — using optimized formulas where possible to prevent lag
 let costs = $derived.by(() => {
   const a = buyAmount;
+  const dna = forestryState.dnaFragments;
+  const reinf = forestryState.resources.reinforcedFiber ?? new Decimal(0);
+  const biofiber = forestryState.resources.biofiber ?? new Decimal(0);
+  const resin = forestryState.resources.resinGel ?? new Decimal(0);
+
   return {
-    chainsaw:    calculateBulkCost({ type: 'linear', base: 0, gain: 500 }, forestryState.chainsawFuel, a),
-    reforest:    calculateBulkCost({ type: 'linear', base: 0, gain: 150 }, forestryState.reforestation, a),
-    sapling:     calculateBulkCost({ type: 'geometric', base: 100, multiplier: 10 }, forestryState.ancientSaplings, Math.min(a, 10 - forestryState.ancientSaplings)),
-    mutPower:    calculateBulkCost({ type: 'linear', base: 1500, gain: 1500 }, forestryState.mutationPower ?? 0, a),
-    ocPower:     calculateBulkCost({ type: 'linear', base: 2000, gain: 2000 }, forestryState.overclockPower ?? 0, a),
-    efficiency:  calculateBulkCost({ type: 'linear', base: 1000, gain: 1000 }, forestryState.efficiency ?? 0, a),
-    energy:      calculateBulkCost({ type: 'linear', base: forestryState.maxEnergy * 0.25, gain: 25 }, 0, a),
-    chamber:     calculateBulkCost(chamberCostFn, 0, a),
-    mutChance:   calculateBulkCost({ type: 'linear', base: (forestryState.mutationChance / 0.01 - 1) * 500, gain: 500 }, 0, a),
+    chainsawFuel:    resolveCost({ type: 'linear', base: 0, gain: 500 }, forestryState.chainsawFuel, a, dna),
+    reforestation:   resolveCost({ type: 'linear', base: 0, gain: 200 }, forestryState.reforestation, a, dna),
+    ancientSaplings: resolveCost({ type: 'geometric', base: 100, multiplier: 10 }, forestryState.ancientSaplings, a === 'max' ? Math.min(100, 10 - forestryState.ancientSaplings) : Math.min(a, 10 - forestryState.ancientSaplings), dna),
+    mutationPower:   resolveCost({ type: 'linear', base: 1500, gain: 1500 }, forestryState.mutationPower ?? 0, a, dna),
+    overclockPower:  resolveCost({ type: 'linear', base: 2000, gain: 2000 }, forestryState.overclockPower ?? 0, a, dna),
+    efficiency:      resolveCost({ type: 'linear', base: 1000, gain: 1000 }, forestryState.efficiency ?? 0, a, dna),
+    
+    energy:      resolveCost({ type: 'linear', base: ((forestryState.maxEnergy - 100) / 100 + 1) * 25, gain: 25 }, 0, a, reinf),
+    chamber:     resolveCost(chamberCostFn, 0, a, biofiber),
+    mutChance:   resolveCost({ type: 'linear', base: 0, gain: 500 }, (forestryState.mutationChance / 0.01) - 1, a, resin),
+    
     nextTool:    bioTools[forestryState.toolTier]?.dataCost ?? Infinity,
   };
 });
@@ -57,7 +73,7 @@ function doOC() { triggerForestryOverclock(); showToast('Growth Surge active!', 
 function doEnergy() { upgradeForestryEnergy(buyAmount); invalidateBulkCostCache(); }
 function doChamber() { addGrowthChamber(buyAmount); invalidateBulkCostCache(); }
 function doMutChance() { upgradeMutationChance(buyAmount); invalidateBulkCostCache(); }
-function doMax() { autoUpgradeForestry(); invalidateBulkCostCache(); showToast('Forestry maxed!', 'success'); }
+function doMax() { autoUpgradeForestry(); invalidateBulkCostCache(); showToast('Bio-Harvester optimized!', 'success'); }
 
 let energyPct = $derived(Math.max(0, Math.min(100,
   (Number(forestryState.energy) / Math.max(1, Number(forestryState.maxEnergy))) * 100
@@ -95,14 +111,18 @@ let energyPct = $derived(Math.max(0, Math.min(100,
     <!-- ── BUY SELECTOR + MAX ── -->
     <div class="control-bar">
       <div class="buy-selector">
-        {#each [1, 10, 100, 1000, 10000] as amt}
+        {#each [1, 10, 100, 1000] as amt}
           <button class="amt-btn" class:active={uiStore.buyAmount === amt}
             onclick={() => { uiStore.buyAmount = amt; invalidateBulkCostCache(); }}>
             x{amt}
           </button>
         {/each}
+        <button class="amt-btn" class:active={uiStore.buyAmount === 'max'}
+            onclick={() => { uiStore.buyAmount = 'max'; invalidateBulkCostCache(); }}>
+            MAX
+        </button>
       </div>
-      <button class="max-btn" onclick={doMax}>⚡ MAX</button>
+      <button class="max-btn" onclick={doMax}>⚡ AUTO-UP</button>
     </div>
 
     <div class="sections">
@@ -152,9 +172,9 @@ let energyPct = $derived(Math.max(0, Math.min(100,
                 <small>25 Reinf.Fiber</small>
               </button>
               <button class="act-btn" onclick={doEnergy}
-                disabled={!canRes('reinforcedFiber', costs.energy)}>
+                disabled={!canRes('reinforcedFiber', costs.energy.cost)}>
                 <span class="act-name">+NUTRIENT CAP</span>
-                <small>{formatNumber(costs.energy)} Reinf.Fiber</small>
+                <small>{formatNumber(costs.energy.cost)} Reinf.Fiber</small>
               </button>
             </div>
           </div>
@@ -170,41 +190,25 @@ let energyPct = $derived(Math.max(0, Math.min(100,
         {#if openSections.upgrades}
           <div class="acc-body">
             <div class="upg-grid">
-              <button class="upg-btn" onclick={() => doBuy('chainsawFuel')}
-                disabled={!canDna(costs.chainsaw)}>
-                <span class="upg-name">Harvest Eff. <span class="upg-lv">Lv.{forestryState.chainsawFuel}</span></span>
-                <small class="upg-cost">{formatNumber(costs.chainsaw)} DNA</small>
-              </button>
-
-              <button class="upg-btn" onclick={() => doBuy('reforestation')}
-                disabled={!canDna(costs.reforest)}>
-                <span class="upg-name">Reforestation <span class="upg-lv">Lv.{forestryState.reforestation}</span></span>
-                <small class="upg-cost">{formatNumber(costs.reforest)} DNA</small>
-              </button>
-
-              <button class="upg-btn" onclick={() => doBuy('ancientSaplings')}
-                disabled={forestryState.ancientSaplings >= 10 || !canDna(costs.sapling)}>
-                <span class="upg-name">Vein Discovery <span class="upg-lv">Lv.{forestryState.ancientSaplings}/10</span></span>
-                <small class="upg-cost">{forestryState.ancientSaplings >= 10 ? 'MAX' : formatNumber(costs.sapling) + ' DNA'}</small>
-              </button>
-
-              <button class="upg-btn" onclick={() => doBuy('mutationPower')}
-                disabled={!canDna(costs.mutPower)}>
-                <span class="upg-name">Mutation Power <span class="upg-lv">Lv.{forestryState.mutationPower ?? 0}</span></span>
-                <small class="upg-cost">{formatNumber(costs.mutPower)} DNA</small>
-              </button>
-
-              <button class="upg-btn" onclick={() => doBuy('overclockPower')}
-                disabled={!canDna(costs.ocPower)}>
-                <span class="upg-name">OC Capacitor <span class="upg-lv">Lv.{forestryState.overclockPower ?? 0}</span></span>
-                <small class="upg-cost">{formatNumber(costs.ocPower)} DNA</small>
-              </button>
-
-              <button class="upg-btn" onclick={() => doBuy('efficiency')}
-                disabled={!canDna(costs.efficiency)}>
-                <span class="upg-name">Efficiency <span class="upg-lv">Lv.{forestryState.efficiency ?? 0}</span></span>
-                <small class="upg-cost">{formatNumber(costs.efficiency)} DNA</small>
-              </button>
+              {#each ['chainsawFuel', 'reforestation', 'ancientSaplings', 'mutationPower', 'overclockPower', 'efficiency'] as type}
+                {@const costData = costs[type as keyof typeof costs]}
+                {#if costData && typeof costData === 'object' && 'cost' in costData}
+                  <button class="upg-btn" onclick={() => doBuy(type as ForestryUpgradeType)}
+                    disabled={(type === 'ancientSaplings' && forestryState.ancientSaplings >= 10) || !canDna(costData.cost)}>
+                    <span class="upg-name">
+                      {type.charAt(0).toUpperCase() + type.slice(1).replace(/([A-Z])/g, ' $1')} 
+                      <span class="upg-lv">Lv.{forestryState[type as ForestryUpgradeType]}</span>
+                    </span>
+                    <small class="upg-cost">
+                      {#if type === 'ancientSaplings' && forestryState.ancientSaplings >= 10}
+                        MAX
+                      {:else}
+                        {formatNumber(costData.cost)} DNA {buyAmount === 'max' ? `(x${costData.count})` : ''}
+                      {/if}
+                    </small>
+                  </button>
+                {/if}
+              {/each}
             </div>
           </div>
         {/if}
@@ -220,14 +224,14 @@ let energyPct = $derived(Math.max(0, Math.min(100,
           <div class="acc-body">
             <div class="two-col">
               <button class="upg-btn" onclick={doChamber}
-                disabled={!canRes('biofiber', costs.chamber)}>
+                disabled={!canRes('biofiber', costs.chamber.cost)}>
                 <span class="upg-name">Growth Chambers <span class="upg-lv">({forestryState.growthChambers})</span></span>
-                <small class="upg-cost">{formatNumber(costs.chamber)} Biofiber</small>
+                <small class="upg-cost">{formatNumber(costs.chamber.cost)} Biofiber {buyAmount === 'max' ? `(x${costs.chamber.count})` : ''}</small>
               </button>
               <button class="upg-btn" onclick={doMutChance}
-                disabled={!canRes('resinGel', costs.mutChance)}>
+                disabled={!canRes('resinGel', costs.mutChance.cost)}>
                 <span class="upg-name">Mutation Chance <span class="upg-lv">({Math.floor(forestryState.mutationChance * 100)}%)</span></span>
-                <small class="upg-cost">{formatNumber(costs.mutChance)} Resin Gel</small>
+                <small class="upg-cost">{formatNumber(costs.mutChance.cost)} Resin Gel {buyAmount === 'max' ? `(x${costs.mutChance.count})` : ''}</small>
               </button>
             </div>
           </div>

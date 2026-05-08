@@ -1,16 +1,17 @@
 <script lang="ts">
 import {
   miningState, tools, upgradeTool, triggerOverclock,
-  upgradeEnergy, upgradeAutomation, buyMiningUpgrade, refineSingle,
-  autoUpgradeMining
+  upgradeEnergy, upgradeAutomation, buyMiningUpgrade, refineSingle
 } from '../modules/mining.svelte.js';
+import { autoUpgradeMining } from '../utils/globalMaxUpgrade.js';
 import type { MiningAutomationType, MiningUpgradeType } from '../modules/mining.svelte.js';
 import { bestiaryState } from '../modules/bestiary.svelte.js';
 import { formatNumber } from '../systems/scalingSystem.js';
 import { Decimal } from '../systems/decimal.js';
 import { basicOres, refinedOres, advancedOres } from '../data/resources.js';
 import { uiStore, showToast } from '../stores/uiStore.svelte.js';
-import { calculateBulkCost, invalidateBulkCostCache } from '../utils/bulkCost.js';
+import { calculateBulkCost, invalidateBulkCostCache, type CostFormula } from '../utils/bulkCost.js';
+import { maxAffordable } from '../utils/maxAffordable.js';
 
 let buyAmount = $derived(uiStore.buyAmount);
 
@@ -25,19 +26,34 @@ function toggle(key: string) { openSections[key] = !openSections[key]; }
 
 let resourceTab = $state<'basic' | 'refined' | 'advanced'>('basic');
 
+// Helper to resolve cost for both number and 'max'
+function resolveCost(formula: CostFormula, currentLevel: number, amount: number | 'max', budget: Decimal): { cost: Decimal, count: number } {
+  const count = amount === 'max' ? maxAffordable(budget, currentLevel, formula) : amount;
+  const cost = calculateBulkCost(formula, currentLevel, count);
+  return { cost, count };
+}
+
 // Derived costs — using optimized formulas where possible to prevent lag
 let costs = $derived.by(() => {
   const a = buyAmount;
+  const data = bestiaryState.dataFragments;
+  const fuel = miningState.resources.fuelX;
+  const alloy = miningState.resources.alloyX;
+
   return {
-    sharpness:    calculateBulkCost({ type: 'linear', base: 0, gain: 1000 }, miningState.sharpness, a),
-    extraction:   calculateBulkCost({ type: 'linear', base: 0, gain: 200 }, miningState.extraction, a),
-    discovery:    calculateBulkCost({ type: 'geometric', base: 500, multiplier: 10 }, miningState.discovery, Math.min(a, 10 - miningState.discovery)),
-    sensors:      calculateBulkCost({ type: 'linear', base: 0, gain: 2000 }, miningState.sensors, a),
-    ocPower:      calculateBulkCost({ type: 'linear', base: 0, gain: 2500 }, miningState.overclockPower, a),
-    efficiency:   calculateBulkCost({ type: 'linear', base: 0, gain: 1500 }, miningState.efficiency, a),
-    energy:       calculateBulkCost({ type: 'linear', base: (miningState.maxEnergy / 100) * 25, gain: 25 }, 0, a),
-    drone:        calculateBulkCost({ type: 'linear', base: 0, gain: 50 }, miningState.drones, a),
-    extractor:    calculateBulkCost({ type: 'linear', base: 0, gain: 100 }, miningState.autoExtractors, a),
+    sharpness:    resolveCost({ type: 'linear', base: 0, gain: 1000 }, miningState.sharpness, a, data),
+    extraction:   resolveCost({ type: 'linear', base: 0, gain: 200 }, miningState.extraction, a, data),
+    discovery:    resolveCost({ type: 'geometric', base: 500, multiplier: 10 }, miningState.discovery, a === 'max' ? Math.min(100, 10 - miningState.discovery) : Math.min(a, 10 - miningState.discovery), data),
+    sensors:      resolveCost({ type: 'linear', base: 2000, gain: 2000 }, miningState.sensors, a, data),
+    overclockPower: resolveCost({ type: 'linear', base: 2500, gain: 2500 }, miningState.overclockPower, a, data),
+    efficiency:   resolveCost({ type: 'linear', base: 1500, gain: 1500 }, miningState.efficiency, a, data),
+    
+    // Energy cost formula: base = (lv + 1) * 25. lv here starts at current expansion level.
+    energy:       resolveCost({ type: 'linear', base: ((miningState.maxEnergy - 100) / 100 + 1) * 25, gain: 25 }, 0, a, fuel),
+    
+    drone:        resolveCost({ type: 'linear', base: 0, gain: 50 }, miningState.drones, a, alloy),
+    extractor:    resolveCost({ type: 'linear', base: 0, gain: 100 }, miningState.autoExtractors, a, alloy),
+    
     nextTool:     tools[miningState.toolTier]?.dataCost ?? Infinity,
   };
 });
@@ -57,7 +73,7 @@ function doUpgradeTool() { upgradeTool(); invalidateBulkCostCache(); showToast('
 function doOverclock() { triggerOverclock(); showToast('Overclock active!', 'warn'); }
 function doEnergy() { upgradeEnergy(buyAmount); invalidateBulkCostCache(); }
 function doAuto(t: MiningAutomationType) { upgradeAutomation(t, buyAmount); invalidateBulkCostCache(); }
-function doMax() { autoUpgradeMining(); invalidateBulkCostCache(); showToast('Mining maxed!', 'success'); }
+function doMax() { autoUpgradeMining(); invalidateBulkCostCache(); showToast('Mining Rig optimized!', 'success'); }
 
 let energyPct = $derived(Math.max(0, Math.min(100,
   (Number(miningState.energy) / Math.max(1, Number(miningState.maxEnergy))) * 100
@@ -95,14 +111,18 @@ let energyPct = $derived(Math.max(0, Math.min(100,
     <!-- ── BUY SELECTOR + MAX ── -->
     <div class="control-bar">
       <div class="buy-selector">
-        {#each [1, 10, 100, 1000, 10000] as amt}
+        {#each [1, 10, 100, 1000] as amt}
           <button class="amt-btn" class:active={uiStore.buyAmount === amt}
             onclick={() => { uiStore.buyAmount = amt; invalidateBulkCostCache(); }}>
             x{amt}
           </button>
         {/each}
+        <button class="amt-btn" class:active={uiStore.buyAmount === 'max'}
+            onclick={() => { uiStore.buyAmount = 'max'; invalidateBulkCostCache(); }}>
+            MAX
+        </button>
       </div>
-      <button class="max-btn" onclick={doMax}>⚡ MAX</button>
+      <button class="max-btn" onclick={doMax}>⚡ AUTO-UP</button>
     </div>
 
     <div class="sections">
@@ -152,9 +172,9 @@ let energyPct = $derived(Math.max(0, Math.min(100,
                 <small>25 Fuel-X</small>
               </button>
               <button class="act-btn" onclick={doEnergy}
-                disabled={!canAffordRes('fuelX', costs.energy)}>
+                disabled={!canAffordRes('fuelX', costs.energy.cost)}>
                 <span class="act-name">+ENERGY CAP</span>
-                <small>{formatNumber(costs.energy)} Fuel-X</small>
+                <small>{formatNumber(costs.energy.cost)} Fuel-X</small>
               </button>
             </div>
           </div>
@@ -170,41 +190,25 @@ let energyPct = $derived(Math.max(0, Math.min(100,
         {#if openSections.upgrades}
           <div class="acc-body">
             <div class="upg-grid">
-              <button class="upg-btn" onclick={() => doBuy('sharpness')}
-                disabled={!canAfford(costs.sharpness)}>
-                <span class="upg-name">Sharpness <span class="upg-lv">Lv.{miningState.sharpness}</span></span>
-                <small class="upg-cost">{formatNumber(costs.sharpness)} DATA</small>
-              </button>
-
-              <button class="upg-btn" onclick={() => doBuy('extraction')}
-                disabled={!canAfford(costs.extraction)}>
-                <span class="upg-name">Extraction <span class="upg-lv">Lv.{miningState.extraction}</span></span>
-                <small class="upg-cost">{formatNumber(costs.extraction)} DATA</small>
-              </button>
-
-              <button class="upg-btn" onclick={() => doBuy('discovery')}
-                disabled={miningState.discovery >= 10 || !canAfford(costs.discovery)}>
-                <span class="upg-name">Discovery <span class="upg-lv">Lv.{miningState.discovery}/10</span></span>
-                <small class="upg-cost">{miningState.discovery >= 10 ? 'MAX' : formatNumber(costs.discovery) + ' DATA'}</small>
-              </button>
-
-              <button class="upg-btn" onclick={() => doBuy('sensors')}
-                disabled={!canAfford(costs.sensors)}>
-                <span class="upg-name">Sensors <span class="upg-lv">Lv.{miningState.sensors}</span></span>
-                <small class="upg-cost">{formatNumber(costs.sensors)} DATA</small>
-              </button>
-
-              <button class="upg-btn" onclick={() => doBuy('overclockPower')}
-                disabled={!canAfford(costs.ocPower)}>
-                <span class="upg-name">OC Capacitor <span class="upg-lv">Lv.{miningState.overclockPower}</span></span>
-                <small class="upg-cost">{formatNumber(costs.ocPower)} DATA</small>
-              </button>
-
-              <button class="upg-btn" onclick={() => doBuy('efficiency')}
-                disabled={!canAfford(costs.efficiency)}>
-                <span class="upg-name">Efficiency <span class="upg-lv">Lv.{miningState.efficiency}</span></span>
-                <small class="upg-cost">{formatNumber(costs.efficiency)} DATA</small>
-              </button>
+              {#each ['sharpness', 'extraction', 'discovery', 'sensors', 'overclockPower', 'efficiency'] as type}
+                {@const costData = costs[type as keyof typeof costs]}
+                {#if costData && typeof costData === 'object' && 'cost' in costData}
+                  <button class="upg-btn" onclick={() => doBuy(type as MiningUpgradeType)}
+                    disabled={(type === 'discovery' && miningState.discovery >= 10) || !canAfford(costData.cost)}>
+                    <span class="upg-name">
+                      {type.charAt(0).toUpperCase() + type.slice(1).replace(/([A-Z])/g, ' $1')} 
+                      <span class="upg-lv">Lv.{miningState[type as MiningUpgradeType]}</span>
+                    </span>
+                    <small class="upg-cost">
+                      {#if type === 'discovery' && miningState.discovery >= 10}
+                        MAX
+                      {:else}
+                        {formatNumber(costData.cost)} DATA {buyAmount === 'max' ? `(x${costData.count})` : ''}
+                      {/if}
+                    </small>
+                  </button>
+                {/if}
+              {/each}
             </div>
           </div>
         {/if}
@@ -220,14 +224,14 @@ let energyPct = $derived(Math.max(0, Math.min(100,
           <div class="acc-body">
             <div class="two-col">
               <button class="upg-btn" onclick={() => doAuto('drone')}
-                disabled={!canAffordRes('alloyX', costs.drone)}>
+                disabled={!canAffordRes('alloyX', costs.drone.cost)}>
                 <span class="upg-name">Drones <span class="upg-lv">({miningState.drones})</span></span>
-                <small class="upg-cost">{formatNumber(costs.drone)} Alloy-X</small>
+                <small class="upg-cost">{formatNumber(costs.drone.cost)} Alloy-X {buyAmount === 'max' ? `(x${costs.drone.count})` : ''}</small>
               </button>
               <button class="upg-btn" onclick={() => doAuto('extractor')}
-                disabled={!canAffordRes('alloyX', costs.extractor)}>
+                disabled={!canAffordRes('alloyX', costs.extractor.cost)}>
                 <span class="upg-name">Extractors <span class="upg-lv">({miningState.autoExtractors})</span></span>
-                <small class="upg-cost">{formatNumber(costs.extractor)} Alloy-X</small>
+                <small class="upg-cost">{formatNumber(costs.extractor.cost)} Alloy-X {buyAmount === 'max' ? `(x${costs.extractor.count})` : ''}</small>
               </button>
             </div>
           </div>
