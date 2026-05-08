@@ -6,7 +6,7 @@ import {
 } from '../modules/forestry.svelte.js';
 import { autoUpgradeForestry } from '../utils/globalMaxUpgrade.js';
 import type { ForestryUpgradeType } from '../modules/forestry.svelte.js';
-import { formatNumber } from '../systems/scalingSystem.js';
+import { formatValue } from '../systems/formatValue.js';
 import { uiStore, showToast } from '../stores/uiStore.svelte.js';
 import { Decimal } from '../systems/decimal.js';
 import { calculateBulkCost, invalidateBulkCostCache, type CostFormula } from '../utils/bulkCost.js';
@@ -25,20 +25,19 @@ function toggle(key: string) { openSections[key] = !openSections[key]; }
 
 let resourceTab = $state<'basic' | 'refined' | 'advanced'>('basic');
 
-// Helper to resolve cost for both number and 'max'
+function fmt(v: any) { return formatValue(v); }
+
 function resolveCost(formula: CostFormula, currentLevel: number, amount: number | 'max', budget: Decimal): { cost: Decimal, count: number } {
-  const count = amount === 'max' ? maxAffordable(budget, currentLevel, formula) : amount;
+  const count = amount === 'max' ? maxAffordable(budget, currentLevel, formula).toNumber() : amount;
   const cost = calculateBulkCost(formula, currentLevel, count);
   return { cost, count };
 }
 
-// ── Fallback cost functions (for non-linear/geometric cases) ──
-function chamberCostFn(i: number): Decimal {
-  const lv = (forestryState.growthChambers - 1) + i;
-  return new Decimal(Math.floor(Math.pow(lv, 1.5) * 50));
+function buyMax(type: ForestryUpgradeType) {
+  buyForestryUpgrade(type, 'max');
+  invalidateBulkCostCache();
 }
 
-// Derived costs — using optimized formulas where possible to prevent lag
 let costs = $derived.by(() => {
   const a = buyAmount;
   const dna = forestryState.dnaFragments;
@@ -49,16 +48,14 @@ let costs = $derived.by(() => {
   return {
     chainsawFuel:    resolveCost({ type: 'linear', base: 0, gain: 500 }, forestryState.chainsawFuel, a, dna),
     reforestation:   resolveCost({ type: 'linear', base: 0, gain: 200 }, forestryState.reforestation, a, dna),
-    ancientSaplings: resolveCost({ type: 'geometric', base: 100, multiplier: 10 }, forestryState.ancientSaplings, a === 'max' ? Math.min(100, 10 - forestryState.ancientSaplings) : Math.min(a, 10 - forestryState.ancientSaplings), dna),
+    ancientSaplings: resolveCost({ type: 'geometric', base: 100, multiplier: 10 }, forestryState.ancientSaplings, a === 'max' ? Math.min(100, 10 - forestryState.ancientSaplings) : Math.min(typeof a === 'number' ? a : 10 - forestryState.ancientSaplings, 10 - forestryState.ancientSaplings), dna),
     mutationPower:   resolveCost({ type: 'linear', base: 1500, gain: 1500 }, forestryState.mutationPower ?? 0, a, dna),
     overclockPower:  resolveCost({ type: 'linear', base: 2000, gain: 2000 }, forestryState.overclockPower ?? 0, a, dna),
     efficiency:      resolveCost({ type: 'linear', base: 1000, gain: 1000 }, forestryState.efficiency ?? 0, a, dna),
-    
-    energy:      resolveCost({ type: 'linear', base: ((forestryState.maxEnergy - 100) / 100 + 1) * 25, gain: 25 }, 0, a, reinf),
-    chamber:     resolveCost(chamberCostFn, 0, a, biofiber),
-    mutChance:   resolveCost({ type: 'linear', base: 0, gain: 500 }, (forestryState.mutationChance / 0.01) - 1, a, resin),
-    
-    nextTool:    bioTools[forestryState.toolTier]?.dataCost ?? Infinity,
+    energy:          resolveCost({ type: 'linear', base: ((forestryState.maxEnergy - 100) / 100 + 1) * 25, gain: 25 }, 0, a, reinf),
+    chamber:         resolveCost((i: number) => new Decimal(Math.floor(Math.pow((forestryState.growthChambers - 1) + i, 1.5) * 50)), 0, a, biofiber),
+    mutChance:       resolveCost({ type: 'linear', base: 0, gain: 500 }, (forestryState.mutationChance / 0.01) - 1, a, resin),
+    nextTool:        bioTools[forestryState.toolTier]?.dataCost ?? Infinity,
   };
 });
 
@@ -71,9 +68,16 @@ function doBuy(t: ForestryUpgradeType) { buyForestryUpgrade(t, buyAmount); inval
 function doTool() { upgradeBioTool(); invalidateBulkCostCache(); showToast('Bio tool upgraded!', 'success'); }
 function doOC() { triggerForestryOverclock(); showToast('Growth Surge active!', 'warn'); }
 function doEnergy() { upgradeForestryEnergy(buyAmount); invalidateBulkCostCache(); }
-function doChamber() { addGrowthChamber(buyAmount); invalidateBulkCostCache(); }
-function doMutChance() { upgradeMutationChance(buyAmount); invalidateBulkCostCache(); }
 function doMax() { autoUpgradeForestry(); invalidateBulkCostCache(); showToast('Bio-Harvester optimized!', 'success'); }
+
+const UPGRADE_DEFS: Array<{ key: ForestryUpgradeType; label: string; formula: CostFormula; cap?: number }> = [
+  { key: 'chainsawFuel',    label: 'Chainsaw Fuel',    formula: { type: 'linear', base: 0, gain: 500 } },
+  { key: 'reforestation',   label: 'Reforestation',    formula: { type: 'linear', base: 0, gain: 200 } },
+  { key: 'ancientSaplings', label: 'Ancient Saplings', formula: { type: 'geometric', base: 100, multiplier: 10 }, cap: 10 },
+  { key: 'mutationPower',   label: 'Mutation Power',   formula: { type: 'linear', base: 1500, gain: 1500 } },
+  { key: 'overclockPower',  label: 'OC Power',         formula: { type: 'linear', base: 2000, gain: 2000 } },
+  { key: 'efficiency',      label: 'Efficiency',       formula: { type: 'linear', base: 1000, gain: 1000 } },
+];
 
 let energyPct = $derived(Math.max(0, Math.min(100,
   (Number(forestryState.energy) / Math.max(1, Number(forestryState.maxEnergy))) * 100
@@ -81,7 +85,6 @@ let energyPct = $derived(Math.max(0, Math.min(100,
 </script>
 
 <div class="panel">
-  <!-- ── HEADER ── -->
   <div class="premium-header">
     <div class="header-main">
       <div class="header-icon">🌿</div>
@@ -93,11 +96,11 @@ let energyPct = $derived(Math.max(0, Math.min(100,
     <div class="header-stats">
       <div class="header-stat-box">
         <span class="stat-label">RATE</span>
-        <span class="stat-value" style="color:var(--neon-green)">{formatNumber(forestryState.harvestRate)}/s</span>
+        <span class="stat-value" style="color:var(--neon-green)">{fmt(forestryState.harvestRate)}/s</span>
       </div>
       <div class="header-stat-box">
         <span class="stat-label">DNA</span>
-        <span class="stat-value" style="color:var(--neon-green)">{formatNumber(forestryState.dnaFragments)}</span>
+        <span class="stat-value" style="color:var(--neon-green)">{fmt(forestryState.dnaFragments)}</span>
       </div>
     </div>
   </div>
@@ -108,7 +111,6 @@ let energyPct = $derived(Math.max(0, Math.min(100,
       <p>Unlocks at Level 200</p>
     </div>
   {:else}
-    <!-- ── BUY SELECTOR + MAX ── -->
     <div class="control-bar">
       <div class="buy-selector">
         {#each [1, 10, 100, 1000] as amt}
@@ -122,12 +124,12 @@ let energyPct = $derived(Math.max(0, Math.min(100,
             MAX
         </button>
       </div>
-      <button class="max-btn" onclick={doMax}>⚡ AUTO-UP</button>
+      <button class="auto-up-btn" onclick={doMax}>AUTO UP</button>
     </div>
 
     <div class="sections">
 
-      <!-- ── STATUS ── -->
+      <!-- STATUS -->
       <div class="accordion" class:open={openSections.status}>
         <button class="acc-head" onclick={() => toggle('status')}>
           <span>HARVESTER STATUS</span>
@@ -144,7 +146,7 @@ let energyPct = $derived(Math.max(0, Math.min(100,
               <div class="bar-label-row">
                 <span>HARVEST PROGRESS</span>
                 {#if forestryState.harvestRate >= 100}
-                  <span style="color:var(--neon-green)">{formatNumber(forestryState.harvestRate)}/s</span>
+                  <span style="color:var(--neon-green)">{fmt(forestryState.harvestRate)}/s</span>
                 {:else}
                   <span>{Math.floor(forestryState.growthProgress)}%</span>
                 {/if}
@@ -165,7 +167,7 @@ let energyPct = $derived(Math.max(0, Math.min(100,
               <button class="act-btn" onclick={doTool}
                 disabled={forestryState.toolTier >= 10 || !canDna(costs.nextTool)}>
                 <span class="act-name">UPGRADE TOOL</span>
-                <small>{forestryState.toolTier >= 10 ? 'MAX' : formatNumber(costs.nextTool) + ' DNA'}</small>
+                <small>{forestryState.toolTier >= 10 ? 'MAX' : fmt(costs.nextTool) + ' DNA'}</small>
               </button>
               <button class="act-btn" onclick={doOC} disabled={forestryState.isOverclocked}>
                 <span class="act-name">{forestryState.isOverclocked ? 'SURGE ACTIVE' : 'GROWTH SURGE'}</span>
@@ -174,14 +176,14 @@ let energyPct = $derived(Math.max(0, Math.min(100,
               <button class="act-btn" onclick={doEnergy}
                 disabled={!canRes('reinforcedFiber', costs.energy.cost)}>
                 <span class="act-name">+NUTRIENT CAP</span>
-                <small>{formatNumber(costs.energy.cost)} Reinf.Fiber</small>
+                <small>{fmt(costs.energy.cost)} Reinf.Fiber</small>
               </button>
             </div>
           </div>
         {/if}
       </div>
 
-      <!-- ── UPGRADES ── -->
+      <!-- UPGRADES -->
       <div class="accordion" class:open={openSections.upgrades}>
         <button class="acc-head" onclick={() => toggle('upgrades')}>
           <span>CALIBRATION</span>
@@ -189,24 +191,35 @@ let energyPct = $derived(Math.max(0, Math.min(100,
         </button>
         {#if openSections.upgrades}
           <div class="acc-body">
-            <div class="upg-grid">
-              {#each ['chainsawFuel', 'reforestation', 'ancientSaplings', 'mutationPower', 'overclockPower', 'efficiency'] as type}
-                {@const costData = costs[type as keyof typeof costs]}
+            <div class="upg-list">
+              {#each UPGRADE_DEFS as def (def.key)}
+                {@const costData = costs[def.key as keyof typeof costs]}
+                {@const lv = Number(forestryState[def.key as keyof typeof forestryState] || 0)}
+                {@const atCap = def.cap !== undefined && lv >= def.cap}
                 {#if costData && typeof costData === 'object' && 'cost' in costData}
-                  <button class="upg-btn" onclick={() => doBuy(type as ForestryUpgradeType)}
-                    disabled={(type === 'ancientSaplings' && forestryState.ancientSaplings >= 10) || !canDna(costData.cost)}>
-                    <span class="upg-name">
-                      {type.charAt(0).toUpperCase() + type.slice(1).replace(/([A-Z])/g, ' $1')} 
-                      <span class="upg-lv">Lv.{forestryState[type as ForestryUpgradeType]}</span>
-                    </span>
-                    <small class="upg-cost">
-                      {#if type === 'ancientSaplings' && forestryState.ancientSaplings >= 10}
-                        MAX
+                  <div class="upg-row" class:at-cap={atCap}>
+                    <div class="upg-info">
+                      <span class="upg-name">{def.label}</span>
+                      <span class="upg-lv">Lv.{lv}{atCap ? ' MAX' : ''}</span>
+                    </div>
+                    <div class="upg-btns">
+                      {#if !atCap}
+                        <button class="upg-buy-btn"
+                          onclick={() => doBuy(def.key)}
+                          disabled={!canDna(costData.cost)}>
+                          +{buyAmount === 'max' ? costData.count : buyAmount}
+                          <span class="btn-cost">{fmt(costData.cost)}</span>
+                        </button>
+                        <button class="upg-max-btn"
+                          onclick={() => buyMax(def.key)}
+                          disabled={!canDna(calculateBulkCost(def.formula, lv, 1))}>
+                          MAX
+                        </button>
                       {:else}
-                        {formatNumber(costData.cost)} DNA {buyAmount === 'max' ? `(x${costData.count})` : ''}
+                        <span class="cap-badge">MAXED</span>
                       {/if}
-                    </small>
-                  </button>
+                    </div>
+                  </div>
                 {/if}
               {/each}
             </div>
@@ -214,7 +227,7 @@ let energyPct = $derived(Math.max(0, Math.min(100,
         {/if}
       </div>
 
-      <!-- ── LOGISTICS ── -->
+      <!-- LOGISTICS -->
       <div class="accordion" class:open={openSections.logistics}>
         <button class="acc-head" onclick={() => toggle('logistics')}>
           <span>BIOME LOGISTICS</span>
@@ -222,23 +235,51 @@ let energyPct = $derived(Math.max(0, Math.min(100,
         </button>
         {#if openSections.logistics}
           <div class="acc-body">
-            <div class="two-col">
-              <button class="upg-btn" onclick={doChamber}
-                disabled={!canRes('biofiber', costs.chamber.cost)}>
-                <span class="upg-name">Growth Chambers <span class="upg-lv">({forestryState.growthChambers})</span></span>
-                <small class="upg-cost">{formatNumber(costs.chamber.cost)} Biofiber {buyAmount === 'max' ? `(x${costs.chamber.count})` : ''}</small>
-              </button>
-              <button class="upg-btn" onclick={doMutChance}
-                disabled={!canRes('resinGel', costs.mutChance.cost)}>
-                <span class="upg-name">Mutation Chance <span class="upg-lv">({Math.floor(forestryState.mutationChance * 100)}%)</span></span>
-                <small class="upg-cost">{formatNumber(costs.mutChance.cost)} Resin Gel {buyAmount === 'max' ? `(x${costs.mutChance.count})` : ''}</small>
-              </button>
+            <div class="upg-list">
+              <div class="upg-row">
+                <div class="upg-info">
+                  <span class="upg-name">Growth Chambers</span>
+                  <span class="upg-lv">x{forestryState.growthChambers}</span>
+                </div>
+                <div class="upg-btns">
+                  <button class="upg-buy-btn"
+                    onclick={() => { addGrowthChamber(buyAmount); invalidateBulkCostCache(); }}
+                    disabled={!canRes('biofiber', costs.chamber.cost)}>
+                    +{buyAmount === 'max' ? costs.chamber.count : buyAmount}
+                    <span class="btn-cost">{fmt(costs.chamber.cost)} Biofiber</span>
+                  </button>
+                  <button class="upg-max-btn"
+                    onclick={() => { addGrowthChamber('max'); invalidateBulkCostCache(); }}
+                    disabled={!canRes('biofiber', new Decimal(Math.floor(Math.pow(forestryState.growthChambers - 1, 1.5) * 50)))}>
+                    MAX
+                  </button>
+                </div>
+              </div>
+              <div class="upg-row">
+                <div class="upg-info">
+                  <span class="upg-name">Mutation Chance</span>
+                  <span class="upg-lv">{Math.floor(forestryState.mutationChance * 100)}%</span>
+                </div>
+                <div class="upg-btns">
+                  <button class="upg-buy-btn"
+                    onclick={() => { upgradeMutationChance(buyAmount); invalidateBulkCostCache(); }}
+                    disabled={!canRes('resinGel', costs.mutChance.cost)}>
+                    +{buyAmount === 'max' ? costs.mutChance.count : buyAmount}
+                    <span class="btn-cost">{fmt(costs.mutChance.cost)} Resin Gel</span>
+                  </button>
+                  <button class="upg-max-btn"
+                    onclick={() => { upgradeMutationChance('max'); invalidateBulkCostCache(); }}
+                    disabled={!canRes('resinGel', new Decimal(1))}>
+                    MAX
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         {/if}
       </div>
 
-      <!-- ── RESOURCES ── -->
+      <!-- RESOURCES -->
       <div class="accordion" class:open={openSections.resources}>
         <button class="acc-head" onclick={() => toggle('resources')}>
           <span>RESOURCES</span>
@@ -259,7 +300,7 @@ let energyPct = $derived(Math.max(0, Math.min(100,
                 {#each basicTrees as tree (tree.id)}
                   <div class="res-card" class:locked={(tree.tier ?? 0) > forestryState.ancientSaplings}>
                     <span class="res-name">{tree.name}</span>
-                    <span class="res-amt">{formatNumber(forestryState.resources[tree.id] ?? 0)}</span>
+                    <span class="res-amt">{fmt(forestryState.resources[tree.id] ?? 0)}</span>
                     <div class="res-actions">
                       <label class="mini-toggle">
                         <input type="checkbox"
@@ -279,7 +320,7 @@ let energyPct = $derived(Math.max(0, Math.min(100,
                 {#each refinedTrees as res (res.id)}
                   <div class="res-card">
                     <span class="res-name">{res.name}</span>
-                    <span class="res-amt">{formatNumber(forestryState.resources[res.id] ?? 0)}</span>
+                    <span class="res-amt">{fmt(forestryState.resources[res.id] ?? 0)}</span>
                     <div class="res-actions">
                       <label class="mini-toggle">
                         <input type="checkbox"
@@ -299,7 +340,7 @@ let energyPct = $derived(Math.max(0, Math.min(100,
                 {#each advancedTrees as res (res.id)}
                   <div class="res-card">
                     <span class="res-name">{res.name}</span>
-                    <span class="res-amt">{formatNumber(forestryState.resources[res.id] ?? 0)}</span>
+                    <span class="res-amt">{fmt(forestryState.resources[res.id] ?? 0)}</span>
                   </div>
                 {/each}
               {/if}
@@ -333,12 +374,12 @@ let energyPct = $derived(Math.max(0, Math.min(100,
   font-family:var(--font-cyber); transition:0.1s;
 }
 .amt-btn.active { border-color:var(--neon-green); color:var(--neon-green); }
-.max-btn {
-  background:rgba(46,204,113,0.1); border:1px solid var(--neon-green);
+.auto-up-btn {
+  background:rgba(46,204,113,0.08); border:1px solid var(--neon-green);
   color:var(--neon-green); font-family:var(--font-cyber); font-size:0.7rem;
-  padding:4px 14px; cursor:pointer; font-weight:bold; transition:0.15s;
+  padding:4px 14px; cursor:pointer; font-weight:bold; letter-spacing:1px; transition:0.15s;
 }
-.max-btn:hover { background:rgba(46,204,113,0.22); color:#fff; }
+.auto-up-btn:hover { background:rgba(46,204,113,0.2); color:#fff; }
 
 .sections { flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:6px; padding-right:2px; }
 
@@ -366,7 +407,6 @@ let energyPct = $derived(Math.max(0, Math.min(100,
 .bar-fill.blue { background:var(--neon-blue); box-shadow:0 0 6px var(--neon-blue); }
 
 .three-col { display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; }
-.two-col   { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
 
 .act-btn {
   background:#0d0d0d; border:1px solid #333; padding:8px 6px;
@@ -377,16 +417,38 @@ let energyPct = $derived(Math.max(0, Math.min(100,
 .act-name { font-size:0.68rem; font-weight:bold; color:#e0e0e0; font-family:var(--font-cyber); }
 .act-btn small { font-size:0.58rem; color:#777; }
 
-.upg-grid { display:grid; grid-template-columns:1fr 1fr; gap:5px; }
-.upg-btn {
-  background:#0d0d0d; border:1px solid #2a2a2a; padding:9px 8px;
-  display:flex; flex-direction:column; gap:3px; cursor:pointer; transition:0.1s; text-align:left;
+.upg-list { display:flex; flex-direction:column; gap:5px; }
+.upg-row {
+  display:flex; justify-content:space-between; align-items:center;
+  background:#0a0a0a; border:1px solid #222; padding:8px 10px; transition:border-color 0.1s;
 }
-.upg-btn:hover:not(:disabled) { border-color:var(--neon-green); background:#141414; }
-.upg-btn:disabled { opacity:0.38; cursor:not-allowed; }
-.upg-name { font-size:0.7rem; font-weight:bold; color:#ddd; font-family:var(--font-cyber); }
-.upg-lv { color:var(--neon-green); font-size:0.62rem; }
-.upg-cost { font-size:0.58rem; color:#888; margin-top:1px; }
+.upg-row:not(.at-cap):hover { border-color:#333; }
+.upg-row.at-cap { opacity:0.45; }
+
+.upg-info { display:flex; flex-direction:column; gap:2px; min-width:80px; }
+.upg-name { font-size:0.72rem; font-weight:bold; color:#ddd; font-family:var(--font-cyber); }
+.upg-lv   { font-size:0.6rem; color:var(--neon-green); }
+
+.upg-btns { display:flex; gap:4px; align-items:center; }
+.upg-buy-btn {
+  background:#111; border:1px solid #333; color:#ccc;
+  font-family:var(--font-cyber); font-size:0.65rem; padding:5px 10px;
+  cursor:pointer; transition:0.1s; display:flex; flex-direction:column; align-items:center; gap:1px;
+  white-space:nowrap;
+}
+.upg-buy-btn:hover:not(:disabled) { border-color:var(--neon-green); color:#fff; }
+.upg-buy-btn:disabled { opacity:0.35; cursor:not-allowed; }
+.btn-cost { font-size:0.55rem; color:#888; }
+
+.upg-max-btn {
+  background:rgba(46,204,113,0.07); border:1px solid var(--neon-green);
+  color:var(--neon-green); font-family:var(--font-cyber); font-size:0.6rem;
+  padding:5px 8px; cursor:pointer; transition:0.1s; font-weight:bold; letter-spacing:1px;
+}
+.upg-max-btn:hover:not(:disabled) { background:rgba(46,204,113,0.18); color:#fff; }
+.upg-max-btn:disabled { opacity:0.3; cursor:not-allowed; }
+
+.cap-badge { font-size:0.6rem; color:var(--neon-gold); font-family:var(--font-cyber); padding:4px 8px; border:1px solid var(--neon-gold); opacity:0.7; }
 
 .res-tabs { display:flex; gap:4px; margin-bottom:6px; }
 .res-tabs button {
@@ -408,10 +470,7 @@ let energyPct = $derived(Math.max(0, Math.min(100,
 
 .mini-toggle { display:inline-block; width:22px; height:12px; position:relative; cursor:pointer; }
 .mini-toggle input { display:none; }
-.mini-slider {
-  position:absolute; inset:0; background:#2a2a2a;
-  border-radius:6px; transition:0.2s;
-}
+.mini-slider { position:absolute; inset:0; background:#2a2a2a; border-radius:6px; transition:0.2s; }
 .mini-slider::before {
   content:''; position:absolute; width:8px; height:8px;
   background:#fff; border-radius:50%; top:2px; left:2px; transition:0.2s;
@@ -421,8 +480,7 @@ let energyPct = $derived(Math.max(0, Math.min(100,
 
 .refine-btn {
   background:#000; border:1px solid #333; color:#aaa;
-  font-size:0.55rem; padding:2px 6px; cursor:pointer; transition:0.1s;
-  font-family:var(--font-cyber);
+  font-size:0.55rem; padding:2px 6px; cursor:pointer; transition:0.1s; font-family:var(--font-cyber);
 }
 .refine-btn:hover:not(:disabled) { border-color:#fff; color:#fff; }
 .refine-btn:disabled { opacity:0.3; cursor:not-allowed; }
