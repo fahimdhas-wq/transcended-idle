@@ -81,7 +81,7 @@
         <div class="upg-row">
           <div class="upg-info">
             <span class="upg-name">{def.label}</span>
-            <span class="upg-lv">Lv.{lv}</span>
+            <span class="upg-lv">Lv.{fmt(lv)}</span>
           </div>
           {#if costData && typeof costData === 'object' && 'cost' in costData}
             <div class="upg-btns">

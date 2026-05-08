@@ -199,7 +199,7 @@ let energyPct = $derived(Math.max(0, Math.min(100,
                   <div class="upg-row" class:at-cap={atCap}>
                     <div class="upg-info">
                       <span class="upg-name">{def.label}</span>
-                      <span class="upg-lv">Lv.{lv}{atCap ? ' MAX' : ''}</span>
+                      <span class="upg-lv">Lv.{fmt(miningState[def.key])}{atCap ? ' MAX' : ''}</span>
                     </div>
                     <div class="upg-btns">
                       {#if !atCap}
