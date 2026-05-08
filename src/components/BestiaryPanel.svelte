@@ -3,22 +3,34 @@
   import type { BestiaryUpgradeType } from '../modules/bestiary.svelte.js';
   import { formatNumber } from '../systems/scalingSystem.js';
   import { uiStore } from '../stores/uiStore.svelte.js';
-  import { calculateBulkCost } from '../utils/bulkCost.js';
+  import { calculateBulkCost, type CostFormula } from '../utils/bulkCost.js';
   import { maxAffordable } from '../utils/maxAffordable.js';
   import { Decimal } from '../systems/decimal.js';
 
   let buyAmount = $derived(uiStore.buyAmount);
 
   function calculateBestiaryCost(type: BestiaryUpgradeType, amount: number | 'max'): Decimal {
-    const getCost = (lv: number): number => {
-      if (type === 'anatomy') return lv * 500;
-      if (type === 'huntersGreed') return (lv + 1) * 1000;
-      if (type === 'soulExtraction') return lv * 2500;
-      return Infinity;
-    };
     const currentLv = Number(bestiaryState[type]);
-    const count = amount === 'max' ? maxAffordable(bestiaryState.dataFragments, currentLv, (lv) => new Decimal(getCost(lv))) : amount;
-    return calculateBulkCost((lv) => new Decimal(getCost(lv)), currentLv, count);
+    
+    // Define the cost formula for each type
+    let formula: CostFormula;
+    let resource: Decimal;
+    
+    if (type === 'anatomy') {
+      formula = { type: 'linear', base: 0, gain: 500 };
+      resource = bestiaryState.dataFragments;
+    } else if (type === 'huntersGreed') {
+      formula = { type: 'linear', base: 1000, gain: 1000 };
+      resource = bestiaryState.dataFragments;
+    } else if (type === 'soulExtraction') {
+      formula = { type: 'linear', base: 0, gain: 2500 };
+      resource = bestiaryState.dataFragments;
+    } else {
+      return new Decimal(Infinity);
+    }
+
+    const count = amount === 'max' ? maxAffordable(resource, currentLv, formula) : amount;
+    return calculateBulkCost(formula, currentLv, count);
   }
 </script>
 

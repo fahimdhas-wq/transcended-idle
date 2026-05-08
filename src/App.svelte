@@ -19,8 +19,6 @@
   import { startGameLoop } from './core/gameLoop.svelte.js';
   import { character }     from './modules/character.svelte.js';
   import { overclockState } from './modules/overclockState.svelte.js';
-  import { applyGlobalMaxUpgrade } from './utils/globalMaxUpgrade.js';
-  import { showToast } from './stores/uiStore.svelte.js';
 
   const tabs = ['COMBAT', 'CHARACTER', 'MINING', 'FORESTRY', 'BESTIARY', 'INVENTORY', 'SKILLS', 'SEALS', 'ACHIEVE', 'OVERCLOCK', 'MATRIX', 'SYSTEM'] as const;
   type Tab = typeof tabs[number];
@@ -51,7 +49,6 @@
     return true;
   }
 
-  // Track previously unlocked tabs to detect new unlocks
   let prevUnlocked = $state(new Set<Tab>(['COMBAT', 'CHARACTER', 'BESTIARY', 'INVENTORY', 'SKILLS', 'SEALS', 'ACHIEVE', 'SYSTEM']));
   let newlyUnlocked = $state(new Set<Tab>());
 
@@ -92,7 +89,6 @@
           {/if}
         {/each}
       </div>
-
       <div class="tab-fade-right"></div>
     </div>
 
@@ -188,7 +184,7 @@
     display: flex;
     flex-direction: column;
     gap: 12px;
-    flex: 0 0 450px; /* Fixed width for combat */
+    flex: 0 0 450px;
   }
 
   .combat-container {
@@ -278,37 +274,6 @@
     50% { box-shadow: 0 0 12px var(--neon-gold); }
   }
 
-.btn-global-max { /* removed MAX button; orphaned style for legacy references */
-    position: fixed;
-    right: 20px;
-    bottom: 20px;
-    background: rgba(0, 190, 255, 0.1);
-    border: 1px solid var(--neon-blue);
-    color: var(--neon-blue);
-    font-family: var(--font-cyber);
-    font-size: 0.8rem;
-    padding: 8px 14px;
-    cursor: pointer;
-    border-radius: 4px;
-    white-space: nowrap;
-    transition: all 0.15s ease;
-    font-weight: bold;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    z-index: 100;
-  }
-  .btn-global-max:hover:not(:disabled) {
-    background: rgba(0, 190, 255, 0.2);
-    border-color: var(--neon-blue);
-    color: #fff;
-    box-shadow: 0 0 8px rgba(0, 190, 255, 0.4);
-    transform: scale(1.05);
-  }
-  .btn-global-max:active {
-    transform: scale(0.95);
-    box-shadow: inset 0 0 4px rgba(0, 190, 255, 0.2);
-  }
-
   .new-dot {
     position: absolute;
     top: 4px; right: 4px;
@@ -346,25 +311,12 @@
   .panel-wrapper.active { display: flex; }
 
   @media (max-width: 900px) {
-    .split-layout {
-      flex-direction: column;
-    }
-    .left-pane {
-      flex: 1;
-      display: flex;
-    }
-    .right-pane {
-      flex: 1;
-      display: flex;
-    }
+    .split-layout { flex-direction: column; }
+    .left-pane { flex: 1; display: flex; }
+    .right-pane { flex: 1; display: flex; }
     .desktop-hide { display: inline-block !important; }
     .mobile-hidden { display: none !important; }
-    .cyber-app {
-      height: 100vh;
-      width: 100vw;
-      border-radius: 0;
-      border: none;
-    }
+    .cyber-app { height: 100vh; width: 100vw; border-radius: 0; border: none; }
   }
   @media (min-width: 901px) {
     .desktop-hide { display: none !important; }
