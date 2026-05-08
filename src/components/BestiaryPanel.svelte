@@ -55,7 +55,7 @@
       </div>
       <div class="header-stat-box">
         <span class="stat-label">SOULS</span>
-        <span class="stat-value" style="color: var(--neon-pink);">{fmt(bestiaryState.souls)}</span>
+        <span class="stat-value" style="color: var(--neon-purple);">{fmt(bestiaryState.souls)}</span>
       </div>
     </div>
   </div>
@@ -65,10 +65,9 @@
       <h4 class="transcended-sub">UPGRADES</h4>
       <div class="right-controls">
         <div class="buy-selector">
-          {#each [1, 10, 100, 1000] as amt}
+          {#each [1, 10, 100, 1000, 10000] as amt}
             <button class="amt-btn" class:active={uiStore.buyAmount === amt} onclick={() => uiStore.buyAmount = amt}>x{amt}</button>
           {/each}
-          <button class="amt-btn" class:active={uiStore.buyAmount === 'max'} onclick={() => uiStore.buyAmount = 'max'}>MAX</button>
         </div>
         <button class="auto-up-btn" onclick={doAutoUp}>AUTO UP</button>
       </div>
@@ -88,8 +87,7 @@
               <button class="upg-buy-btn"
                 onclick={() => doBuy(def.key)}
                 disabled={bestiaryState.dataFragments.lt(costData.cost)}>
-                +{buyAmount === 'max' ? costData.count : buyAmount}
-                <span class="btn-cost">{fmt(costData.cost)} DATA</span>
+                +{buyAmount === 'max' ? costData.count : buyAmount} <span class="btn-cost">{fmt(costData.cost)} DATA</span>
               </button>
               <button class="upg-max-btn"
                 onclick={() => doMax(def.key)}
@@ -124,7 +122,14 @@
 </div>
 
 <style>
-  .bestiary-panel { display: flex; flex-direction: column; height: 100%; overflow-y: auto; padding: 10px; gap: 10px; }
+  .bestiary-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow-y: auto;
+    padding: 10px;
+    gap: 10px;
+  }
 
   .upgrades-section { display: flex; flex-direction: column; gap: 8px; }
 
@@ -133,41 +138,46 @@
 
   .buy-selector { display: flex; gap: 2px; }
   .amt-btn { padding: 2px 6px; font-size: 0.6rem; background: #000; border: 1px solid #333; color: #666; cursor: pointer; font-family: var(--font-cyber); transition: 0.1s; }
-  .amt-btn.active { border-color: var(--neon-blue); color: var(--neon-blue); }
+  .amt-btn.active { border-color: var(--neon-purple); color: var(--neon-purple); }
 
   .auto-up-btn {
-    background: rgba(0,190,255,0.08); border: 1px solid var(--neon-blue);
-    color: var(--neon-blue); font-family: var(--font-cyber); font-size: 0.7rem;
+    background: rgba(0,190,255,0.08); border: 1px solid var(--neon-purple);
+    color: var(--neon-purple); font-family: var(--font-cyber); font-size: 0.7rem;
     padding: 3px 12px; cursor: pointer; font-weight: bold; letter-spacing: 1px; transition: 0.15s;
   }
   .auto-up-btn:hover { background: rgba(0,190,255,0.2); color: #fff; }
 
-  .upg-list { display: flex; flex-direction: column; gap: 5px; }
+  .upg-list { display: flex; flex-direction: column; gap: 4px; }
   .upg-row {
     display: flex; justify-content: space-between; align-items: center;
-    background: #0a0a0a; border: 1px solid #222; padding: 8px 10px;
+    background: rgba(138,43,226,0.03); padding: 8px 10px;
+    border-left: 2px solid var(--neon-purple);
+    transition: background 0.15s ease;
   }
-  .upg-info { display: flex; flex-direction: column; gap: 2px; min-width: 100px; }
-  .upg-name { font-size: 0.72rem; font-weight: bold; color: #ddd; font-family: var(--font-cyber); }
-  .upg-lv   { font-size: 0.6rem; color: var(--neon-blue); }
+  .upg-row:hover { background: rgba(138,43,226,0.06); }
+  .upg-info { display: flex; flex-direction: column; gap: 1px; min-width: 100px; }
+  .upg-name { font-size: 0.7rem; font-weight: bold; color: #e0e0e0; font-family: var(--font-cyber); }
+  .upg-lv   { font-size: 0.6rem; color: var(--neon-purple); }
 
-  .upg-btns { display: flex; gap: 4px; align-items: center; }
+  .upg-btns { display: flex; gap: 5px; align-items: center; }
   .upg-buy-btn {
-    background: #111; border: 1px solid #333; color: #ccc;
-    font-family: var(--font-cyber); font-size: 0.65rem; padding: 5px 10px;
-    cursor: pointer; transition: 0.1s; display: flex; flex-direction: column; align-items: center; gap: 1px; white-space: nowrap;
+    background: #1a1a1a; border: 1px solid #444; color: #aaa;
+    font-family: var(--font-cyber); font-size: 0.6rem; padding: 5px 10px;
+    cursor: pointer; transition: all 0.15s ease;
+    white-space: nowrap; min-width: 72px; text-align: center;
   }
-  .upg-buy-btn:hover:not(:disabled) { border-color: var(--neon-blue); color: #fff; }
+  .upg-buy-btn:hover:not(:disabled) { border-color: #fff; color: #fff; box-shadow: 0 0 6px rgba(255,255,255,0.2); }
   .upg-buy-btn:disabled { opacity: 0.35; cursor: not-allowed; }
-  .btn-cost { font-size: 0.55rem; color: #888; }
+  .btn-cost { font-size: 0.55rem; color: #666; margin-left: 3px; }
 
   .upg-max-btn {
-    background: rgba(0,190,255,0.07); border: 1px solid var(--neon-blue);
-    color: var(--neon-blue); font-family: var(--font-cyber); font-size: 0.6rem;
-    padding: 5px 8px; cursor: pointer; transition: 0.1s; font-weight: bold; letter-spacing: 1px;
+    background: #1a1a1a; border: 1px solid #444; color: #aaa;
+    font-family: var(--font-cyber); font-size: 0.6rem; padding: 5px 10px;
+    cursor: pointer; transition: all 0.15s ease;
+    white-space: nowrap; min-width: 72px; text-align: center;
   }
-  .upg-max-btn:hover:not(:disabled) { background: rgba(0,190,255,0.18); color: #fff; }
-  .upg-max-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .upg-max-btn:hover:not(:disabled) { border-color: var(--neon-purple); color: #fff; box-shadow: var(--glow-pink); }
+  .upg-max-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
   .archive-header { border-top: 1px solid var(--border-subtle); padding-top: 8px; }
 

@@ -4,6 +4,7 @@
   import { character } from '../modules/character.svelte.js';
   import { formatNumber } from '../systems/scalingSystem.js';
   import { Decimal } from '../systems/decimal.js';
+  import { flushStatCache } from '../modules/combat.svelte.js';
 
   function currentTier(skill: Skill): string { return tiers[skill.tierIndex] || 'F-'; }
   function tierClass(skill: Skill): string { 
@@ -40,6 +41,7 @@
       skill.tierIndex++;
       skill.fragmentsNeeded = skill.fragmentsNeeded.mul(2.5).floor();
     }
+    flushStatCache();
   }
 </script>
 

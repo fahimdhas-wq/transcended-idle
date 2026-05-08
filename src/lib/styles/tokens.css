@@ -9,12 +9,14 @@
   --color-text:     hsl(0, 0%, 90%);
   --color-muted:    hsl(0, 0%, 50%);
 
-  /* Neon accents — single source of truth */
+  /* Neon accents */
   --neon-blue:      hsl(190, 100%, 50%);
   --neon-pink:      hsl(300, 100%, 50%);
   --neon-red:       hsl(0, 100%, 50%);
   --neon-green:     hsl(120, 100%, 45%);
   --neon-gold:      hsl(50, 80%, 50%);
+  --neon-purple:    hsl(270, 100%, 60%);
+  --neon-purple:    hsl(270, 100%, 60%);
 
   /* Glow tokens */
   --glow-blue:      0 0 10px hsla(190, 100%, 50%, 0.5);
@@ -22,13 +24,15 @@
   --glow-green:     0 0 10px hsla(120, 100%, 45%, 0.4);
   --glow-gold:      0 0 10px hsla(50, 80%, 50%, 0.5);
   --glow-red:       0 0 10px hsla(0, 100%, 50%, 0.5);
+  --glow-purple:    0 0 10px hsla(270, 100%, 60%, 0.5);
+  --glow-purple:    0 0 10px hsla(270, 100%, 60%, 0.5);
   --glow-text:      0 0 4px currentColor;
 
   /* Fonts */
   --font-cyber:     'Oxanium', sans-serif;
   --font-data:      'JetBrains Mono', monospace;
 
-  /* Aliases (TODO: Remove once all components are migrated) */
+  /* Aliases */
   --hsl-blue:       var(--neon-blue);
   --hsl-pink:       var(--neon-pink);
   --hsl-red:        var(--neon-red);

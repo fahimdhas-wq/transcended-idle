@@ -84,7 +84,7 @@ let energyPct = $derived(Math.max(0, Math.min(100,
 )));
 </script>
 
-<div class="panel">
+<div class="panel" data-theme="forestry">
   <div class="premium-header">
     <div class="header-main">
       <div class="header-icon">🌿</div>
@@ -113,16 +113,12 @@ let energyPct = $derived(Math.max(0, Math.min(100,
   {:else}
     <div class="control-bar">
       <div class="buy-selector">
-        {#each [1, 10, 100, 1000] as amt}
+        {#each [1, 10, 100, 1000, 10000] as amt}
           <button class="amt-btn" class:active={uiStore.buyAmount === amt}
             onclick={() => { uiStore.buyAmount = amt; invalidateBulkCostCache(); }}>
             x{amt}
           </button>
         {/each}
-        <button class="amt-btn" class:active={uiStore.buyAmount === 'max'}
-            onclick={() => { uiStore.buyAmount = 'max'; invalidateBulkCostCache(); }}>
-            MAX
-        </button>
       </div>
       <button class="auto-up-btn" onclick={doMax}>AUTO UP</button>
     </div>
@@ -139,7 +135,7 @@ let energyPct = $derived(Math.max(0, Math.min(100,
           <div class="acc-body">
             <div class="tool-row">
               <span class="muted">TOOL</span>
-              <span class="highlight green">{forestryState.toolName}</span>
+              <span class="highlight">{forestryState.toolName}</span>
             </div>
 
             <div class="bar-group">
@@ -207,8 +203,7 @@ let energyPct = $derived(Math.max(0, Math.min(100,
                         <button class="upg-buy-btn"
                           onclick={() => doBuy(def.key)}
                           disabled={!canDna(costData.cost)}>
-                          +{buyAmount === 'max' ? costData.count : buyAmount}
-                          <span class="btn-cost">{fmt(costData.cost)}</span>
+                          +{buyAmount === 'max' ? costData.count : buyAmount} <span class="btn-cost">{fmt(costData.cost)}</span>
                         </button>
                         <button class="upg-max-btn"
                           onclick={() => buyMax(def.key)}
@@ -239,14 +234,13 @@ let energyPct = $derived(Math.max(0, Math.min(100,
               <div class="upg-row">
                 <div class="upg-info">
                   <span class="upg-name">Growth Chambers</span>
-                  <span class="upg-lv">x{forestryState.growthChambers}</span>
+                  <span class="upg-lv">Lv.{fmt(forestryState.growthChambers)}</span>
                 </div>
                 <div class="upg-btns">
                   <button class="upg-buy-btn"
                     onclick={() => { addGrowthChamber(buyAmount); invalidateBulkCostCache(); }}
                     disabled={!canRes('biofiber', costs.chamber.cost)}>
-                    +{buyAmount === 'max' ? costs.chamber.count : buyAmount}
-                    <span class="btn-cost">{fmt(costs.chamber.cost)} Biofiber</span>
+                    +{buyAmount === 'max' ? costs.chamber.count : buyAmount} <span class="btn-cost">{fmt(costs.chamber.cost)} Biofiber</span>
                   </button>
                   <button class="upg-max-btn"
                     onclick={() => { addGrowthChamber('max'); invalidateBulkCostCache(); }}
@@ -258,14 +252,13 @@ let energyPct = $derived(Math.max(0, Math.min(100,
               <div class="upg-row">
                 <div class="upg-info">
                   <span class="upg-name">Mutation Chance</span>
-                  <span class="upg-lv">{Math.floor(forestryState.mutationChance * 100)}%</span>
+                  <span class="upg-lv">{fmt(Math.floor(forestryState.mutationChance * 100))}%</span>
                 </div>
                 <div class="upg-btns">
                   <button class="upg-buy-btn"
                     onclick={() => { upgradeMutationChance(buyAmount); invalidateBulkCostCache(); }}
                     disabled={!canRes('resinGel', costs.mutChance.cost)}>
-                    +{buyAmount === 'max' ? costs.mutChance.count : buyAmount}
-                    <span class="btn-cost">{fmt(costs.mutChance.cost)} Resin Gel</span>
+                    +{buyAmount === 'max' ? costs.mutChance.count : buyAmount} <span class="btn-cost">{fmt(costs.mutChance.cost)} Resin Gel</span>
                   </button>
                   <button class="upg-max-btn"
                     onclick={() => { upgradeMutationChance('max'); invalidateBulkCostCache(); }}
@@ -396,8 +389,7 @@ let energyPct = $derived(Math.max(0, Math.min(100,
 
 .tool-row { display:flex; justify-content:space-between; font-size:0.72rem; }
 .muted { color:var(--color-muted); }
-.highlight { color:var(--neon-blue); font-family:var(--font-cyber); font-weight:bold; }
-.highlight.green { color:var(--neon-green); }
+.highlight { color:var(--neon-green); font-family:var(--font-cyber); font-weight:bold; }
 
 .bar-group { display:flex; flex-direction:column; gap:3px; }
 .bar-label-row { display:flex; justify-content:space-between; font-size:0.6rem; color:var(--color-muted); font-family:var(--font-cyber); }
@@ -417,38 +409,47 @@ let energyPct = $derived(Math.max(0, Math.min(100,
 .act-name { font-size:0.68rem; font-weight:bold; color:#e0e0e0; font-family:var(--font-cyber); }
 .act-btn small { font-size:0.58rem; color:#777; }
 
-.upg-list { display:flex; flex-direction:column; gap:5px; }
+.upg-list { display:flex; flex-direction:column; gap:4px; }
+
 .upg-row {
   display:flex; justify-content:space-between; align-items:center;
-  background:#0a0a0a; border:1px solid #222; padding:8px 10px; transition:border-color 0.1s;
+  background:rgba(46,204,113,0.03); padding:8px 10px;
+  border-left:2px solid var(--neon-green);
+  transition:background 0.15s ease;
 }
-.upg-row:not(.at-cap):hover { border-color:#333; }
-.upg-row.at-cap { opacity:0.45; }
+.upg-row:hover:not(.at-cap) { background:rgba(46,204,113,0.06); }
+.upg-row.at-cap { border-left-color:var(--neon-gold); opacity:0.5; }
 
-.upg-info { display:flex; flex-direction:column; gap:2px; min-width:80px; }
-.upg-name { font-size:0.72rem; font-weight:bold; color:#ddd; font-family:var(--font-cyber); }
+.upg-info { display:flex; flex-direction:column; gap:1px; min-width:85px; }
+.upg-name { font-size:0.7rem; font-weight:bold; color:#e0e0e0; font-family:var(--font-cyber); }
 .upg-lv   { font-size:0.6rem; color:var(--neon-green); }
 
-.upg-btns { display:flex; gap:4px; align-items:center; }
+.upg-btns { display:flex; gap:5px; align-items:center; }
+
 .upg-buy-btn {
-  background:#111; border:1px solid #333; color:#ccc;
-  font-family:var(--font-cyber); font-size:0.65rem; padding:5px 10px;
-  cursor:pointer; transition:0.1s; display:flex; flex-direction:column; align-items:center; gap:1px;
-  white-space:nowrap;
+  background:#1a1a1a; border:1px solid #444; color:#aaa;
+  font-family:var(--font-cyber); font-size:0.6rem; padding:5px 10px;
+  cursor:pointer; transition:all 0.15s ease;
+  white-space:nowrap; min-width:72px; text-align:center;
 }
-.upg-buy-btn:hover:not(:disabled) { border-color:var(--neon-green); color:#fff; }
+.upg-buy-btn:hover:not(:disabled) { border-color:#fff; color:#fff; box-shadow:0 0 6px rgba(255,255,255,0.2); }
 .upg-buy-btn:disabled { opacity:0.35; cursor:not-allowed; }
-.btn-cost { font-size:0.55rem; color:#888; }
+.btn-cost { font-size:0.55rem; color:#666; margin-left:3px; }
 
 .upg-max-btn {
-  background:rgba(46,204,113,0.07); border:1px solid var(--neon-green);
-  color:var(--neon-green); font-family:var(--font-cyber); font-size:0.6rem;
-  padding:5px 8px; cursor:pointer; transition:0.1s; font-weight:bold; letter-spacing:1px;
+  background:#1a1a1a; border:1px solid #444; color:#aaa;
+  font-family:var(--font-cyber); font-size:0.6rem; padding:5px 10px;
+  cursor:pointer; transition:all 0.15s ease;
+  white-space:nowrap; min-width:72px; text-align:center;
 }
-.upg-max-btn:hover:not(:disabled) { background:rgba(46,204,113,0.18); color:#fff; }
-.upg-max-btn:disabled { opacity:0.3; cursor:not-allowed; }
+.upg-max-btn:hover:not(:disabled) { border-color:var(--neon-green); color:#fff; box-shadow:var(--glow-green); }
+.upg-max-btn:disabled { opacity:0.35; cursor:not-allowed; }
 
-.cap-badge { font-size:0.6rem; color:var(--neon-gold); font-family:var(--font-cyber); padding:4px 8px; border:1px solid var(--neon-gold); opacity:0.7; }
+.cap-badge {
+  font-size:0.6rem; color:var(--neon-gold); font-family:var(--font-cyber);
+  padding:4px 8px; border:1px solid var(--neon-gold);
+  background:rgba(255,200,0,0.05); letter-spacing:0.5px;
+}
 
 .res-tabs { display:flex; gap:4px; margin-bottom:6px; }
 .res-tabs button {

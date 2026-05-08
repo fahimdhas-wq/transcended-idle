@@ -2,6 +2,7 @@ import { character } from '../modules/character.svelte.js';
 import { inventory, rebuildInventoryMap } from '../modules/inventory.svelte.js';
 import { skillsState } from '../modules/skills.svelte.js';
 import { miningState } from '../modules/mining.svelte.js';
+import { flushStatCache } from '../modules/combat.svelte.js';
 import { forestryState } from '../modules/forestry.svelte.js';
 import { bestiaryState, updateGlobalBoost } from '../modules/bestiary.svelte.js';
 import { overclockState } from '../modules/overclockState.svelte.js';
@@ -140,6 +141,7 @@ export const saveSystem = {
           if (skill) safeMerge(skill as unknown as MutableRecord, savedSkill);
         });
       }
+      flushStatCache();
 
       const lastSaved = finiteNumber(data.lastSaved) ?? Date.now();
       const offlineMs = Date.now() - lastSaved;
