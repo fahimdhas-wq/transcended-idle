@@ -1,17 +1,20 @@
 import { Decimal } from '../systems/decimal.js';
-import { miningState, buyMiningUpgrade, upgradeTool } from '../modules/mining.svelte.js';
-import { forestryState, buyForestryUpgrade, upgradeBioTool } from '../modules/forestry.svelte.js';
+import { character } from '../modules/character.svelte.js';
+import { miningState, tools, buyMiningUpgrade, upgradeEnergy, upgradeAutomation } from '../modules/mining.svelte.js';
+import { forestryState, bioTools, buyForestryUpgrade, addGrowthChamber, upgradeForestryEnergy } from '../modules/forestry.svelte.js';
 import { bestiaryState, buyBestiaryUpgrade } from '../modules/bestiary.svelte.js';
-import { maxAffordable } from './maxAffordable.js';
-import type { CostFormula } from './bulkCost.js';
+import { invalidateBulkCostCache } from './bulkCost.js';
 
 /**
- * Floors a count to the nearest clean power-of-10 step.
- * 1–9   => 1
- * 10–99  => 10
- * 100–999 => 100
- * etc.
- * Minimum return value: 1
+ * Throttle: minimum ms between auto-upgrade executions
+ */
+const AUTO_MIN_INTERVAL_MS = 250;
+let _lastMiningAuto = 0;
+let _lastForestryAuto = 0;
+let _lastBestiaryAuto = 0;
+
+/**
+ * Clamps a count to MAX_UPGRADE_COUNT and floors to nearest clean step.
  */
 function floorToCleanAmount(n: number): number {
   if (n <= 0) return 0;
@@ -20,112 +23,136 @@ function floorToCleanAmount(n: number): number {
   return Math.max(1, Math.floor(n / mag) * mag);
 }
 
-/**
- * Given a shared budget split equally among `count` upgrades,
- * compute the per-slot max affordable, then floor to a clean amount.
- * Returns 0 if unaffordable.
- */
-function equalShare(
-  budget: Decimal,
-  slots: number,
-  currentLv: number,
-  formula: CostFormula,
-  cap?: number
-): number {
-  if (slots <= 0) return 0;
-  const share = budget.div(slots);
-  const raw = maxAffordable(share, currentLv, formula).toNumber();
-  const capped = cap !== undefined ? Math.min(raw, cap - currentLv) : raw;
-  return floorToCleanAmount(Math.floor(capped));
-}
-
 export function autoUpgradeMining(): void {
   if (!miningState.unlocked) return;
 
-  const data = bestiaryState.dataFragments;
-  if (data.lte(0)) { upgradeTool(); return; }
+  const now = performance.now();
+  if (now - _lastMiningAuto < AUTO_MIN_INTERVAL_MS) return;
+  _lastMiningAuto = now;
 
-  type MEntry = { key: 'sharpness' | 'extraction' | 'discovery' | 'sensors' | 'overclockPower' | 'efficiency'; formula: CostFormula; cap?: number };
-
-  const upgrades: MEntry[] = [
-    { key: 'sharpness',      formula: { type: 'linear',    base: 0,   gain: 1000 } },
-    { key: 'extraction',     formula: { type: 'linear',    base: 0,   gain: 200  } },
-    { key: 'discovery',      formula: { type: 'geometric', base: 500, multiplier: 10 }, cap: 10 },
-    { key: 'sensors',        formula: { type: 'linear',    base: 2000, gain: 2000 } },
-    { key: 'overclockPower', formula: { type: 'linear',    base: 2500, gain: 2500 } },
-    { key: 'efficiency',     formula: { type: 'linear',    base: 1500, gain: 1500 } },
+  const upgrades: Array<{ type: 'sharpness' | 'extraction' | 'discovery' | 'sensors' | 'overclockPower' | 'efficiency'; cap?: number }> = [
+    { type: 'sharpness',       cap: undefined },
+    { type: 'extraction',      cap: undefined },
+    { type: 'discovery',       cap: 10 },
+    { type: 'sensors',         cap: undefined },
+    { type: 'overclockPower',  cap: undefined },
+    { type: 'efficiency',      cap: undefined },
   ];
 
-  const active = upgrades.filter(u => {
-    const lv = Number(miningState[u.key] || 0);
-    return u.cap === undefined || lv < u.cap;
-  });
+  for (const u of upgrades) {
+    const currentLv = Number(miningState[u.type] || 0);
+    if (u.cap !== undefined && currentLv >= u.cap) continue;
 
-  if (active.length > 0) {
-    const slots = active.length;
-    for (const u of active) {
-      const lv = Number(miningState[u.key] || 0);
-      const count = equalShare(data, slots, lv, u.formula, u.cap);
-      if (count > 0) buyMiningUpgrade(u.key, count);
+    // Calculate max affordable with a clean count
+    const initialCount = buyMiningUpgrade(u.type, 'max');
+    const count = floorToCleanAmount(initialCount);
+
+    if (count > 0) {
+      buyMiningUpgrade(u.type, count);
     }
   }
 
-  upgradeTool();
+  // Handle energy upgrade
+  upgradeEnergy('max');
+
+  // Handle drone/automation upgrades
+  upgradeAutomation('drone', 'max');
+  upgradeAutomation('extractor', 'max');
+
+  // Handle tool upgrade
+  if (miningState.toolTier < tools.length) {
+    const next = tools[miningState.toolTier];
+    if (bestiaryState.dataFragments.gte(next.dataCost)) {
+      bestiaryState.dataFragments = bestiaryState.dataFragments.sub(next.dataCost);
+      miningState.toolTier++;
+      miningState.toolName = next.name;
+    }
+  }
+
+  invalidateBulkCostCache();
+}
+
+function autoUpgradeTool(): void {
+  if (miningState.toolTier >= tools.length) return;
+  const next = tools[miningState.toolTier];
+  if (bestiaryState.dataFragments.gte(next.dataCost)) {
+    bestiaryState.dataFragments = bestiaryState.dataFragments.sub(next.dataCost);
+    miningState.toolTier++;
+    miningState.toolName = next.name;
+  }
 }
 
 export function autoUpgradeForestry(): void {
   if (!forestryState.unlocked) return;
 
-  const dna = forestryState.dnaFragments;
-  if (dna.lte(0)) { upgradeBioTool(); return; }
+  const now = performance.now();
+  if (now - _lastForestryAuto < AUTO_MIN_INTERVAL_MS) return;
+  _lastForestryAuto = now;
 
-  type FEntry = { key: 'chainsawFuel' | 'reforestation' | 'ancientSaplings' | 'mutationPower' | 'overclockPower' | 'efficiency'; formula: CostFormula; cap?: number };
-
-  const upgrades: FEntry[] = [
-    { key: 'chainsawFuel',    formula: { type: 'linear',    base: 0,   gain: 500  } },
-    { key: 'reforestation',   formula: { type: 'linear',    base: 0,   gain: 200  } },
-    { key: 'ancientSaplings', formula: { type: 'geometric', base: 100, multiplier: 10 }, cap: 10 },
-    { key: 'mutationPower',   formula: { type: 'linear',    base: 1500, gain: 1500 } },
-    { key: 'overclockPower',  formula: { type: 'linear',    base: 2000, gain: 2000 } },
-    { key: 'efficiency',      formula: { type: 'linear',    base: 1000, gain: 1000 } },
+  const upgrades: Array<{ type: 'chainsawFuel' | 'reforestation' | 'ancientSaplings' | 'mutationPower' | 'overclockPower' | 'efficiency'; cap?: number }> = [
+    { type: 'chainsawFuel',    cap: undefined },
+    { type: 'reforestation',   cap: undefined },
+    { type: 'ancientSaplings', cap: 10 },
+    { type: 'mutationPower',   cap: undefined },
+    { type: 'overclockPower',  cap: undefined },
+    { type: 'efficiency',      cap: undefined },
   ];
 
-  const active = upgrades.filter(u => {
-    const lv = Number(forestryState[u.key as keyof typeof forestryState] || 0);
-    return u.cap === undefined || (lv as number) < u.cap;
-  });
+  for (const u of upgrades) {
+    const currentLv = Number(forestryState[u.type] || 0);
+    if (u.cap !== undefined && currentLv >= u.cap) continue;
 
-  if (active.length > 0) {
-    const slots = active.length;
-    for (const u of active) {
-      const lv = Number(forestryState[u.key as keyof typeof forestryState] || 0);
-      const count = equalShare(dna, slots, lv, u.formula, u.cap);
-      if (count > 0) buyForestryUpgrade(u.key, count);
+    const initialCount = buyForestryUpgrade(u.type, 'max');
+    const count = floorToCleanAmount(initialCount);
+
+    if (count > 0) {
+      buyForestryUpgrade(u.type, count);
     }
   }
 
-  upgradeBioTool();
+  // Handle growth chambers
+  addGrowthChamber('max');
+
+  // Handle energy upgrade
+  upgradeForestryEnergy('max');
+
+  // Handle bio tool upgrade
+  if (forestryState.toolTier < bioTools.length) {
+    const next = bioTools[forestryState.toolTier];
+    if (forestryState.dnaFragments.gte(next.dataCost)) {
+      forestryState.dnaFragments = forestryState.dnaFragments.sub(next.dataCost);
+      forestryState.toolTier++;
+      forestryState.toolName = next.name;
+    }
+  }
+
+  invalidateBulkCostCache();
+}
+
+function autoUpgradeBioTool(): void {
+  if (forestryState.toolTier >= bioTools.length) return;
+  const next = bioTools[forestryState.toolTier];
+  if (forestryState.dnaFragments.gte(next.dataCost)) {
+    forestryState.dnaFragments = forestryState.dnaFragments.sub(next.dataCost);
+    forestryState.toolTier++;
+    forestryState.toolName = next.name;
+  }
 }
 
 export function autoUpgradeBestiary(): void {
-  const data = bestiaryState.dataFragments;
-  if (data.lte(0)) return;
+  const now = performance.now();
+  if (now - _lastBestiaryAuto < AUTO_MIN_INTERVAL_MS) return;
+  _lastBestiaryAuto = now;
 
-  type BEntry = { key: 'anatomy' | 'huntersGreed' | 'soulExtraction'; formula: CostFormula };
+  const upgrades: Array<'anatomy' | 'huntersGreed' | 'soulExtraction'> = ['anatomy', 'huntersGreed', 'soulExtraction'];
 
-  const upgrades: BEntry[] = [
-    { key: 'anatomy',         formula: { type: 'linear', base: 0,    gain: 500  } },
-    { key: 'huntersGreed',    formula: { type: 'linear', base: 1000, gain: 1000 } },
-    { key: 'soulExtraction',  formula: { type: 'linear', base: 0,    gain: 2500 } },
-  ];
+  for (const u of upgrades) {
+    const initialCount = buyBestiaryUpgrade(u, 'max');
+    const count = floorToCleanAmount(initialCount);
 
-  const active = upgrades.filter(() => true); // no cap on bestiary
-  const slots = active.length;
-
-  for (const u of active) {
-    const lv = Number(bestiaryState[u.key] || 0);
-    const count = equalShare(data, slots, lv, u.formula);
-    if (count > 0) buyBestiaryUpgrade(u.key, count);
+    if (count > 0) {
+      buyBestiaryUpgrade(u, count);
+    }
   }
 }
 

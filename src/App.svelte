@@ -62,63 +62,72 @@
     });
   });
 
-  onMount(() => {
-    startGameLoop();
-  });
+  onMount(() => { startGameLoop(); });
 </script>
 
-<div class="app-wrapper">
-  <div class="cyber-app">
-    <div class="header-container">
-      <div class="game-title transcended-text">TRANSCENDED <span style="font-size: 0.5em; vertical-align: middle; color: var(--neon-blue);">v2.0</span></div>
+<div class="shell">
+
+  <!-- TOP BAR -->
+  <header class="top-bar">
+    <div class="top-bar-left">
+      <span class="wordmark">TRANSCENDED</span>
+      <span class="version">V2.0</span>
     </div>
 
-    <div class="tab-scroll-wrapper">
-      <div class="tab-header">
-        {#each tabs as t (t)}
-          {#if isTabUnlocked(t)}
-            <button
-              onclick={() => { activeTab = t; newlyUnlocked.delete(t); }}
-              class:active={t === activeTab}
-              class:new-tab={newlyUnlocked.has(t)}
-              class:desktop-hide={t === 'COMBAT'}
-            >
-              {t}
-              {#if newlyUnlocked.has(t)}<span class="new-dot"></span>{/if}
-            </button>
+    <nav class="tab-nav" role="tablist">
+      {#each tabs as t (t)}
+        {#if isTabUnlocked(t)}
+          <button
+            role="tab"
+            aria-selected={t === activeTab}
+            class="tab-btn"
+            class:active={t === activeTab}
+            class:new-tab={newlyUnlocked.has(t)}
+            class:desktop-hide={t === 'COMBAT'}
+            onclick={() => { activeTab = t; newlyUnlocked.delete(t); }}
+          >
+            {t}
+            {#if newlyUnlocked.has(t)}<span class="new-dot" aria-hidden="true"></span>{/if}
+          </button>
+        {/if}
+      {/each}
+    </nav>
+
+    <div class="top-bar-right">
+      <span class="status-dot"></span>
+      <span class="status-label">ONLINE</span>
+    </div>
+  </header>
+
+  <!-- BODY -->
+  <div class="body-split">
+
+    <!-- LEFT: combat + log (always visible on desktop) -->
+    <aside class="left-pane" class:mobile-hidden={activeTab !== 'COMBAT'}>
+      <div class="combat-block">
+        <CombatArena />
+      </div>
+      <div class="log-block">
+        <LogPanel />
+      </div>
+    </aside>
+
+    <!-- RIGHT: panel area -->
+    <main class="right-pane" class:mobile-hidden={activeTab === 'COMBAT'}>
+      <div class="panel-area">
+        {#each tabs as t}
+          {#if isTabUnlocked(t) && t !== 'COMBAT'}
+            <div class="panel-slot" class:active={t === activeTab}>
+              {#if componentMap[t]}
+                {@const C = componentMap[t]}
+                <C />
+              {/if}
+            </div>
           {/if}
         {/each}
       </div>
-      <div class="tab-fade-right"></div>
-    </div>
+    </main>
 
-    <div class="split-layout">
-      <div class="left-pane" class:mobile-hidden={activeTab !== 'COMBAT'}>
-        <div class="combat-container">
-          <CombatArena />
-        </div>
-        <div class="bottom-row">
-          <LogPanel />
-        </div>
-      </div>
-
-      <div class="right-pane" class:mobile-hidden={activeTab === 'COMBAT'}>
-        <div class="main-content">
-          <div class="panel-container">
-            {#each tabs as t}
-              {#if isTabUnlocked(t) && t !== 'COMBAT'}
-                <div class="panel-wrapper" class:active={t === activeTab}>
-                  {#if componentMap[t]}
-                    {@const Component = componentMap[t]}
-                    <Component />
-                  {/if}
-                </div>
-              {/if}
-            {/each}
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -126,199 +135,214 @@
 <OfflineModal />
 
 <style>
-  :global(body) {
-    margin: 0; padding: 0;
-    background: radial-gradient(circle at center, #050a10 0%, #000000 100%);
-    color: var(--color-text);
-    font-family: var(--font-data);
-    overflow: hidden;
-    font-size: 13px;
-  }
+/* ── SHELL ──────────────────────────────────── */
+:global(body) {
+  margin: 0; padding: 0;
+  background: var(--bg-dark);
+  overflow: hidden;
+}
 
-  .app-wrapper {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    width: 100vw;
-  }
+.shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  background: var(--bg-dark);
+}
 
-  .cyber-app {
-    display: flex;
-    flex-direction: column;
-    height: 98vh;
-    width: 98vw;
-    max-width: 1400px;
-    background: rgba(10, 10, 15, 0.85);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(0, 190, 255, 0.2);
-    border-radius: 8px;
-    padding: 16px;
-    box-sizing: border-box;
-    gap: 12px;
-    box-shadow: 0 0 40px rgba(0, 190, 255, 0.1), inset 0 0 20px rgba(0,0,0,0.8);
-  }
+/* ── TOP BAR ────────────────────────────────── */
+.top-bar {
+  display: flex;
+  align-items: center;
+  height: 44px;
+  flex-shrink: 0;
+  padding: 0 16px;
+  background: var(--panel-bg);
+  border-bottom: 1px solid var(--border-subtle);
+  gap: 0;
+  position: relative;
+  z-index: 10;
+}
 
-  .header-container { text-align: center; margin-bottom: 5px; flex-shrink: 0; }
-  .game-title {
-    font-family: var(--font-cyber);
-    font-size: 1.8rem;
-    font-weight: 700;
-    letter-spacing: 4px;
-    background: linear-gradient(90deg, var(--neon-blue), var(--neon-pink), var(--neon-gold));
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    text-transform: uppercase;
-    filter: drop-shadow(0 0 8px rgba(0, 190, 255, 0.4));
-  }
+.top-bar-left {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex: 0 0 auto;
+  padding-right: 20px;
+  border-right: 1px solid var(--border-subtle);
+  margin-right: 0;
+}
 
-  .split-layout {
-    display: flex;
-    flex: 1;
-    gap: 16px;
-    min-height: 0;
-  }
+.wordmark {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-text);
+}
 
-  .left-pane {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    flex: 0 0 450px;
-  }
+.version {
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  color: var(--color-muted);
+  letter-spacing: 0.06em;
+}
 
-  .combat-container {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    border: 1px solid var(--border-subtle);
-    background: rgba(0,0,0,0.4);
-    border-radius: 4px;
-    overflow: hidden;
-    box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
-  }
+/* ── TAB NAV ────────────────────────────────── */
+.tab-nav {
+  flex: 1;
+  display: flex;
+  align-items: stretch;
+  overflow-x: auto;
+  scrollbar-width: none;
+  height: 100%;
+  padding: 0 8px;
+}
+.tab-nav::-webkit-scrollbar { display: none; }
 
-  .bottom-row {
-    flex: 0 0 150px;
-    display: flex;
-    flex-direction: column;
-    border: 1px solid var(--border-subtle);
-    border-radius: 4px;
-    background: rgba(0,0,0,0.4);
-    overflow: hidden;
-  }
+.tab-btn {
+  position: relative;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  color: var(--color-muted);
+  font-family: var(--font-display);
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0 14px;
+  cursor: pointer;
+  height: 100%;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: color var(--t-fast), border-color var(--t-fast);
+}
 
-  .right-pane {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    min-width: 0;
-  }
+.tab-btn:hover {
+  background: transparent;
+  color: var(--color-text);
+  border-bottom-color: var(--border-mid);
+  box-shadow: none;
+}
 
-  .tab-scroll-wrapper {
-    position: relative;
-  }
+.tab-btn.active {
+  color: var(--accent-white);
+  border-bottom-color: var(--accent-white);
+  background: transparent;
+}
 
-  .tab-header {
-    display: flex;
-    gap: 8px;
-    border-bottom: 1px solid var(--border-subtle);
-    padding-bottom: 8px;
-    overflow-x: auto;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
-  }
-  .tab-header::-webkit-scrollbar { display: none; }
+.tab-btn.new-tab {
+  color: var(--accent-warning);
+  border-bottom-color: var(--accent-warning);
+}
 
-  .tab-fade-right {
-    position: absolute;
-    right: 0; top: 0; bottom: 8px;
-    width: 40px;
-    background: linear-gradient(to right, transparent, rgba(10,10,15,0.9));
-    pointer-events: none;
-  }
+.new-dot {
+  position: absolute;
+  top: 8px;
+  right: 6px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--accent-warning);
+}
 
-  .tab-header button {
-    position: relative;
-    background: rgba(255,255,255,0.03);
-    border: 1px solid var(--border-subtle);
-    border-radius: 4px;
-    color: hsl(0, 0%, 60%);
-    font-family: var(--font-cyber);
-    font-size: 0.85rem;
-    padding: 10px 18px;
-    cursor: pointer;
-    white-space: nowrap;
-    flex-shrink: 0;
-    transition: all 0.2s;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-  }
-  .tab-header button:hover {
-    background: rgba(255,255,255,0.08);
-    color: #fff;
-  }
-  .tab-header button.active {
-    background: rgba(0, 190, 255, 0.15);
-    color: var(--neon-blue);
-    border-color: var(--neon-blue);
-    box-shadow: 0 0 10px rgba(0, 190, 255, 0.2), inset 0 0 5px rgba(0, 190, 255, 0.1);
-  }
-  .tab-header button.new-tab {
-    border-color: var(--neon-gold);
-    color: var(--neon-gold);
-    animation: tab-pulse 1.5s ease-in-out infinite;
-  }
-  @keyframes tab-pulse {
-    0%, 100% { box-shadow: 0 0 4px var(--neon-gold); }
-    50% { box-shadow: 0 0 12px var(--neon-gold); }
-  }
+.top-bar-right {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-left: 16px;
+  border-left: 1px solid var(--border-subtle);
+  margin-left: 0;
+}
 
-  .new-dot {
-    position: absolute;
-    top: 4px; right: 4px;
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: var(--neon-gold);
-    box-shadow: 0 0 5px var(--neon-gold);
-  }
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-green);
+}
 
-  .main-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-  }
+.status-label {
+  font-family: var(--font-display);
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--color-muted);
+}
 
-  .panel-container {
-    flex: 1;
-    border: 1px solid var(--border-subtle);
-    background: rgba(0,0,0,0.5);
-    border-radius: 4px;
-    position: relative;
-    overflow: hidden;
-    box-shadow: inset 0 0 30px rgba(0,0,0,0.6);
-  }
+/* ── BODY SPLIT ─────────────────────────────── */
+.body-split {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
 
-  .panel-wrapper {
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    display: none;
-    padding: 16px;
-    flex-direction: column;
-    overflow-y: auto;
-  }
-  .panel-wrapper.active { display: flex; }
+/* ── LEFT PANE ──────────────────────────────── */
+.left-pane {
+  flex: 0 0 420px;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border-subtle);
+  min-height: 0;
+}
 
-  @media (max-width: 900px) {
-    .split-layout { flex-direction: column; }
-    .left-pane { flex: 1; display: flex; }
-    .right-pane { flex: 1; display: flex; }
-    .desktop-hide { display: inline-block !important; }
-    .mobile-hidden { display: none !important; }
-    .cyber-app { height: 100vh; width: 100vw; border-radius: 0; border: none; }
-  }
-  @media (min-width: 901px) {
-    .desktop-hide { display: none !important; }
-  }
+.combat-block {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.log-block {
+  flex: 0 0 140px;
+  border-top: 1px solid var(--border-subtle);
+  padding: 8px 12px;
+  overflow: hidden;
+}
+
+/* ── RIGHT PANE ─────────────────────────────── */
+.right-pane {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-area {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.panel-slot {
+  position: absolute;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 14px;
+}
+
+.panel-slot.active {
+  display: flex;
+}
+
+/* ── MOBILE ─────────────────────────────────── */
+@media (max-width: 900px) {
+  .body-split { flex-direction: column; }
+  .left-pane  { flex: 1; border-right: none; border-bottom: 1px solid var(--border-subtle); }
+  .right-pane { flex: 1; }
+  .desktop-hide { display: block !important; }
+  .mobile-hidden { display: none !important; }
+}
+
+@media (min-width: 901px) {
+  .desktop-hide { display: none !important; }
+}
 </style>

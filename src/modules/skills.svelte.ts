@@ -32,10 +32,22 @@ export const tiers: string[] = [
   'SSS-', 'SSS', 'SSS+',
   'SSR', 'SSR+',
   'UR', 'UR+', 'URR',
-  'EX', 'Transcendent',
-  'Ethereal', 'Cosmic', 'Omni', 'Singularity',
-  'Continuum', 'Paradox', 'Reality', 'Chronos',
-  'Eternal', 'Absolute', 'Omega', 'Zenith', 'Apotheosis', 'Infinite'
+  'EX', 'EX+',
+  'Transcendent', 'Transcendent+', 'Transcendent++', 'Transcendent+++', 'Transcendent EX',
+  'Ethereal', 'Ethereal+', 'Ethereal++', 'Ethereal+++', 'Ethereal EX',
+  'Cosmic', 'Cosmic+', 'Cosmic++', 'Cosmic+++', 'Cosmic EX',
+  'Omni', 'Omni+', 'Omni++', 'Omni+++', 'Omni EX',
+  'Singularity', 'Singularity+', 'Singularity++', 'Singularity+++', 'Singularity EX',
+  'Continuum', 'Continuum+', 'Continuum++', 'Continuum+++', 'Continuum EX',
+  'Paradox', 'Paradox+', 'Paradox++', 'Paradox+++', 'Paradox EX',
+  'Reality', 'Reality+', 'Reality++', 'Reality+++', 'Reality EX',
+  'Chronos', 'Chronos+', 'Chronos++', 'Chronos+++', 'Chronos EX',
+  'Eternal', 'Eternal+', 'Eternal++', 'Eternal+++', 'Eternal EX',
+  'Absolute', 'Absolute+', 'Absolute++', 'Absolute+++', 'Absolute EX',
+  'Omega', 'Omega+', 'Omega++', 'Omega+++', 'Omega EX',
+  'Zenith', 'Zenith+', 'Zenith++', 'Zenith+++', 'Zenith EX',
+  'Apotheosis', 'Apotheosis+', 'Apotheosis++', 'Apotheosis+++', 'Apotheosis EX',
+  'Infinite', 'Infinite+', 'Infinite++', 'Infinite+++', 'Infinite EX'
 ];
 
 export const skillsState: SkillsState = $state({
@@ -176,6 +188,7 @@ export function getOmniMult(): Decimal {
 
 export function upgradeAllSkills(): string {
   let totalUpgrades = 0;
+  // Batch upgrade all skills without triggering reactive updates mid-loop
   skillsState.skills.forEach(skill => {
     while (character.skillFragments.gte(skill.fragmentsNeeded) && skill.tierIndex < tiers.length - 1) {
       character.skillFragments = character.skillFragments.sub(skill.fragmentsNeeded);
@@ -184,6 +197,9 @@ export function upgradeAllSkills(): string {
       totalUpgrades++;
     }
   });
-  if (totalUpgrades > 0) flushStatCache();
+  // Only flush cache and trigger UI update once at the end
+  if (totalUpgrades > 0) {
+    flushStatCache();
+  }
   return `System Overhaul: ${totalUpgrades} skill tiers purchased using available fragments.`;
 }

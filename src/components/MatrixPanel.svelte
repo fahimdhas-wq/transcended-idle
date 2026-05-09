@@ -1,279 +1,207 @@
 <script lang="ts">
-  import { matrixState } from "../modules/matrix.svelte.js";
-  import { overclockState } from "../modules/overclockState.svelte.js";
+  import { matrixState } from '../modules/matrix.svelte.js';
+  import { overclockState } from '../modules/overclockState.svelte.js';
 
-  // Requires at least 1 Overclock to access the Auto-Matrix
   let isUnlocked = $derived(overclockState.timesOverclocked > 0);
   let localTarget = $state<number>(matrixState.targetOverclockLevel);
   let validationError = $state('');
 
   function applyTarget(): void {
-    // FIXED: Input validation
     const parsed = Number(localTarget);
-    
-    if (isNaN(parsed)) {
-      validationError = 'Must be a valid number';
-      return;
-    }
-    
-    if (parsed < 1000) {
-      validationError = 'Minimum level is 1000';
-      return;
-    }
-    
-    if (parsed > 1e308) {
-      validationError = 'Level too high';
-      return;
-    }
-    
+    if (isNaN(parsed)) { validationError = 'Must be a valid number'; return; }
+    if (parsed < 1000) { validationError = 'Minimum level is 1000'; return; }
+    if (parsed > 1e308) { validationError = 'Level too high'; return; }
     validationError = '';
     matrixState.targetOverclockLevel = parsed;
   }
+
+  const NODES = [
+    { key: 'autoAchieve',      label: 'Auto-Scavenger',       desc: 'Automatically claims unlocked achievements every few seconds.' },
+    { key: 'autoSkill',        label: 'Auto-Assembler',        desc: 'Automatically purchases skill upgrades when enough fragments are available.' },
+    { key: 'autoMining',       label: 'Mining Optimization',   desc: 'Automatically buys Mining upgrades when Data is available.' },
+    { key: 'autoForestry',     label: 'Bio-Synthesis',         desc: 'Automatically buys Forestry upgrades when DNA is available.' },
+    { key: 'autoBestiary',     label: 'Archive Retrieval',     desc: 'Automatically buys Bestiary upgrades when Data Fragments are available.' },
+    { key: 'autoOverclock',    label: 'Auto-Ascension',        desc: 'Automatically initiates an Overclock when reaching the target level.', hasTarget: true },
+  ] as const;
 </script>
 
-<div class="premium-header">
-  <div class="header-main">
-    <div class="header-icon">⚡</div>
-    <div class="header-title-box">
-      <h2 class="transcended-text">AUTO-MATRIX</h2>
-      <div class="header-subtitle">PROGRAMMABLE LOGIC CORES</div>
+<div class="matrix-panel">
+  <div class="panel-header">
+    <div class="header-left">
+      <div class="header-icon">&#9889;</div>
+      <div class="header-text">
+        <h2 class="transcended-text">AUTO-MATRIX</h2>
+        <span class="transcended-sub">PROGRAMMABLE LOGIC CORES</span>
+      </div>
     </div>
   </div>
+
+  {#if !isUnlocked}
+    <div class="locked-screen">
+      <div class="lock-icon">&#9888;</div>
+      <p class="lock-title">ACCESS DENIED</p>
+      <p class="lock-sub">SYSTEM OVERCLOCK REQUIRED</p>
+      <p class="lock-hint">Perform at least 1 Overclock to unlock the Auto-Matrix.</p>
+    </div>
+  {:else}
+    <div class="nodes-list">
+      {#each NODES as node}
+        {@const enabled = matrixState[node.key as keyof typeof matrixState]}
+        <div class="node-card" class:node-active={enabled}>
+          <div class="node-header">
+            <span class="node-label">{node.label}</span>
+            <label class="toggle">
+              <input type="checkbox" bind:checked={matrixState[node.key as keyof typeof matrixState]} />
+              <span class="toggle-track"><span class="toggle-thumb"></span></span>
+            </label>
+          </div>
+          <p class="node-desc">{node.desc}</p>
+          {#if node.hasTarget && matrixState.autoOverclock}
+            <div class="target-row">
+              <label class="target-label" for="target-{node.key}">Target Level:</label>
+              <input
+                id="target-{node.key}"
+                class="target-input"
+                type="number"
+                bind:value={localTarget}
+                min="1000"
+                step="100"
+              />
+              <button class="apply-btn" onclick={applyTarget}>APPLY</button>
+            </div>
+            {#if validationError}
+              <p class="val-error">{validationError}</p>
+            {/if}
+            <p class="target-current">Currently set to: {matrixState.targetOverclockLevel}</p>
+          {/if}
+        </div>
+      {/each}
+    </div>
+  {/if}
 </div>
 
-{#if !isUnlocked}
-  <div class="locked-box">
-    <p class="warning-text">ACCESS DENIED. SYSTEM OVERCLOCK REQUIRED.</p>
-    <p class="color-muted text-sm">
-      Perform at least 1 Overclock to unlock the Auto-Matrix.
-    </p>
-  </div>
-{:else}
-  <div class="matrix-content">
-    <div class="node-box">
-      <div class="node-header">
-        <h3>Auto-Scavenger Node</h3>
-        <label class="switch">
-          <input type="checkbox" bind:checked={matrixState.autoAchieve} />
-          <span class="slider"></span>
-        </label>
-      </div>
-      <p class="text-sm color-muted">
-        Automatically claims unlocked achievements every few seconds.
-      </p>
-    </div>
-
-    <div class="node-box">
-      <div class="node-header">
-        <h3>Auto-Assembler Node</h3>
-        <label class="switch">
-          <input type="checkbox" bind:checked={matrixState.autoSkill} />
-          <span class="slider"></span>
-        </label>
-      </div>
-      <p class="text-sm color-muted">
-        Automatically purchases skill upgrades when enough fragments are
-        available.
-      </p>
-    </div>
-
-    <div class="node-box">
-      <div class="node-header">
-        <h3>Mining Optimization Node</h3>
-        <label class="switch">
-          <input type="checkbox" bind:checked={matrixState.autoMining} />
-          <span class="slider"></span>
-        </label>
-      </div>
-      <p class="text-sm color-muted">
-        Automatically buys Mining upgrades when Data is available.
-      </p>
-    </div>
-
-    <div class="node-box">
-      <div class="node-header">
-        <h3>Bio-Synthesis Node</h3>
-        <label class="switch">
-          <input type="checkbox" bind:checked={matrixState.autoForestry} />
-          <span class="slider"></span>
-        </label>
-      </div>
-      <p class="text-sm color-muted">
-        Automatically buys Forestry upgrades when DNA is available.
-      </p>
-    </div>
-
-    <div class="node-box">
-      <div class="node-header">
-        <h3>Archive Retrieval Node</h3>
-        <label class="switch">
-          <input type="checkbox" bind:checked={matrixState.autoBestiary} />
-          <span class="slider"></span>
-        </label>
-      </div>
-      <p class="text-sm color-muted">
-        Automatically buys Bestiary upgrades when Data Fragments are available.
-      </p>
-    </div>
-
-    <div class="node-box">
-      <div class="node-header">
-        <h3>Auto-Ascension Node</h3>
-        <label class="switch">
-          <input type="checkbox" bind:checked={matrixState.autoOverclock} />
-          <span class="slider"></span>
-        </label>
-      </div>
-      <p class="text-sm color-muted">
-        Automatically initiates an Overclock when reaching the target level.
-      </p>
-
-      {#if matrixState.autoOverclock}
-        <div class="target-input">
-          <label for="target-level-input">Target Level:</label>
-          <input
-            id="target-level-input"
-            type="number"
-            bind:value={localTarget}
-            min="1000"
-            step="100"
-          />
-          <button class="apply-btn" onclick={applyTarget}>APPLY</button>
-        </div>
-        {#if validationError}
-          <p class="validation-error">{validationError}</p>
-        {/if}
-        <p class="text-xs color-muted" style="margin-top: 5px;">
-          Currently set to: {matrixState.targetOverclockLevel}
-        </p>
-      {/if}
-    </div>
-  </div>
-{/if}
-
 <style>
-  .matrix-content {
+  .matrix-panel { display: flex; flex-direction: column; height: 100%; }
+
+  .panel-header {
+    display: flex;
+    align-items: center;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border-subtle);
+    flex-shrink: 0;
+  }
+  .header-left { display: flex; align-items: center; gap: 10px; }
+  .header-icon { font-size: 1rem; color: var(--accent-steel); }
+  .header-text { display: flex; flex-direction: column; gap: 1px; }
+
+  .locked-screen {
+    flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 15px;
-    padding: 10px;
-  }
-  .locked-box {
-    border: 1px solid var(--neon-red);
-    padding: 20px;
-    text-align: center;
-    background: rgba(255, 0, 0, 0.05);
-    border-radius: 4px;
-    margin: 10px;
-  }
-  .warning-text {
-    color: var(--neon-red);
-    font-weight: bold;
-    font-size: 1.2rem;
-  }
-
-  .node-box {
-    border: 1px solid var(--border-subtle);
-    padding: 15px;
-    background: rgba(0, 0, 0, 0.5);
-    border-radius: 4px;
-    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
-    transition: border-color 0.3s;
-  }
-  .node-box:hover {
-    border-color: var(--neon-pink);
-  }
-
-  .node-header {
-    display: flex;
-    justify-content: space-between;
     align-items: center;
-    margin-bottom: 10px;
+    justify-content: center;
+    gap: 6px;
+    padding: 20px;
   }
-  .node-header h3 {
+  .lock-icon { font-size: 2.5rem; color: var(--accent-danger); }
+  .lock-title {
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    color: var(--accent-danger);
     margin: 0;
-    color: var(--neon-pink);
+  }
+  .lock-sub {
+    font-family: var(--font-display);
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    color: var(--color-muted);
+    margin: 0;
+  }
+  .lock-hint {
+    font-size: 0.68rem;
+    color: var(--color-dim);
+    margin: 0;
+    margin-top: 8px;
+    text-align: center;
+  }
+
+  .nodes-list { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 6px; }
+
+  .node-card {
+    background: var(--panel-bg);
+    border: 1px solid var(--border-subtle);
+    border-left: 3px solid var(--border-mid);
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    transition: border-color var(--t-fast), background var(--t-fast);
+  }
+  .node-card.node-active { border-left-color: var(--accent-steel); background: rgba(90, 138, 170, 0.04); }
+  .node-card:hover { border-color: var(--border-mid); }
+
+  .node-header { display: flex; justify-content: space-between; align-items: center; }
+  .node-label {
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: var(--accent-steel);
     text-transform: uppercase;
   }
+  .node-desc { font-size: 0.65rem; color: var(--color-muted); margin: 0; line-height: 1.4; }
 
+  /* Toggle */
+  .toggle { display: inline-block; position: relative; width: 40px; height: 20px; cursor: pointer; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-track {
+    position: absolute; inset: 0;
+    background: var(--border-mid);
+    transition: background var(--t-mid);
+  }
+  .toggle-thumb {
+    position: absolute;
+    width: 14px; height: 14px;
+    background: var(--color-dim);
+    top: 3px; left: 3px;
+    transition: transform var(--t-mid), background var(--t-mid);
+  }
+  .toggle input:checked + .toggle-track { background: var(--accent-steel); }
+  .toggle input:checked + .toggle-track .toggle-thumb { transform: translateX(20px); background: var(--accent-white); }
+
+  .target-row { display: flex; align-items: center; gap: 8px; margin-top: 4px; background: var(--panel-inset); padding: 8px; }
+  .target-label { font-family: var(--font-display); font-size: 0.6rem; font-weight: 600; letter-spacing: 0.1em; color: var(--color-muted); white-space: nowrap; }
   .target-input {
-    margin-top: 15px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    background: rgba(255, 255, 255, 0.05);
-    padding: 10px;
-    border-radius: 4px;
-  }
-  .target-input input {
+    flex: 1;
     background: transparent;
-    border: 1px solid var(--border-subtle);
-    color: var(--neon-blue);
-    padding: 5px;
-    font-family: var(--font-data);
-    width: 100px;
+    border: 1px solid var(--border-mid);
+    color: var(--accent-steel);
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    padding: 4px 8px;
+    outline: none;
+    min-width: 0;
   }
+  .target-input:focus { border-color: var(--accent-steel); }
 
   .apply-btn {
-    background: var(--neon-pink);
-    color: #fff;
-    border: none;
-    padding: 5px 10px;
-    border-radius: 4px;
+    background: transparent;
+    border: 1px solid var(--accent-steel);
+    color: var(--accent-steel);
+    font-family: var(--font-display);
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    padding: 5px 12px;
     cursor: pointer;
-    font-family: var(--font-cyber);
-    font-weight: bold;
-    transition: box-shadow 0.2s;
+    white-space: nowrap;
+    transition: background var(--t-fast), color var(--t-fast);
   }
-  .apply-btn:hover {
-    box-shadow: 0 0 10px var(--neon-pink);
-  }
+  .apply-btn:hover { background: rgba(90, 138, 170, 0.1); color: var(--accent-white); }
 
-  .validation-error {
-    color: var(--neon-red);
-    font-size: 0.7rem;
-    margin: 5px 0 0 0;
-  }
-
-  /* Toggle Switch CSS */
-  .switch {
-    position: relative;
-    display: inline-block;
-    width: 40px;
-    height: 20px;
-  }
-  .switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-  }
-  .slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: #333;
-    transition: 0.4s;
-    border-radius: 20px;
-  }
-  .slider:before {
-    position: absolute;
-    content: "";
-    height: 16px;
-    width: 16px;
-    left: 2px;
-    bottom: 2px;
-    background-color: white;
-    transition: 0.4s;
-    border-radius: 50%;
-  }
-  input:checked + .slider {
-    background-color: var(--neon-pink);
-    box-shadow: 0 0 10px var(--neon-pink);
-  }
-  input:checked + .slider:before {
-    transform: translateX(20px);
-  }
+  .val-error { font-size: 0.6rem; color: var(--accent-danger); margin: 0; }
+  .target-current { font-size: 0.6rem; color: var(--color-dim); margin: 0; font-family: var(--font-mono); }
 </style>

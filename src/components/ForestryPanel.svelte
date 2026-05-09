@@ -82,36 +82,39 @@ const UPGRADE_DEFS: Array<{ key: ForestryUpgradeType; label: string; formula: Co
 let energyPct = $derived(Math.max(0, Math.min(100,
   (Number(forestryState.energy) / Math.max(1, Number(forestryState.maxEnergy))) * 100
 )));
+
+const SAPLING_FORMULA = { type: 'geometric', base: 100, multiplier: 10 };
 </script>
 
-<div class="panel" data-theme="forestry">
-  <div class="premium-header">
-    <div class="header-main">
-      <div class="header-icon">🌿</div>
-      <div class="header-title-box">
+<div class="forestry-panel">
+  <div class="panel-header">
+    <div class="header-left">
+      <div class="header-icon">&#127807;</div>
+      <div class="header-text">
         <h2 class="transcended-text">BIO HARVESTER</h2>
-        <div class="header-subtitle">ORGANIC SYNTHESIS</div>
+        <span class="transcended-sub">ORGANIC SYNTHESIS</span>
       </div>
     </div>
     <div class="header-stats">
-      <div class="header-stat-box">
+      <div class="stat-item">
         <span class="stat-label">RATE</span>
-        <span class="stat-value" style="color:var(--neon-green)">{fmt(forestryState.harvestRate)}/s</span>
+        <span class="stat-value accent-green">{fmt(forestryState.harvestRate)}/s</span>
       </div>
-      <div class="header-stat-box">
+      <div class="stat-item">
         <span class="stat-label">DNA</span>
-        <span class="stat-value" style="color:var(--neon-green)">{fmt(forestryState.dnaFragments)}</span>
+        <span class="stat-value accent-green">{fmt(forestryState.dnaFragments)}</span>
       </div>
     </div>
   </div>
 
   {#if !forestryState.unlocked}
     <div class="lock-screen">
-      <div class="lock-icon-big">🌿</div>
-      <p>Unlocks at Level 200</p>
+      <div class="lock-icon">&#127807;</div>
+      <p class="lock-title">LOCKED</p>
+      <p class="lock-sub">Unlocks at Level 200</p>
     </div>
   {:else}
-    <div class="control-bar">
+    <div class="control-strip">
       <div class="buy-selector">
         {#each [1, 10, 100, 1000, 10000] as amt}
           <button class="amt-btn" class:active={uiStore.buyAmount === amt}
@@ -129,7 +132,7 @@ let energyPct = $derived(Math.max(0, Math.min(100,
       <div class="accordion" class:open={openSections.status}>
         <button class="acc-head" onclick={() => toggle('status')}>
           <span>HARVESTER STATUS</span>
-          <span class="acc-arrow">{openSections.status ? '▲' : '▼'}</span>
+          <span class="acc-arrow">{openSections.status ? '&#9650;' : '&#9660;'}</span>
         </button>
         {#if openSections.status}
           <div class="acc-body">
@@ -142,20 +145,20 @@ let energyPct = $derived(Math.max(0, Math.min(100,
               <div class="bar-label-row">
                 <span>HARVEST PROGRESS</span>
                 {#if forestryState.harvestRate >= 100}
-                  <span style="color:var(--neon-green)">{fmt(forestryState.harvestRate)}/s</span>
+                  <span class="accent-green">{fmt(forestryState.harvestRate)}/s</span>
                 {:else}
                   <span>{Math.floor(forestryState.growthProgress)}%</span>
                 {/if}
               </div>
               <div class="bar-track">
-                <div class="bar-fill green" style="width:{forestryState.harvestRate >= 100 ? 100 : forestryState.growthProgress}%"></div>
+                <div class="bar-fill accent-green" style="width:{forestryState.harvestRate >= 100 ? 100 : forestryState.growthProgress}%"></div>
               </div>
             </div>
 
             <div class="bar-group">
               <div class="bar-label-row"><span>NUTRIENT ENERGY</span><span>{energyPct.toFixed(0)}%</span></div>
               <div class="bar-track">
-                <div class="bar-fill blue" style="width:{energyPct}%"></div>
+                <div class="bar-fill accent-steel" style="width:{energyPct}%"></div>
               </div>
             </div>
 
@@ -183,7 +186,7 @@ let energyPct = $derived(Math.max(0, Math.min(100,
       <div class="accordion" class:open={openSections.upgrades}>
         <button class="acc-head" onclick={() => toggle('upgrades')}>
           <span>CALIBRATION</span>
-          <span class="acc-arrow">{openSections.upgrades ? '▲' : '▼'}</span>
+          <span class="acc-arrow">{openSections.upgrades ? '&#9650;' : '&#9660;'}</span>
         </button>
         {#if openSections.upgrades}
           <div class="acc-body">
@@ -203,7 +206,8 @@ let energyPct = $derived(Math.max(0, Math.min(100,
                         <button class="upg-buy-btn"
                           onclick={() => doBuy(def.key)}
                           disabled={!canDna(costData.cost)}>
-                          +{buyAmount === 'max' ? costData.count : buyAmount} <span class="btn-cost">{fmt(costData.cost)}</span>
+                          +{buyAmount === 'max' ? costData.count : buyAmount}
+                          <span class="btn-cost">{fmt(costData.cost)}</span>
                         </button>
                         <button class="upg-max-btn"
                           onclick={() => buyMax(def.key)}
@@ -226,7 +230,7 @@ let energyPct = $derived(Math.max(0, Math.min(100,
       <div class="accordion" class:open={openSections.logistics}>
         <button class="acc-head" onclick={() => toggle('logistics')}>
           <span>BIOME LOGISTICS</span>
-          <span class="acc-arrow">{openSections.logistics ? '▲' : '▼'}</span>
+          <span class="acc-arrow">{openSections.logistics ? '&#9650;' : '&#9660;'}</span>
         </button>
         {#if openSections.logistics}
           <div class="acc-body">
@@ -240,7 +244,8 @@ let energyPct = $derived(Math.max(0, Math.min(100,
                   <button class="upg-buy-btn"
                     onclick={() => { addGrowthChamber(buyAmount); invalidateBulkCostCache(); }}
                     disabled={!canRes('biofiber', costs.chamber.cost)}>
-                    +{buyAmount === 'max' ? costs.chamber.count : buyAmount} <span class="btn-cost">{fmt(costs.chamber.cost)} Biofiber</span>
+                    +{buyAmount === 'max' ? costs.chamber.count : buyAmount}
+                    <span class="btn-cost">{fmt(costs.chamber.cost)} Biofiber</span>
                   </button>
                   <button class="upg-max-btn"
                     onclick={() => { addGrowthChamber('max'); invalidateBulkCostCache(); }}
@@ -258,7 +263,8 @@ let energyPct = $derived(Math.max(0, Math.min(100,
                   <button class="upg-buy-btn"
                     onclick={() => { upgradeMutationChance(buyAmount); invalidateBulkCostCache(); }}
                     disabled={!canRes('resinGel', costs.mutChance.cost)}>
-                    +{buyAmount === 'max' ? costs.mutChance.count : buyAmount} <span class="btn-cost">{fmt(costs.mutChance.cost)} Resin Gel</span>
+                    +{buyAmount === 'max' ? costs.mutChance.count : buyAmount}
+                    <span class="btn-cost">{fmt(costs.mutChance.cost)} Resin Gel</span>
                   </button>
                   <button class="upg-max-btn"
                     onclick={() => { upgradeMutationChance('max'); invalidateBulkCostCache(); }}
@@ -276,7 +282,7 @@ let energyPct = $derived(Math.max(0, Math.min(100,
       <div class="accordion" class:open={openSections.resources}>
         <button class="acc-head" onclick={() => toggle('resources')}>
           <span>RESOURCES</span>
-          <span class="acc-arrow">{openSections.resources ? '▲' : '▼'}</span>
+          <span class="acc-arrow">{openSections.resources ? '&#9650;' : '&#9660;'}</span>
         </button>
         {#if openSections.resources}
           <div class="acc-body">
@@ -347,142 +353,159 @@ let energyPct = $derived(Math.max(0, Math.min(100,
 </div>
 
 <style>
-.panel { display:flex; flex-direction:column; height:100%; }
+  .forestry-panel { display:flex; flex-direction:column; height:100%; }
 
-.lock-screen {
-  flex:1; display:flex; flex-direction:column; align-items:center;
-  justify-content:center; color:var(--color-muted); gap:8px;
-}
-.lock-icon-big { font-size:3rem; }
+  .panel-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px; border-bottom: 1px solid var(--border-subtle);
+    flex-shrink: 0; flex-wrap: wrap; gap: 8px;
+  }
+  .header-left { display: flex; align-items: center; gap: 10px; }
+  .header-icon { font-size: 1rem; color: var(--accent-green); }
+  .header-text { display: flex; flex-direction: column; gap: 1px; }
+  .header-stats { display: flex; gap: 16px; }
+  .stat-item { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+  .stat-label { font-family: var(--font-display); font-size: 0.56rem; font-weight: 600; letter-spacing: 0.14em; color: var(--color-muted); }
+  .stat-value { font-family: var(--font-mono); font-size: 0.82rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .accent-green { color: var(--accent-green); }
+  .accent-steel { color: var(--accent-steel); }
 
-.control-bar {
-  display:flex; align-items:center; justify-content:space-between;
-  padding:6px 0 8px; border-bottom:1px solid var(--border-subtle); margin-bottom:4px;
-  flex-shrink:0;
-}
-.buy-selector { display:flex; gap:3px; }
-.amt-btn {
-  background:#111; border:1px solid #333; color:#666;
-  font-size:0.6rem; padding:3px 8px; cursor:pointer;
-  font-family:var(--font-cyber); transition:0.1s;
-}
-.amt-btn.active { border-color:var(--neon-green); color:var(--neon-green); }
-.auto-up-btn {
-  background:rgba(46,204,113,0.08); border:1px solid var(--neon-green);
-  color:var(--neon-green); font-family:var(--font-cyber); font-size:0.7rem;
-  padding:4px 14px; cursor:pointer; font-weight:bold; letter-spacing:1px; transition:0.15s;
-}
-.auto-up-btn:hover { background:rgba(46,204,113,0.2); color:#fff; }
+  .lock-screen { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; color:var(--color-muted); gap:8px; }
+  .lock-icon { font-size:3rem; color: var(--color-dim); }
+  .lock-title { font-family: var(--font-display); font-size: 1rem; font-weight: 700; letter-spacing: 0.12em; color: var(--color-dim); margin: 0; }
+  .lock-sub { font-size: 0.7rem; color: var(--color-dim); margin: 0; }
 
-.sections { flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:6px; padding-right:2px; }
+  .control-strip {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:8px 14px; border-bottom:1px solid var(--border-subtle); flex-shrink:0;
+  }
+  .buy-selector { display:flex; gap:2px; }
+  .amt-btn {
+    background:transparent; border:1px solid var(--border-subtle); color:var(--color-muted);
+    font-family:var(--font-display); font-size:0.6rem; font-weight:600; letter-spacing:0.08em;
+    padding:3px 8px; cursor:pointer; transition:border-color var(--t-fast), color var(--t-fast);
+  }
+  .amt-btn.active { border-color:var(--accent-green); color:var(--accent-green); }
+  .amt-btn:hover:not(.active) { border-color:var(--border-mid); color:var(--color-text); }
+  .auto-up-btn {
+    background:transparent; border:1px solid var(--accent-green); color:var(--accent-green);
+    font-family:var(--font-display); font-size:0.66rem; font-weight:700; letter-spacing:0.1em;
+    padding:4px 14px; cursor:pointer; transition:background var(--t-fast), color var(--t-fast);
+  }
+  .auto-up-btn:hover { background:rgba(0,204,102,0.1); color:var(--accent-white); }
 
-.accordion { border:1px solid var(--border-subtle); background:rgba(0,0,0,0.35); }
-.acc-head {
-  width:100%; display:flex; justify-content:space-between; align-items:center;
-  background:rgba(46,204,113,0.06); border:none; color:var(--neon-green);
-  font-family:var(--font-cyber); font-size:0.68rem; letter-spacing:1px;
-  padding:8px 12px; cursor:pointer; text-transform:uppercase;
-}
-.acc-head:hover { background:rgba(46,204,113,0.12); }
-.acc-arrow { font-size:0.55rem; }
-.acc-body { padding:10px; display:flex; flex-direction:column; gap:8px; }
+  .sections { flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:4px; padding: 8px; }
 
-.tool-row { display:flex; justify-content:space-between; font-size:0.72rem; }
-.muted { color:var(--color-muted); }
-.highlight { color:var(--neon-green); font-family:var(--font-cyber); font-weight:bold; }
+  .accordion { border:1px solid var(--border-subtle); background:var(--panel-bg); }
+  .acc-head {
+    width:100%; display:flex; justify-content:space-between; align-items:center;
+    background:transparent; border:none; color:var(--accent-green);
+    font-family:var(--font-display); font-size:0.65rem; font-weight:700; letter-spacing:0.1em;
+    padding:8px 12px; cursor:pointer; text-transform:uppercase;
+    transition:background var(--t-fast), color var(--t-fast);
+  }
+  .acc-head:hover { background:rgba(0,204,102,0.06); }
+  .accordion.open .acc-head { border-bottom: 1px solid var(--border-subtle); }
+  .acc-arrow { font-size:0.55rem; }
+  .acc-body { padding:10px; display:flex; flex-direction:column; gap:8px; }
 
-.bar-group { display:flex; flex-direction:column; gap:3px; }
-.bar-label-row { display:flex; justify-content:space-between; font-size:0.6rem; color:var(--color-muted); font-family:var(--font-cyber); }
-.bar-track { height:8px; background:#000; border:1px solid #222; border-radius:2px; overflow:hidden; }
-.bar-fill { height:100%; transition:width 0.15s linear; border-radius:1px; }
-.bar-fill.green { background:var(--neon-green); box-shadow:0 0 6px var(--neon-green); }
-.bar-fill.blue { background:var(--neon-blue); box-shadow:0 0 6px var(--neon-blue); }
+  .tool-row { display:flex; justify-content:space-between; font-size:0.72rem; }
+  .muted { color:var(--color-muted); font-family:var(--font-display); font-size: 0.6rem; font-weight: 600; letter-spacing: 0.08em; }
+  .highlight { color:var(--accent-green); font-family:var(--font-display); font-weight:700; letter-spacing: 0.06em; }
 
-.three-col { display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; }
+  .bar-group { display:flex; flex-direction:column; gap:3px; }
+  .bar-label-row { display:flex; justify-content:space-between; font-size:0.6rem; color:var(--color-muted); font-family:var(--font-display); letter-spacing: 0.06em; }
+  .bar-track { height:6px; background:var(--panel-inset); border:1px solid var(--border-subtle); overflow:hidden; }
+  .bar-fill { height:100%; transition:width var(--t-mid); }
+  .bar-fill.accent-green { background:var(--accent-green); }
+  .bar-fill.accent-steel { background:var(--accent-steel); }
 
-.act-btn {
-  background:#0d0d0d; border:1px solid #333; padding:8px 6px;
-  display:flex; flex-direction:column; gap:2px; cursor:pointer; transition:0.1s; text-align:left;
-}
-.act-btn:hover:not(:disabled) { border-color:var(--neon-green); background:#141414; }
-.act-btn:disabled { opacity:0.4; cursor:not-allowed; }
-.act-name { font-size:0.68rem; font-weight:bold; color:#e0e0e0; font-family:var(--font-cyber); }
-.act-btn small { font-size:0.58rem; color:#777; }
+  .three-col { display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; }
+  .act-btn {
+    background:transparent; border:1px solid var(--border-mid); padding:8px 6px;
+    display:flex; flex-direction:column; gap:2px; cursor:pointer; transition:border-color var(--t-fast);
+    text-align:left;
+  }
+  .act-btn:hover:not(:disabled) { border-color:var(--accent-green); }
+  .act-btn:disabled { opacity:0.4; cursor:not-allowed; }
+  .act-name { font-size:0.65rem; font-weight:700; color:var(--color-text); font-family:var(--font-display); letter-spacing:0.06em; }
+  .act-btn small { font-size:0.58rem; color:var(--color-muted); }
 
-.upg-list { display:flex; flex-direction:column; gap:4px; }
+  .upg-list { display:flex; flex-direction:column; gap:4px; }
+  .upg-row {
+    display:flex; justify-content:space-between; align-items:center;
+    background:var(--panel-inset); padding:8px 10px;
+    border-left:2px solid var(--accent-green);
+    transition:border-color var(--t-fast);
+  }
+  .upg-row:hover:not(.at-cap) { border-left-color:var(--accent-white); }
+  .upg-row.at-cap { border-left-color:var(--accent-warning); opacity:0.6; }
 
-.upg-row {
-  display:flex; justify-content:space-between; align-items:center;
-  background:rgba(46,204,113,0.03); padding:8px 10px;
-  border-left:2px solid var(--neon-green);
-  transition:background 0.15s ease;
-}
-.upg-row:hover:not(.at-cap) { background:rgba(46,204,113,0.06); }
-.upg-row.at-cap { border-left-color:var(--neon-gold); opacity:0.5; }
+  .upg-info { display:flex; flex-direction:column; gap:1px; min-width:80px; }
+  .upg-name { font-size:0.68rem; font-weight:700; color:var(--color-text); font-family:var(--font-display); letter-spacing:0.04em; }
+  .upg-lv   { font-size:0.6rem; color:var(--accent-green); }
 
-.upg-info { display:flex; flex-direction:column; gap:1px; min-width:85px; }
-.upg-name { font-size:0.7rem; font-weight:bold; color:#e0e0e0; font-family:var(--font-cyber); }
-.upg-lv   { font-size:0.6rem; color:var(--neon-green); }
+  .upg-btns { display:flex; gap:5px; align-items:center; }
+  .upg-buy-btn {
+    background:transparent; border:1px solid var(--border-mid); color:var(--color-text);
+    font-family:var(--font-display); font-size:0.62rem; font-weight:600; letter-spacing:0.06em;
+    padding:5px 10px; cursor:pointer; transition:border-color var(--t-fast);
+    white-space:nowrap; min-width:70px; text-align:center;
+  }
+  .upg-buy-btn:hover:not(:disabled) { border-color:var(--accent-white); }
+  .upg-buy-btn:disabled { opacity:0.35; cursor:not-allowed; }
+  .btn-cost { font-size:0.55rem; color:var(--color-muted); margin-left:3px; }
 
-.upg-btns { display:flex; gap:5px; align-items:center; }
+  .upg-max-btn {
+    background:transparent; border:1px solid var(--border-mid); color:var(--color-muted);
+    font-family:var(--font-display); font-size:0.62rem; font-weight:600; letter-spacing:0.06em;
+    padding:5px 10px; cursor:pointer; transition:border-color var(--t-fast), color var(--t-fast);
+    white-space:nowrap; min-width:70px; text-align:center;
+  }
+  .upg-max-btn:hover:not(:disabled) { border-color:var(--accent-green); color:var(--accent-green); }
+  .upg-max-btn:disabled { opacity:0.35; cursor:not-allowed; }
 
-.upg-buy-btn {
-  background:#1a1a1a; border:1px solid #444; color:#aaa;
-  font-family:var(--font-cyber); font-size:0.6rem; padding:5px 10px;
-  cursor:pointer; transition:all 0.15s ease;
-  white-space:nowrap; min-width:72px; text-align:center;
-}
-.upg-buy-btn:hover:not(:disabled) { border-color:#fff; color:#fff; box-shadow:0 0 6px rgba(255,255,255,0.2); }
-.upg-buy-btn:disabled { opacity:0.35; cursor:not-allowed; }
-.btn-cost { font-size:0.55rem; color:#666; margin-left:3px; }
+  .cap-badge {
+    font-size:0.6rem; color:var(--accent-warning); font-family:var(--font-display); font-weight:700; letter-spacing:0.08em;
+    padding:4px 8px; border:1px solid var(--accent-warning);
+    background:transparent;
+  }
 
-.upg-max-btn {
-  background:#1a1a1a; border:1px solid #444; color:#aaa;
-  font-family:var(--font-cyber); font-size:0.6rem; padding:5px 10px;
-  cursor:pointer; transition:all 0.15s ease;
-  white-space:nowrap; min-width:72px; text-align:center;
-}
-.upg-max-btn:hover:not(:disabled) { border-color:var(--neon-green); color:#fff; box-shadow:var(--glow-green); }
-.upg-max-btn:disabled { opacity:0.35; cursor:not-allowed; }
+  .res-tabs { display:flex; gap:4px; margin-bottom:6px; }
+  .res-tabs button {
+    background:transparent; border:1px solid transparent;
+    color:#555; font-size:0.62rem; padding:3px 10px; cursor:pointer;
+    font-family:var(--font-display); font-weight:600; letter-spacing:0.08em; transition:border-color var(--t-fast), color var(--t-fast);
+  }
+  .res-tabs button.active { border-color:var(--accent-green); color:var(--accent-green); }
+  .res-tabs button:hover:not(.active) { color:var(--color-text); }
 
-.cap-badge {
-  font-size:0.6rem; color:var(--neon-gold); font-family:var(--font-cyber);
-  padding:4px 8px; border:1px solid var(--neon-gold);
-  background:rgba(255,200,0,0.05); letter-spacing:0.5px;
-}
+  .res-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:5px; }
+  .res-card {
+    background:var(--panel-inset); border:1px solid var(--border-subtle); padding:7px 6px;
+    display:flex; flex-direction:column; align-items:center; gap:3px;
+    transition:opacity var(--t-fast);
+  }
+  .res-card.locked { opacity:0.2; pointer-events:none; }
+  .res-name { font-size:0.58rem; color:var(--color-muted); text-align:center; text-transform:uppercase; font-family:var(--font-display); font-weight:600; letter-spacing:0.06em; }
+  .res-amt { font-size:0.82rem; color:var(--accent-white); font-weight:700; font-family:var(--font-mono); font-variant-numeric: tabular-nums; }
+  .res-actions { display:flex; gap:5px; align-items:center; }
 
-.res-tabs { display:flex; gap:4px; margin-bottom:6px; }
-.res-tabs button {
-  background:transparent; border:1px solid transparent;
-  color:#555; font-size:0.65rem; padding:3px 10px; cursor:pointer;
-  font-family:var(--font-cyber); transition:0.1s;
-}
-.res-tabs button.active { border-color:var(--neon-green); color:var(--neon-green); background:rgba(46,204,113,0.05); }
+  .mini-toggle { display:inline-block; width:22px; height:12px; position:relative; cursor:pointer; }
+  .mini-toggle input { display:none; }
+  .mini-slider { position:absolute; inset:0; background:var(--border-mid); transition:background var(--t-mid); }
+  .mini-slider::before {
+    content:''; position:absolute; width:8px; height:8px;
+    background:var(--color-dim); top:2px; left:2px; transition:transform var(--t-mid);
+  }
+  .mini-toggle input:checked + .mini-slider { background:var(--accent-green); }
+  .mini-toggle input:checked + .mini-slider::before { transform:translateX(10px); background:var(--accent-white); }
 
-.res-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:5px; }
-.res-card {
-  background:#0a0a0a; border:1px solid #222; padding:7px 6px;
-  display:flex; flex-direction:column; align-items:center; gap:3px;
-}
-.res-card.locked { opacity:0.2; pointer-events:none; }
-.res-name { font-size:0.58rem; color:#777; text-align:center; text-transform:uppercase; }
-.res-amt { font-size:0.82rem; color:#fff; font-weight:bold; font-family:var(--font-cyber); }
-.res-actions { display:flex; gap:5px; align-items:center; }
-
-.mini-toggle { display:inline-block; width:22px; height:12px; position:relative; cursor:pointer; }
-.mini-toggle input { display:none; }
-.mini-slider { position:absolute; inset:0; background:#2a2a2a; border-radius:6px; transition:0.2s; }
-.mini-slider::before {
-  content:''; position:absolute; width:8px; height:8px;
-  background:#fff; border-radius:50%; top:2px; left:2px; transition:0.2s;
-}
-.mini-toggle input:checked + .mini-slider { background:var(--neon-green); }
-.mini-toggle input:checked + .mini-slider::before { transform:translateX(10px); }
-
-.refine-btn {
-  background:#000; border:1px solid #333; color:#aaa;
-  font-size:0.55rem; padding:2px 6px; cursor:pointer; transition:0.1s; font-family:var(--font-cyber);
-}
-.refine-btn:hover:not(:disabled) { border-color:#fff; color:#fff; }
-.refine-btn:disabled { opacity:0.3; cursor:not-allowed; }
+  .refine-btn {
+    background:transparent; border:1px solid var(--border-mid); color:var(--color-muted);
+    font-size:0.55rem; padding:2px 6px; cursor:pointer; transition:border-color var(--t-fast), color var(--t-fast);
+    font-family:var(--font-display); font-weight:600; letter-spacing:0.06em;
+  }
+  .refine-btn:hover:not(:disabled) { border-color:var(--accent-white); color:var(--accent-white); }
+  .refine-btn:disabled { opacity:0.3; cursor:not-allowed; }
 </style>

@@ -23,10 +23,11 @@
   );
 </script>
 
-<div class="character-panel">
+<div class="char-panel">
+
   <div class="premium-header">
     <div class="header-main">
-      <div class="header-icon">👤</div>
+      <div class="header-icon">⬡</div>
       <div class="header-title-box">
         <h2 class="transcended-text">SYS.IDENTITY</h2>
         <div class="header-subtitle">CORE CHARACTER DATA</div>
@@ -36,151 +37,286 @@
       <div class="header-stats">
         <div class="header-stat-box">
           <span class="stat-label">COMBAT SYNC</span>
-          <span class="stat-value" style="color: var(--neon-green);">+{(bestiaryState.cachedBoost * 100).toFixed(0)}%</span>
+          <span class="stat-value" style="color: var(--accent-green);">+{(bestiaryState.cachedBoost * 100).toFixed(0)}%</span>
         </div>
       </div>
     {/if}
   </div>
 
-  <div class="stat-group">
-    <div class="stat-row-title">
-      <span>LVL {formatNumber(character.level)}</span>
-      <span>STAGE [{formatNumber(character.awakeningStage)}]</span>
+  <!-- Level + XP -->
+  <div class="level-block">
+    <div class="level-row">
+      <div class="level-info">
+        <span class="level-num">{formatNumber(character.level)}</span>
+        <span class="level-label">LEVEL</span>
+      </div>
+      <div class="stage-info">
+        <span class="stage-num">{formatNumber(character.awakeningStage)}</span>
+        <span class="stage-label">AWAKENING</span>
+      </div>
+      <div class="tier-info">
+        <span class="tier-badge {powerTier.class}">{powerTier.name}</span>
+        <span class="tier-label">CLASS</span>
+      </div>
     </div>
-    <div class="xp-bar-container">
-      <div class="xp-bar" style="width: {xpPercent}%"></div>
-      <div class="xp-text">
-        {formatNumber(Decimal.from(character.xp).lt(0) ? 0 : character.xp)} /
-        {formatNumber(character.xpNeeded)} XP
+
+    <div class="xp-block">
+      <div class="xp-bar-wrap">
+        <div class="xp-bar-fill" style="width:{xpPercent}%"></div>
+      </div>
+      <div class="xp-text-row">
+        <span class="xp-val">{formatNumber(Decimal.from(character.xp).lt(0) ? 0 : character.xp)}</span>
+        <span class="xp-sep">/</span>
+        <span class="xp-val muted">{formatNumber(character.xpNeeded)} XP</span>
       </div>
     </div>
   </div>
 
+  <!-- Stats list -->
   <div class="stat-list">
-    <div class="stat-item">
-      <span class="label">HP</span>
-      <span class="val">{formatNumber(character.stats.hp)} / {formatNumber(character.stats.maxHp)}</span>
+
+    <div class="stat-row">
+      <span class="s-label">HP</span>
+      <span class="s-val danger">{formatNumber(character.stats.hp)}<span class="s-sep">/</span><span class="s-max">{formatNumber(character.stats.maxHp)}</span></span>
     </div>
-    <div class="stat-item">
-      <span class="label">SHIELD</span>
-      <span class="val val-blue">{formatNumber(character.stats.defense)} / {formatNumber(character.stats.maxDefense)}</span>
+
+    <div class="stat-row">
+      <span class="s-label">SHIELD</span>
+      <span class="s-val steel">{formatNumber(character.stats.defense)}<span class="s-sep">/</span><span class="s-max">{formatNumber(character.stats.maxDefense)}</span></span>
     </div>
-    <div class="stat-item">
-      <span class="label">POWER CLASS (ATK)</span>
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <span class="val">{formatNumber(character.stats.attack)}</span>
-        <span class="val tier-badge {powerTier.class}">{powerTier.name}</span>
-      </div>
+
+    <div class="stat-row">
+      <span class="s-label">ATTACK</span>
+      <span class="s-val">{formatNumber(character.stats.attack)}</span>
     </div>
-    <div class="stat-item">
-      <span class="label">REGEN HP/s</span>
-      <span class="val">{formatNumber(character.stats.regenHp.mul(new Decimal(10).pow(character.seals)).mul(10))}</span>
+
+    <div class="stat-row">
+      <span class="s-label">HP REGEN/s</span>
+      <span class="s-val">{formatNumber(character.stats.regenHp.mul(new Decimal(10).pow(character.seals)).mul(10))}</span>
     </div>
-    <div class="stat-item">
-      <span class="label">REGEN SH/s</span>
-      <span class="val val-blue">{formatNumber(character.stats.regenDef.mul(new Decimal(10).pow(character.seals)).mul(10))}</span>
+
+    <div class="stat-row">
+      <span class="s-label">SH REGEN/s</span>
+      <span class="s-val steel">{formatNumber(character.stats.regenDef.mul(new Decimal(10).pow(character.seals)).mul(10))}</span>
     </div>
-    <div class="stat-item">
-      <span class="label">CRIT CHANCE</span>
-      <span class="val">{(character.stats.critChance * 100).toFixed(1)}%</span>
+
+    <div class="stat-row">
+      <span class="s-label">CRIT CHANCE</span>
+      <span class="s-val">{(character.stats.critChance * 100).toFixed(1)}%</span>
     </div>
-    <div class="stat-item">
-      <span class="label">TOTAL KILLS</span>
-      <span class="val">{formatNumber(character.kills)}</span>
+
+    <div class="stat-row">
+      <span class="s-label">KILLS</span>
+      <span class="s-val">{formatNumber(character.kills)}</span>
     </div>
-    <div class="stat-item">
-      <span class="label">SEALS</span>
-      <span class="val val-pink">{character.seals}</span>
+
+    <div class="stat-row">
+      <span class="s-label">SEALS BROKEN</span>
+      <span class="s-val violet">{character.seals}</span>
     </div>
+
   </div>
 
-  <div class="awakening-info">
-    <h3 class="transcended-sub">AWAKENING NODE</h3>
-    <p>Power Multiplier: <span class="val-pink">x{formatNumber(Decimal.from(1.5).pow(character.awakeningStage))}</span></p>
+  <!-- Awakening footer -->
+  <div class="awakening-block">
+    <div class="awk-row">
+      <span class="awk-label">AWAKENING MULT</span>
+      <span class="awk-val">×{formatNumber(Decimal.from(1.5).pow(character.awakeningStage))}</span>
+    </div>
     {#if isCritical}
-      <div class="critical-warning">⚠ CRITICAL — AWAKENING IMMINENT</div>
+      <div class="crit-warning">CRITICAL — LOW HP</div>
     {/if}
   </div>
+
 </div>
 
 <style>
-.character-panel { display: flex; flex-direction: column; gap: 12px; height: 100%; }
-
-.bestiary-bonus { font-size: 0.7rem; color: var(--neon-green); font-family: var(--font-cyber); }
-
-.stat-group { margin-bottom: 4px; }
-
-.stat-row-title {
+.char-panel {
   display: flex;
-  justify-content: space-between;
-  font-family: var(--font-cyber);
-  font-size: 1.1rem;
-  color: var(--neon-pink);
-  text-shadow: 0 0 5px rgba(255, 0, 255, 0.4);
-  margin-bottom: 6px;
-}
-
-.xp-bar-container {
-  height: 14px;
-  background: #111;
-  border: 1px solid var(--border-subtle);
-  position: relative;
-  border-radius: 1px;
-}
-.xp-bar {
+  flex-direction: column;
+  gap: 0;
   height: 100%;
-  background: var(--neon-blue);
-  box-shadow: 0 0 8px rgba(0, 190, 255, 0.4);
-  transition: width 0.4s ease;
 }
-.xp-text {
-  position: absolute;
-  top: -1px;
-  width: 100%;
+
+/* ── LEVEL BLOCK ────────────────────────────── */
+.level-block {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.level-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+}
+
+.level-info, .stage-info, .tier-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.level-num {
+  font-family: var(--font-mono);
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.level-label {
+  font-family: var(--font-display);
+  font-size: 0.54rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: var(--color-muted);
+  text-transform: uppercase;
+}
+
+.stage-num {
+  font-family: var(--font-mono);
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--accent-amber);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.stage-label {
+  font-family: var(--font-display);
+  font-size: 0.54rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: var(--color-muted);
+  text-transform: uppercase;
+}
+
+.tier-info { justify-content: center; }
+.tier-label {
+  font-family: var(--font-display);
+  font-size: 0.54rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  margin-top: 3px;
   text-align: center;
-  font-size: 0.7rem;
-  color: #fff;
-  text-shadow: 1px 1px 2px #000;
-  pointer-events: none;
 }
 
-.stat-list { display: flex; flex-direction: column; gap: 5px; overflow-y: auto; }
+/* ── XP BAR ─────────────────────────────────── */
+.xp-block { display: flex; flex-direction: column; gap: 3px; }
+.xp-bar-wrap {
+  height: 4px;
+  background: var(--panel-inset);
+  border: 1px solid var(--border-subtle);
+  overflow: hidden;
+}
+.xp-bar-fill {
+  height: 100%;
+  background: var(--accent-warning);
+  transition: width 300ms linear;
+}
+.xp-text-row {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.xp-val {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+.xp-val.muted { color: var(--color-muted); }
+.xp-sep { color: var(--color-dim); font-size: 0.62rem; }
 
-.stat-item {
+/* ── STAT LIST ──────────────────────────────── */
+.stat-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 8px 0;
+}
+
+.stat-row {
   display: flex;
   justify-content: space-between;
-  background: rgba(0, 255, 255, 0.04);
-  padding: 5px 10px;
-  border-left: 2px solid var(--neon-blue);
+  align-items: center;
+  padding: 6px 14px;
+  border-left: 2px solid transparent;
+  transition: border-color var(--t-fast), background var(--t-fast);
 }
-.stat-item .label { color: var(--color-muted); font-size: 0.7rem; }
-.stat-item .val   { font-family: var(--font-cyber); color: #fff; font-size: 0.75rem; }
-.val-blue  { color: var(--neon-blue); text-shadow: 0 0 4px rgba(0, 190, 255, 0.4); }
-.val-pink  { color: var(--neon-pink); text-shadow: 0 0 4px rgba(255, 0, 255, 0.4); }
+.stat-row:hover {
+  border-left-color: var(--border-mid);
+  background: var(--panel-inset);
+}
 
-.awakening-info {
-  margin-top: auto;
-  border-top: 1px dashed var(--neon-pink);
-  padding-top: 10px;
+.s-label {
+  font-family: var(--font-display);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.s-val {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+.s-val.danger { color: var(--accent-danger); }
+.s-val.steel  { color: var(--accent-steel); }
+.s-val.violet { color: var(--accent-violet); }
+.s-sep { color: var(--color-dim); margin: 0 2px; }
+.s-max { color: var(--color-muted); }
+
+/* ── AWAKENING FOOTER ───────────────────────── */
+.awakening-block {
+  padding: 10px 14px;
+  border-top: 1px solid var(--border-subtle);
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
-.awakening-info p { font-size: 0.75rem; color: var(--color-muted); margin: 0; }
 
-.critical-warning {
-  color: var(--neon-red);
-  font-family: var(--font-cyber);
-  font-size: 0.75rem;
-  animation: glitch 1s infinite;
+.awk-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-@keyframes glitch {
-  0%   { transform: translate(0); }
-  20%  { transform: translate(-2px, 1px); }
-  40%  { transform: translate(-1px, -1px); }
-  60%  { transform: translate(2px, 1px); }
-  80%  { transform: translate(1px, -1px); }
-  100% { transform: translate(0); }
+.awk-label {
+  font-family: var(--font-display);
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.awk-val {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--accent-amber);
+  font-variant-numeric: tabular-nums;
+}
+
+.crit-warning {
+  font-family: var(--font-display);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent-danger);
 }
 </style>

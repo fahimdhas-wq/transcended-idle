@@ -1,107 +1,543 @@
-/* Base button */
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700&family=Azeret+Mono:wght@400;500;700&display=swap');
+
+:root {
+  /* ── SURFACE ────────────────────────────────── */
+  --bg-dark:        #0e0e0e;
+  --panel-bg:       #141414;
+  --panel-raised:   #1a1a1a;
+  --panel-inset:    #0a0a0a;
+
+  /* ── BORDER ─────────────────────────────────── */
+  --border-subtle:  #252525;
+  --border-mid:     #333333;
+  --border-active:  #ffffff;
+
+  /* ── TEXT ───────────────────────────────────── */
+  --color-text:     #e2e2e2;
+  --color-muted:    #666666;
+  --color-dim:      #3a3a3a;
+
+  /* ── FUNCTIONAL ACCENTS (minimal) ───────────── */
+  --accent-white:   #ffffff;
+  --accent-warning: #ffbe00;   /* xp, gold, important */
+  --accent-danger:  #ff3333;   /* hp, wipe, wall */
+  --accent-green:   #00cc66;   /* positive, gains */
+  --accent-steel:   #5a8aaa;   /* info, shield, mining */
+  --accent-violet:  #8866cc;   /* bestiary, skills */
+  --accent-amber:   #cc8844;   /* forestry, seals */
+
+  /* ── LEGACY VAR ALIASES (component compatibility) ── */
+  --neon-blue:      var(--accent-steel);
+  --neon-pink:      var(--accent-violet);
+  --neon-red:       var(--accent-danger);
+  --neon-green:     var(--accent-green);
+  --neon-gold:      var(--accent-warning);
+  --neon-purple:    var(--accent-violet);
+  --color-primary:  var(--accent-steel);
+  --color-accent:   var(--accent-white);
+  --border-color:   var(--border-subtle);
+
+  /* ── GLOW TOKENS → ELIMINATED ───────────────── */
+  --glow-blue:      none;
+  --glow-pink:      none;
+  --glow-green:     none;
+  --glow-gold:      none;
+  --glow-red:       none;
+  --glow-purple:    none;
+  --glow-text:      none;
+
+  /* ── TYPOGRAPHY ─────────────────────────────── */
+  --font-display:   'Barlow Condensed', sans-serif;
+  --font-mono:      'Azeret Mono', monospace;
+  --font-cyber:     var(--font-display);   /* legacy alias */
+  --font-data:      var(--font-mono);      /* legacy alias */
+
+  /* ── SPACING SCALE (4px base) ───────────────── */
+  --sp-1:  4px;
+  --sp-2:  8px;
+  --sp-3:  12px;
+  --sp-4:  16px;
+  --sp-5:  24px;
+  --sp-6:  32px;
+
+  /* ── TRANSITION ──────────────────────────────── */
+  --t-fast: 80ms ease;
+  --t-mid:  160ms ease;
+}
+
+/* ═══════════════════════════════════════════════
+   BUTTONS — Industrial Brutalist
+   Rule: border does the work. No glow. No shadow.
+   Hover = border brightens + bg lifts. Active = invert.
+═══════════════════════════════════════════════ */
+
 button {
-  background: #1a1a1a;
-  border: 1px solid var(--border-subtle);
-  color: #ccc;
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 6px 12px;
   cursor: pointer;
-  transition: all 0.15s ease;
-  font-family: var(--font-cyber);
-  font-size: 0.7rem;
-  padding: 6px 10px;
+  border: 1px solid var(--border-mid);
+  background: var(--panel-raised);
+  color: var(--color-text);
+  transition: border-color var(--t-fast), background var(--t-fast), color var(--t-fast);
+  white-space: nowrap;
 }
+
 button:hover:not(:disabled) {
-  border-color: var(--neon-blue);
-  color: #fff;
-  box-shadow: var(--glow-blue);
+  border-color: var(--accent-white);
+  background: #222222;
+  color: var(--accent-white);
 }
-button.active {
-  border-color: var(--neon-blue);
-  color: var(--neon-blue);
+
+button.active,
+button[aria-pressed="true"] {
+  background: var(--accent-white);
+  border-color: var(--accent-white);
+  color: #0e0e0e;
 }
+
 button:disabled {
-  opacity: 0.45;
+  opacity: 0.25;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ── PRIMARY (confirm, standard buy) ─────────── */
+button.btn-primary {
+  border-color: var(--accent-steel);
+  color: var(--accent-steel);
+  background: rgba(90, 138, 170, 0.06);
+}
+button.btn-primary:hover:not(:disabled) {
+  background: rgba(90, 138, 170, 0.16);
+  border-color: var(--accent-steel);
+  color: var(--accent-white);
+}
+
+/* ── MAX (gold, purchase-all) ────────────────── */
+button.btn-max,
+.upg-max-btn {
+  font-family: var(--font-display);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border: 1px solid var(--accent-warning);
+  color: var(--accent-warning);
+  background: rgba(255, 190, 0, 0.05);
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: background var(--t-fast), color var(--t-fast), border-color var(--t-fast);
+}
+button.btn-max:hover:not(:disabled),
+.upg-max-btn:hover:not(:disabled) {
+  background: rgba(255, 190, 0, 0.16);
+  color: var(--accent-white);
+  border-color: var(--accent-warning);
+}
+button.btn-max:disabled,
+.upg-max-btn:disabled {
+  opacity: 0.2;
   cursor: not-allowed;
 }
 
-/* Premium Panel Header */
+/* ── DANGER (wipe, destructive) ──────────────── */
+button.btn-danger,
+.sys-btn.danger {
+  border-color: var(--accent-danger);
+  color: var(--accent-danger);
+  background: rgba(255, 51, 51, 0.05);
+}
+button.btn-danger:hover:not(:disabled),
+.sys-btn.danger:hover:not(:disabled) {
+  background: rgba(255, 51, 51, 0.16);
+  color: var(--accent-white);
+}
+
+/* ── GREEN (forestry, positive) ──────────────── */
+button.btn-green {
+  border-color: var(--accent-green);
+  color: var(--accent-green);
+  background: rgba(0, 204, 102, 0.05);
+}
+button.btn-green:hover:not(:disabled) {
+  background: rgba(0, 204, 102, 0.15);
+  color: var(--accent-white);
+}
+
+/* ── UPGRADE BUY BUTTON ──────────────────────── */
+.upg-buy-btn {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  border: 1px solid var(--border-mid);
+  color: var(--color-text);
+  background: var(--panel-inset);
+  padding: 5px 10px;
+  cursor: pointer;
+  min-width: 72px;
+  text-align: center;
+  transition: border-color var(--t-fast), background var(--t-fast), color var(--t-fast);
+}
+.upg-buy-btn:hover:not(:disabled) {
+  border-color: var(--accent-white);
+  background: #1e1e1e;
+  color: var(--accent-white);
+}
+.upg-buy-btn:disabled {
+  opacity: 0.2;
+  cursor: not-allowed;
+}
+.btn-cost {
+  font-size: 0.56rem;
+  color: var(--color-muted);
+  margin-left: 4px;
+}
+
+/* ── AMOUNT SELECTOR ─────────────────────────── */
+.amt-btn {
+  font-family: var(--font-display);
+  font-size: 0.64rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  padding: 4px 10px;
+  background: var(--panel-inset);
+  border: 1px solid var(--border-subtle);
+  color: var(--color-muted);
+  cursor: pointer;
+  transition: border-color var(--t-fast), color var(--t-fast), background var(--t-fast);
+}
+.amt-btn:hover {
+  border-color: var(--border-mid);
+  color: var(--color-text);
+}
+.amt-btn.active {
+  background: var(--accent-white);
+  border-color: var(--accent-white);
+  color: #0e0e0e;
+}
+
+/* ── AUTO-UP / OPTIMIZE BUTTON ───────────────── */
+.auto-up-btn {
+  font-family: var(--font-display);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 4px 14px;
+  background: var(--panel-inset);
+  border: 1px solid var(--border-mid);
+  color: var(--color-text);
+  cursor: pointer;
+  transition: border-color var(--t-fast), background var(--t-fast), color var(--t-fast);
+}
+.auto-up-btn:hover {
+  border-color: var(--accent-white);
+  background: #222;
+  color: var(--accent-white);
+}
+
+/* ── CAP BADGE ───────────────────────────────── */
+.cap-badge {
+  font-family: var(--font-display);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--accent-warning);
+  border: 1px solid var(--accent-warning);
+  background: rgba(255, 190, 0, 0.04);
+  padding: 4px 8px;
+  text-transform: uppercase;
+}
+
+/* ═══════════════════════════════════════════════
+   PANEL HEADER — stripped, industrial
+═══════════════════════════════════════════════ */
+
 .premium-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: linear-gradient(90deg, rgba(0, 190, 255, 0.1) 0%, rgba(0,0,0,0) 100%);
-  border-left: 3px solid var(--neon-blue);
+  padding: 10px 14px;
   border-bottom: 1px solid var(--border-subtle);
-  padding: 12px 15px;
-  margin-bottom: 15px;
+  background: var(--panel-bg);
   position: relative;
   flex-shrink: 0;
 }
-.premium-header::after {
+
+/* Left accent bar */
+.premium-header::before {
   content: '';
   position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 190, 255, 0.03) 2px, rgba(0, 190, 255, 0.03) 4px);
-  pointer-events: none;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--accent-white);
 }
 
-/* Global Tier Badges */
-.tier-badge { 
-  font-weight: bold; 
-  padding: 2px 6px; 
-  border-radius: 2px; 
-  font-size: 0.75rem; 
-  text-transform: uppercase; 
-  font-family: var(--font-cyber); 
+.header-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
-/* Common style for high tiers (Gradients) */
-.tier-Transcendent,
-.tier-Ethereal,
-.tier-Cosmic,
-.tier-Omni,
-.tier-Singularity,
-.tier-Continuum,
-.tier-Paradox,
-.tier-Reality,
-.tier-Chronos,
-.tier-Eternal,
-.tier-Absolute,
-.tier-Omega,
-.tier-Zenith,
-.tier-Apotheosis,
-.tier-Infinite {
-  -webkit-background-clip: text !important;
-  background-clip: text !important;
-  -webkit-text-fill-color: transparent !important;
-  font-weight: 900;
+.header-icon {
+  font-size: 1rem;
+  line-height: 1;
+  filter: grayscale(1) brightness(0.7);
+}
+
+.header-title-box {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.header-subtitle {
+  font-family: var(--font-display);
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.header-stats {
+  display: flex;
+  gap: 16px;
+}
+
+.header-stat-box {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+}
+
+.stat-label {
+  font-family: var(--font-display);
+  font-size: 0.56rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.stat-value {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ═══════════════════════════════════════════════
+   BARS
+═══════════════════════════════════════════════ */
+
+.bar-fill {
+  transition: width 200ms linear;
+}
+
+/* ═══════════════════════════════════════════════
+   TIER BADGES — 5 visual buckets
+═══════════════════════════════════════════════ */
+
+.tier-badge {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  padding: 2px 6px;
+  border: 1px solid currentColor;
+  text-transform: uppercase;
   display: inline-block;
 }
 
-.tier-Fminus, .tier-F, .tier-Fplus { color: #888; border: 1px solid #555; background: rgba(136, 136, 136, 0.1); }
-.tier-Eminus, .tier-E, .tier-Eplus { color: #b8860b; border: 1px solid #8b6508; background: rgba(184, 134, 11, 0.1); }
-.tier-Dminus, .tier-D, .tier-Dplus { color: #2ecc71; border: 1px solid #27ae60; background: rgba(46, 204, 113, 0.1); }
-.tier-Cminus, .tier-C, .tier-Cplus { color: #3498db; border: 1px solid #2980b9; background: rgba(52, 152, 219, 0.1); }
-.tier-Bminus, .tier-B, .tier-Bplus { color: #9b59b6; border: 1px solid #8e44ad; background: rgba(155, 89, 182, 0.1); }
-.tier-Aminus, .tier-A, .tier-Aplus { color: #f1c40f; border: 1px solid #f39c12; background: rgba(241, 196, 15, 0.1); }
-.tier-Sminus, .tier-S, .tier-Splus { color: #e74c3c; border: 1px solid #c0392b; text-shadow: 0 0 4px #e74c3c; background: rgba(231, 76, 60, 0.1); }
-.tier-SSminus, .tier-SS, .tier-SSplus { color: #ff00ff; border: 1px solid #c700c7; text-shadow: 0 0 6px #ff00ff; background: rgba(255, 0, 255, 0.1); }
-.tier-SSSminus, .tier-SSS, .tier-SSSplus { color: #1abc9c; border: 1px solid #16a085; text-shadow: 0 0 8px #1abc9c; background: rgba(26, 188, 156, 0.1); }
-.tier-SSR, .tier-SSRplus { color: #fff; border: 1px solid #fff; text-shadow: 0 0 8px #fff; background: rgba(255, 255, 255, 0.1); }
-.tier-UR, .tier-URplus, .tier-URR { color: #e67e22; border: 1px solid #d35400; text-shadow: 0 0 10px #e67e22; background: rgba(230, 126, 34, 0.1); }
-.tier-EX { color: #ff4757; border: 1px solid #ff4757; text-shadow: 0 0 12px #ff4757; font-style: italic; background: rgba(255, 71, 87, 0.1); }
+/* Bucket 1: Gray — F/E */
+.tier-Fminus,.tier-F,.tier-Fplus,
+.tier-Eminus,.tier-E,.tier-Eplus {
+  color: #555555;
+  border-color: #333333;
+  background: transparent;
+}
+/* Bucket 2: Steel — D/C */
+.tier-Dminus,.tier-D,.tier-Dplus,
+.tier-Cminus,.tier-C,.tier-Cplus {
+  color: var(--accent-steel);
+  border-color: var(--accent-steel);
+  background: rgba(90,138,170,0.06);
+}
+/* Bucket 3: Violet — B/A/S */
+.tier-Bminus,.tier-B,.tier-Bplus,
+.tier-Aminus,.tier-A,.tier-Aplus,
+.tier-Sminus,.tier-S,.tier-Splus,
+.tier-SSminus,.tier-SS,.tier-SSplus,
+.tier-SSSminus,.tier-SSS,.tier-SSSplus {
+  color: var(--accent-violet);
+  border-color: var(--accent-violet);
+  background: rgba(136,102,204,0.06);
+  -webkit-text-fill-color: unset;
+  background-clip: unset;
+}
+/* Bucket 4: Gold — SSR/UR/EX */
+.tier-SSR,.tier-SSRplus,
+.tier-UR,.tier-URplus,.tier-URR,
+.tier-EX {
+  color: var(--accent-warning);
+  border-color: var(--accent-warning);
+  background: rgba(255,190,0,0.06);
+  -webkit-text-fill-color: unset;
+  background-clip: unset;
+  font-style: normal;
+}
+/* Bucket 5: White — Transcendent and beyond */
+.tier-Transcendent,.tier-Ethereal,.tier-Cosmic,
+.tier-Omni,.tier-Singularity,.tier-Continuum,
+.tier-Paradox,.tier-Reality,.tier-Chronos,
+.tier-Eternal,.tier-Absolute,.tier-Omega,
+.tier-Zenith,.tier-Apotheosis,.tier-Infinite {
+  color: var(--accent-white);
+  border-color: var(--accent-white);
+  background: rgba(255,255,255,0.06);
+  -webkit-text-fill-color: unset;
+  background-clip: unset;
+  font-weight: 900;
+}
 
-.tier-Transcendent { background: linear-gradient(90deg, #ff00ff, #00ffff); border: 1px solid #fff; color: #fff; }
-.tier-Ethereal { background: linear-gradient(90deg, #74b9ff, #a29bfe); border: 1px solid #a29bfe; color: #a29bfe; }
-.tier-Cosmic { background: linear-gradient(90deg, #fd79a8, #6c5ce7); border: 1px solid #fd79a8; color: #fd79a8; }
-.tier-Omni { background: linear-gradient(90deg, #ffeaa7, #fab1a0); border: 1px solid #ffeaa7; color: #ffeaa7; }
-.tier-Singularity { background: linear-gradient(90deg, #b2bec3, #636e72); border: 1px solid #b2bec3; color: #b2bec3; }
-.tier-Continuum { background: linear-gradient(90deg, #55efc4, #81ecec); border: 1px solid #55efc4; color: #55efc4; }
-.tier-Paradox { background: linear-gradient(90deg, #a29bfe, #6c5ce7); border: 1px solid #a29bfe; color: #a29bfe; }
-.tier-Reality { background: linear-gradient(90deg, #fab1a0, #e17055); border: 1px solid #fab1a0; color: #fab1a0; }
-.tier-Chronos { background: linear-gradient(90deg, #ffeaa7, #fdcb6e); border: 1px solid #ffeaa7; color: #ffeaa7; }
-.tier-Eternal { background: linear-gradient(90deg, #81ecec, #0984e3); border: 1px solid #81ecec; color: #81ecec; }
-.tier-Absolute { background: linear-gradient(90deg, #e17055, #d63031); border: 1px solid #e17055; color: #e17055; }
-.tier-Omega { background: linear-gradient(90deg, #6c5ce7, #2d3436); border: 1px solid #6c5ce7; color: #6c5ce7; }
-.tier-Zenith { background: linear-gradient(90deg, #fdcb6e, #e67e22); border: 1px solid #fdcb6e; color: #fdcb6e; }
-.tier-Apotheosis { background: linear-gradient(90deg, #00cec9, #0984e3); border: 1px solid #00cec9; text-shadow: 0 0 5px #00cec9; color: #00cec9; }
-.tier-Infinite { background: linear-gradient(90deg, var(--neon-gold), #fff); border: 1px solid var(--neon-gold); text-shadow: 0 0 10px var(--neon-gold); color: var(--neon-gold); }
+/* ═══════════════════════════════════════════════
+   UPGRADE ROWS
+═══════════════════════════════════════════════ */
+
+.upg-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  background: var(--panel-inset);
+  border-left: 2px solid var(--border-subtle);
+  transition: border-color var(--t-fast), background var(--t-fast);
+}
+.upg-row:hover:not(.at-cap) {
+  border-left-color: var(--border-mid);
+  background: #131313;
+}
+.upg-row.at-cap {
+  border-left-color: var(--accent-warning);
+  opacity: 0.55;
+}
+
+.upg-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 90px;
+}
+.upg-name {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text);
+}
+.upg-lv {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--color-muted);
+}
+.upg-btns {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+/* ═══════════════════════════════════════════════
+   PROGRESS / BARS (global shared)
+═══════════════════════════════════════════════ */
+
+.bar-track {
+  height: 6px;
+  background: var(--panel-inset);
+  border: 1px solid var(--border-subtle);
+  overflow: hidden;
+}
+.bar-thick { height: 12px; }
+
+.bar-fill.hp      { background: var(--accent-danger); }
+.bar-fill.sh      { background: var(--accent-steel); }
+.bar-fill.xp      { background: var(--accent-warning); }
+.bar-fill.gold    { background: var(--accent-warning); }
+.bar-fill.blue    { background: var(--accent-steel); }
+.bar-fill.green   { background: var(--accent-green); }
+.bar-fill.white   { background: var(--accent-white); }
+
+/* ── HP LOW: no animation, just dim red ──────── */
+.bar-fill.hp.hp-low { background: #661111; }
+
+/* ═══════════════════════════════════════════════
+   STAT ITEM ROWS (CharacterPanel, etc.)
+═══════════════════════════════════════════════ */
+
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 10px;
+  border-left: 2px solid var(--border-subtle);
+  background: var(--panel-inset);
+}
+.stat-item .label {
+  font-family: var(--font-display);
+  font-size: 0.64rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+.stat-item .val {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+.val-blue   { color: var(--accent-steel); }
+.val-pink   { color: var(--accent-violet); }
+.neon-red-text  { color: var(--accent-danger); font-weight: 700; }
+.neon-blue-text { color: var(--accent-steel); font-weight: 700; }
+
+/* ═══════════════════════════════════════════════
+   SYSTEM PANEL BUTTONS
+═══════════════════════════════════════════════ */
+
+.sys-btn {
+  font-family: var(--font-display);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: var(--panel-inset);
+  border: 1px solid var(--border-mid);
+  color: var(--color-text);
+  padding: 8px 6px;
+  cursor: pointer;
+  text-align: center;
+  width: 100%;
+  transition: border-color var(--t-fast), background var(--t-fast), color var(--t-fast);
+}
+.sys-btn:hover:not(:disabled) {
+  border-color: var(--accent-white);
+  background: #1e1e1e;
+  color: var(--accent-white);
+}
+.sys-btn:disabled {
+  opacity: 0.25;
+  cursor: default;
+}

@@ -7,19 +7,16 @@ import { Decimal } from '../systems/decimal.js';
 import type { MobType } from '../data/mobs.js';
 
 let showAdvanced = $state(false);
-
 let stats = $derived(getEffectiveCombatStats());
-
-let maxHp  = $derived(stats.hp);
-let maxSh  = $derived(stats.def);
+let maxHp       = $derived(stats.hp);
+let maxSh       = $derived(stats.def);
 let attackVal   = $derived(stats.atk);
 let regenHpVal  = $derived(stats.regenHp.mul(10));
 let regenDefVal = $derived(stats.regenDef.mul(10));
-
-let powerTier = $derived(getPowerTier(attackVal));
+let powerTier   = $derived(getPowerTier(attackVal));
 
 let playerHpPct = $derived.by(() => {
-  const hp = Decimal.from(character.stats?.hp ?? 0);
+  const hp  = Decimal.from(character.stats?.hp ?? 0);
   const mHp = Decimal.from(maxHp);
   if (hp.gte(mHp) && mHp.gt(0)) return 100;
   const pct = hp.div(mHp).mul(100).toNumber();
@@ -43,7 +40,7 @@ let xpPct = $derived.by(() => {
 });
 
 let enemyHpPct = $derived.by(() => {
-  if (!combatState.enemy || !combatState.enemy.maxHp) return 0;
+  if (!combatState.enemy?.maxHp) return 0;
   const eHp  = Decimal.from(combatState.enemy.hp ?? 0);
   const eMax = Decimal.from(combatState.enemy.maxHp);
   if (eHp.gte(eMax)) return 100;
@@ -51,207 +48,383 @@ let enemyHpPct = $derived.by(() => {
   return isNaN(pct) ? 0 : Math.min(100, pct);
 });
 
-function enemyTypeColor(type: MobType) {
-  if (type === 'organic')  return '#4caf50';
-  if (type === 'robotic')  return '#00beff';
-  if (type === 'spectral') return '#ff00ff';
-  return '#888';
-}
-function enemyTypeLabel(type: MobType) {
+function typeLabel(type: MobType): string {
   return (type || 'UNKNOWN').toUpperCase();
 }
 
 let hpIsLow = $derived(playerHpPct < 25);
 </script>
 
-<div class="combat-arena">
-  <div class="premium-header">
-    <div class="header-main">
-      <div class="header-icon">⚔️</div>
-      <div class="header-title-box">
-        <h2 class="transcended-text">COMBAT ARENA</h2>
-        <div class="header-subtitle">TACTICAL ENGAGEMENT</div>
+<div class="arena">
+
+  <!-- PLAYER BLOCK -->
+  <div class="player-block">
+
+    <!-- Row 1: Level + Power tier -->
+    <div class="p-row header-row">
+      <div class="p-cell">
+        <span class="cell-label">LEVEL</span>
+        <span class="cell-val">{formatValue(character.level ?? 0)}</span>
       </div>
+      <div class="p-cell center">
+        <span class="cell-label">CLASS</span>
+        <span class="tier-badge {powerTier.class}">{powerTier.name}</span>
+      </div>
+      <button class="more-btn" onclick={() => showAdvanced = !showAdvanced}>
+        {showAdvanced ? 'LESS' : 'MORE'}
+      </button>
+    </div>
+
+    <!-- Advanced stats (collapsed by default) -->
+    {#if showAdvanced}
+      <div class="adv-grid">
+        <div class="adv-item"><span class="adv-label">CRIT</span><span class="adv-val">{(character.stats.critChance * 100).toFixed(1)}%</span></div>
+        <div class="adv-item"><span class="adv-label">KILLS</span><span class="adv-val">{formatValue(character.kills ?? 0)}</span></div>
+        <div class="adv-item"><span class="adv-label">SKIP</span><span class="adv-val">{(character.stats.skipDamageChance * 100).toFixed(1)}%</span></div>
+        <div class="adv-item"><span class="adv-label">HP/s</span><span class="adv-val">{formatValue(regenHpVal)}</span></div>
+        <div class="adv-item"><span class="adv-label">SH/s</span><span class="adv-val">{formatValue(regenDefVal)}</span></div>
+        <div class="adv-item"><span class="adv-label">SEALS</span><span class="adv-val">{character.seals}</span></div>
+      </div>
+    {/if}
+
+    <!-- Bars -->
+    <div class="bars">
+
+      <div class="bar-row">
+        <span class="bar-tag danger">HP</span>
+        <div class="bar-track" class:bar-thick={true}>
+          <div class="bar-fill hp" class:hp-low={hpIsLow} style="width:{playerHpPct}%"></div>
+        </div>
+        <span class="bar-num danger-text">{formatValue(character.stats?.hp ?? 0)}</span>
+      </div>
+
+      <div class="bar-row">
+        <span class="bar-tag steel">SH</span>
+        <div class="bar-track" class:bar-thick={true}>
+          <div class="bar-fill sh" style="width:{playerShPct}%"></div>
+        </div>
+        <span class="bar-num steel-text">{formatValue(character.stats?.defense ?? 0)}</span>
+      </div>
+
+      <div class="bar-row">
+        <span class="bar-tag warn">XP</span>
+        <div class="bar-track">
+          <div class="bar-fill xp" style="width:{xpPct}%"></div>
+        </div>
+        <span class="bar-num muted-text">{formatValue(character.xp ?? 0)}</span>
+      </div>
+
     </div>
   </div>
 
-  <div class="stats-primary">
-    <div class="stat-main">
-      <span class="label">LEVEL</span>
-      <span class="value">{formatValue(character.level ?? 0)}</span>
-    </div>
-    <div class="stat-main">
-      <span class="label">POWER CLASS</span>
-      <span class="value tier-badge {powerTier.class}" style="margin-top: 4px; display: inline-block;">{powerTier.name}</span>
-    </div>
-    <button class="btn-more" onclick={() => showAdvanced = !showAdvanced}>
-      {showAdvanced ? 'LESS' : 'MORE'}
-    </button>
-  </div>
-
-  {#if showAdvanced}
-    <div class="stats-secondary">
-      <div class="s-cell">CRIT: {(character.stats.critChance * 100).toFixed(1)}%</div>
-      <div class="s-cell">KILLS: {formatValue(character.kills ?? 0)}</div>
-      <div class="s-cell">SKIP: {(character.stats.skipDamageChance * 100).toFixed(1)}%</div>
-      <div class="s-cell">HP/s: {formatValue(regenHpVal)}</div>
-      <div class="s-cell">SH/s: {formatValue(regenDefVal)}</div>
-      <div class="s-cell">SEALS: {character.seals}</div>
-    </div>
-  {/if}
-
-  <div class="bars-section">
-    <div class="bar-row">
-      <span class="bar-label">HP</span>
-      <div class="bar-track bar-thick">
-        <div class="bar-fill hp" class:hp-low={hpIsLow} style="width: {playerHpPct}%"></div>
-      </div>
-      <span class="bar-val neon-red-text">{formatValue(character.stats?.hp ?? 0)}</span>
-    </div>
-    <div class="bar-row">
-      <span class="bar-label">SH</span>
-      <div class="bar-track bar-thick">
-        <div class="bar-fill sh" style="width: {playerShPct}%"></div>
-      </div>
-      <span class="bar-val neon-blue-text">{formatValue(character.stats?.defense ?? 0)}</span>
-    </div>
-    <div class="bar-row">
-      <span class="bar-label">XP</span>
-      <div class="bar-track">
-        <div class="bar-fill xp" style="width: {xpPct}%"></div>
-      </div>
-      <span class="bar-val">{formatValue(character.xp ?? 0)}</span>
-    </div>
-  </div>
-
-  <div class="arena-box">
+  <!-- ENEMY BLOCK -->
+  <div class="enemy-block">
     {#if combatState.enemy}
       <div class="enemy-card">
-        <div class="enemy-header">
-          <span class="enemy-name">{combatState.enemy.name}</span>
-          <div class="enemy-meta">
-            <span class="enemy-type-badge" style="border-color: {enemyTypeColor(combatState.enemy.type)}; color: {enemyTypeColor(combatState.enemy.type)}">
-              {enemyTypeLabel(combatState.enemy.type)}
-            </span>
-            <span class="enemy-lvl">LVL {formatValue(combatState.enemy.level ?? 0)}</span>
+        <div class="enemy-head">
+          <div class="enemy-left">
+            <span class="enemy-name">{combatState.enemy.name}</span>
+            <span class="enemy-type">{typeLabel(combatState.enemy.type)}</span>
           </div>
+          <span class="enemy-lvl-badge">LVL {formatValue(combatState.enemy.level ?? 0)}</span>
         </div>
-        <div class="bar-track enemy-bar-track">
-          <div class="bar-fill enemy-hp" style="width: {enemyHpPct}%"></div>
+        <div class="enemy-bar-track">
+          <div class="enemy-bar-fill" style="width:{enemyHpPct}%"></div>
         </div>
-        <div class="enemy-hp-text">{formatValue(combatState.enemy.hp ?? 0)} / {formatValue(combatState.enemy.maxHp ?? 0)}</div>
+        <div class="enemy-hp-row">
+          <span class="enemy-hp-num">{formatValue(combatState.enemy.hp ?? 0)}</span>
+          <span class="enemy-hp-sep">/</span>
+          <span class="enemy-hp-num muted">{formatValue(combatState.enemy.maxHp ?? 0)}</span>
+        </div>
       </div>
     {:else}
-      <div class="scanning">SCANNING SECTOR...</div>
+      <div class="scanning">
+        <span class="scan-dot"></span>
+        <span>SCANNING...</span>
+      </div>
     {/if}
   </div>
+
 </div>
 
 <style>
-.combat-arena { display: flex; flex-direction: column; gap: 10px; height: 100%; overflow: hidden; }
+.arena {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
 
-.stats-primary { display: grid; grid-template-columns: 1fr 1fr 60px; gap: 8px; }
-.stat-main { background: rgba(0,0,0,0.4); padding: 8px; border: 1px solid var(--border-subtle); text-align: center; }
-.stat-main .label { display: block; font-size: 0.6rem; color: var(--neon-blue); letter-spacing: 1px; }
-.stat-main .value { font-family: var(--font-cyber); font-size: 1rem; color: #fff; }
+/* ── PLAYER BLOCK ──────────────────────────── */
+.player-block {
+  flex-shrink: 0;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
 
-.btn-more { 
-  background: transparent; 
-  border: 1px solid var(--neon-blue); 
-  color: var(--neon-blue); 
-  cursor: pointer; 
-  font-family: var(--font-cyber); 
-  font-size: 0.75rem; 
-  padding: 8px; 
-  transition: all 0.2s ease;
-  box-shadow: inset 0 0 5px rgba(0,190,255,0.2);
+.p-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 60px;
+  gap: 8px;
+  align-items: center;
+}
+
+.p-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.p-cell.center { align-items: flex-start; }
+
+.cell-label {
+  font-family: var(--font-display);
+  font-size: 0.56rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: var(--color-muted);
   text-transform: uppercase;
-  font-weight: bold;
 }
-.btn-more:hover { 
-  background: rgba(0,190,255,0.1);
-  box-shadow: 0 0 10px rgba(0,190,255,0.5), inset 0 0 10px rgba(0,190,255,0.4); 
-  text-shadow: 0 0 5px var(--neon-blue);
+.cell-val {
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
 }
 
-.stats-secondary { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; font-size: 0.65rem; color: #aaa; background: rgba(0,0,0,0.2); padding: 8px; }
-.s-cell { font-family: var(--font-data); }
-
-.bars-section { display: flex; flex-direction: column; gap: 6px; }
-.bar-row { display: flex; align-items: center; gap: 8px; }
-.bar-label { font-family: var(--font-cyber); font-size: 0.6rem; color: var(--neon-blue); width: 16px; flex-shrink: 0; }
-.bar-track { flex: 1; height: 8px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-subtle); border-radius: 2px; overflow: hidden; }
-.bar-fill { height: 100%; transition: width 0.25s ease; border-radius: 1px; }
-
-.hp { background: var(--neon-red); box-shadow: 0 0 6px rgba(255,0,0,0.5); }
-.hp.hp-low { animation: hp-pulse 0.8s infinite; }
-@keyframes hp-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
+.more-btn {
+  font-family: var(--font-display);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 5px 8px;
+  background: transparent;
+  border: 1px solid var(--border-mid);
+  color: var(--color-muted);
+  cursor: pointer;
+  transition: color var(--t-fast), border-color var(--t-fast);
+  align-self: center;
 }
-.sh { background: var(--neon-blue); box-shadow: 0 0 6px rgba(0,190,255,0.4); }
-.xp { background: var(--neon-gold); }
+.more-btn:hover {
+  border-color: var(--accent-white);
+  color: var(--accent-white);
+  background: transparent;
+}
 
-.bar-val { font-family: var(--font-data); font-size: 0.65rem; color: #ccc; min-width: 55px; text-align: right; }
+/* ── ADVANCED STATS ─────────────────────────── */
+.adv-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  background: var(--panel-inset);
+  padding: 8px;
+  border: 1px solid var(--border-subtle);
+}
+.adv-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 4px;
+}
+.adv-label {
+  font-family: var(--font-display);
+  font-size: 0.56rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--color-muted);
+  text-transform: uppercase;
+}
+.adv-val {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
 
-.arena-box {
+/* ── BARS ───────────────────────────────────── */
+.bars {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.bar-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.bar-tag {
+  font-family: var(--font-display);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  width: 18px;
+  text-align: right;
+  flex-shrink: 0;
+}
+.bar-tag.danger { color: var(--accent-danger); }
+.bar-tag.steel  { color: var(--accent-steel); }
+.bar-tag.warn   { color: var(--accent-warning); }
+
+.bar-track {
   flex: 1;
-  border: 1px solid var(--neon-blue);
-  box-shadow: inset 0 0 20px rgba(0, 190, 255, 0.1);
-  background: 
-    linear-gradient(rgba(0,190,255,0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,190,255,0.05) 1px, transparent 1px),
-    rgba(0,0,0,0.5);
-  background-size: 20px 20px;
-  animation: grid-move 5s linear infinite;
-  padding: 12px;
+  height: 6px;
+  background: var(--panel-inset);
+  border: 1px solid var(--border-subtle);
+  overflow: hidden;
+}
+.bar-track.bar-thick { height: 12px; }
+
+.bar-fill { height: 100%; transition: width 200ms linear; }
+.bar-fill.hp    { background: var(--accent-danger); }
+.bar-fill.hp.hp-low { background: #661111; }
+.bar-fill.sh    { background: var(--accent-steel); }
+.bar-fill.xp    { background: var(--accent-warning); }
+
+.bar-num {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-variant-numeric: tabular-nums;
+  min-width: 52px;
+  text-align: right;
+  flex-shrink: 0;
+}
+.bar-num.danger-text { color: var(--accent-danger); }
+.bar-num.steel-text  { color: var(--accent-steel); }
+.bar-num.muted-text  { color: var(--color-muted); }
+
+/* ── ENEMY BLOCK ────────────────────────────── */
+.enemy-block {
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 16px 12px;
+  background: var(--panel-inset);
+  border-top: 1px solid var(--border-subtle);
   position: relative;
   overflow: hidden;
 }
-@keyframes grid-move {
-  0% { background-position: 0 0, 0 0; }
-  100% { background-position: 20px 20px, 20px 20px; }
-}
-.enemy-card { 
-  width: 100%; 
-  display: flex; 
-  flex-direction: column; 
-  gap: 8px; 
-  background: rgba(0,0,0,0.8);
-  border: 1px solid var(--neon-red);
-  padding: 15px;
-  box-shadow: 0 0 15px rgba(255,0,0,0.1);
-  animation: glitch-anim 4s infinite;
-}
-@keyframes glitch-anim {
-  0%, 98%, 100% { transform: translate(0); }
-  99% { transform: translate(-2px, 1px); }
-}
-.enemy-header { display: flex; justify-content: space-between; align-items: flex-start; }
-.enemy-name { font-family: var(--font-cyber); font-size: 1.2rem; color: var(--neon-pink); text-shadow: 0 0 8px var(--neon-pink); text-transform: uppercase; }
-.enemy-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
-.enemy-type-badge {
-  font-family: var(--font-cyber);
-  font-size: 0.6rem;
-  padding: 2px 6px;
-  border: 1px solid;
-  border-radius: 2px;
-  box-shadow: inset 0 0 5px currentColor;
-}
-.enemy-lvl { font-size: 0.8rem; color: var(--neon-gold); text-shadow: 0 0 5px var(--neon-gold); }
-.enemy-bar-track { height: 14px; border-color: var(--neon-red); box-shadow: 0 0 5px rgba(255,0,0,0.5); }
-.enemy-hp { background: var(--neon-red); height: 100%; box-shadow: 0 0 10px var(--neon-red); }
-.enemy-hp-text { font-size: 0.8rem; color: #fff; text-align: center; font-family: var(--font-data); margin-top: -4px;}
-.scanning { font-family: var(--font-cyber); font-size: 1rem; color: var(--neon-blue); animation: scan-pulse 1s infinite alternate; }
-@keyframes scan-pulse {
-  from { opacity: 0.3; text-shadow: none; }
-  to { opacity: 1; text-shadow: 0 0 10px var(--neon-blue); }
+
+/* Subtle diagonal line texture */
+.enemy-block::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 8px,
+    rgba(255,255,255,0.01) 8px,
+    rgba(255,255,255,0.01) 9px
+  );
+  pointer-events: none;
 }
 
-.bar-thick { height: 14px; }
-.neon-red-text { color: var(--neon-red); text-shadow: 0 0 5px var(--neon-red); font-weight: bold;}
-.neon-blue-text { color: var(--neon-blue); text-shadow: 0 0 5px var(--neon-blue); font-weight: bold;}
+.enemy-card {
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border-mid);
+  border-left: 3px solid var(--accent-danger);
+  padding: 14px;
+  position: relative;
+}
+
+.enemy-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.enemy-left {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.enemy-name {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text);
+}
+
+.enemy-type {
+  font-family: var(--font-display);
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  color: var(--color-muted);
+  text-transform: uppercase;
+}
+
+.enemy-lvl-badge {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--accent-warning);
+  background: rgba(255,190,0,0.06);
+  border: 1px solid rgba(255,190,0,0.3);
+  padding: 3px 7px;
+  font-variant-numeric: tabular-nums;
+}
+
+.enemy-bar-track {
+  height: 8px;
+  background: var(--panel-inset);
+  border: 1px solid var(--border-subtle);
+  overflow: hidden;
+}
+.enemy-bar-fill {
+  height: 100%;
+  background: var(--accent-danger);
+  transition: width 150ms linear;
+}
+
+.enemy-hp-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.enemy-hp-num {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+.enemy-hp-num.muted { color: var(--color-muted); }
+.enemy-hp-sep { color: var(--color-dim); font-size: 0.72rem; }
+
+/* ── SCANNING STATE ─────────────────────────── */
+.scanning {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+.scan-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-muted);
+  animation: scan-blink 1.2s step-end infinite;
+}
+@keyframes scan-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
 </style>

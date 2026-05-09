@@ -81,10 +81,21 @@ export const rewardSystem = {
     let killsInThisEvent = new Decimal(1);
 
     const cleaveSkill = skillsState.skills.find(s => s.id === 'cleave');
-    if (cleaveSkill && cleaveSkill.tierIndex > 0 && Math.random() < 0.4) {
-      const cleaveAmounts = [0, 2, 5, 12, 25, 50, 100, 250];
-      const extra = new Decimal(cleaveAmounts[Math.min(cleaveSkill.tierIndex, cleaveAmounts.length - 1)]);
-      killsInThisEvent = killsInThisEvent.add(extra);
+    if (cleaveSkill && cleaveSkill.tierIndex > 0) {
+      // 100% chance if upgraded beyond S+ rank (tierIndex >= 21), otherwise 40% chance
+      const activateChance = cleaveSkill.tierIndex >= 21 ? 1.0 : 0.4;
+      if (Math.random() < activateChance) {
+        // Base amounts for tier 1-7, then ×2 for each tier beyond 7
+        const baseCleaveAmounts = [0, 2, 5, 12, 25, 50, 100, 250];
+        let extraKills: Decimal;
+        if (cleaveSkill.tierIndex < baseCleaveAmounts.length) {
+          extraKills = new Decimal(baseCleaveAmounts[cleaveSkill.tierIndex]);
+        } else {
+          // Tier 8+: geometric progression ×2 each tier
+          extraKills = new Decimal(250).mul(new Decimal(2).pow(cleaveSkill.tierIndex - 7));
+        }
+        killsInThisEvent = killsInThisEvent.add(extraKills);
+      }
     }
 
     const totalKills = killsInThisEvent.mul(multiplier);
@@ -96,7 +107,7 @@ export const rewardSystem = {
     // --- XP CALCULATION ---
     let xpMult = new Decimal(1);
     const xpSkill = skillsState.skills.find(s => s.id === 'xp_boost');
-    if (xpSkill && xpSkill.tierIndex > 0) xpMult = xpMult.add(0.2 * xpSkill.tierIndex);
+    if (xpSkill && xpSkill.tierIndex > 0) xpMult = xpMult.add(0.5 * xpSkill.tierIndex);
 
     const enemyLvl = enemy.level instanceof Decimal ? enemy.level : new Decimal(enemy.level || 1);
 
@@ -125,11 +136,11 @@ export const rewardSystem = {
     const baseFrag = new Decimal(character.level.div(200).add(0.1)).mul(1 + (character.seals || 0));
     let fragGain = baseFrag.mul(totalKills);
 
-    // Data Siphon Skill
+    // Data Siphon Skill - 25x bonus per tier
     const siphon = skillsState.skills.find(s => s.id === 'data_siphon');
     if (siphon && siphon.tierIndex > 0) {
-      const siphonMult = new Decimal(2).pow(siphon.tierIndex).mul(5);
-      fragGain = fragGain.add(siphonMult.mul(totalKills));
+      const siphonMult = 25 * siphon.tierIndex * totalKills.toNumber();
+      fragGain = fragGain.add(siphonMult);
     }
 
     character.skillFragments = character.skillFragments.add(fragGain);
@@ -139,7 +150,9 @@ export const rewardSystem = {
   _doLoot(enemy: Enemy, totalKills: Decimal): void {
     const bestiaryDropBonus = getSpeciesDropBonus(enemy.id);
     const quality = getQuality();
-    const lootBoost = (skillsState.skills.find(s => s.id === 'loot_boost')?.tierIndex || 0) * 0.15;
+    // Deep Scan Skill - 15% per tier as described
+    const lootSkill = skillsState.skills.find(s => s.id === 'loot_boost');
+    const lootBoost = (lootSkill?.tierIndex || 0) * 0.15;
     const dropChance = Math.min(0.98, 0.7 + ((character.seals || 0) * 0.05) + (character.dropBonus || 0) + lootBoost + bestiaryDropBonus);
 
     const killsNum = totalKills.toNumber();

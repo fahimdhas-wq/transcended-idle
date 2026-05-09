@@ -12,23 +12,26 @@
 </script>
 
 {#if show}
-  <div 
-    class="overlay" 
-    onclick={handleCancel} 
+  <div
+    class="overlay"
+    onclick={handleCancel}
     onkeydown={(e) => { if (e.key === 'Escape') handleCancel(); }}
     role="button"
     tabindex="0"
     aria-label="Close modal"
   >
-    <div 
-      class="modal" 
+    <div
+      class="modal"
       onclick={(e) => e.stopPropagation()}
       onkeydown={(e) => e.stopPropagation()}
       role="dialog"
       tabindex="0"
       aria-modal="true"
     >
-      <div class="modal-title transcended-text">CONFIRM ACTION</div>
+      <div class="modal-head">
+        <div class="modal-icon">&#9888;</div>
+        <span class="modal-title">CONFIRM ACTION</span>
+      </div>
       <p class="modal-msg">{message}</p>
       <div class="modal-btns">
         <button class="btn-cancel" onclick={handleCancel}>CANCEL</button>
@@ -39,46 +42,65 @@
 {/if}
 
 <style>
-.overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 8500;
-}
-.modal {
-  background: var(--panel-bg);
-  border: 1px solid var(--neon-blue);
-  padding: 20px;
-  width: 260px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  box-shadow: 0 0 25px rgba(0,190,255,0.3);
-}
-.modal-title { font-size: 0.9rem; text-align: center; }
-.modal-msg { font-size: 0.75rem; color: var(--color-text); line-height: 1.5; margin: 0; text-align: center; }
-.modal-btns { display: flex; gap: 8px; }
-.btn-cancel, .btn-confirm {
-  flex: 1;
-  padding: 8px;
-  font-family: var(--font-cyber);
-  font-size: 0.7rem;
-  cursor: pointer;
-  transition: 0.15s;
-}
-.btn-cancel {
-  background: rgba(255,255,255,0.05);
-  border: 1px solid var(--border-subtle);
-  color: var(--color-muted);
-}
-.btn-cancel:hover { border-color: var(--color-text); color: var(--color-text); }
-.btn-confirm {
-  background: rgba(0,190,255,0.1);
-  border: 1px solid var(--neon-blue);
-  color: var(--neon-blue);
-}
-.btn-confirm:hover { background: rgba(0,190,255,0.2); color: #fff; }
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 8500;
+  }
+  .modal {
+    background: var(--panel-bg);
+    border: 1px solid var(--accent-warning);
+    border-left: 3px solid var(--accent-warning);
+    padding: 24px;
+    width: 300px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .modal-head { display: flex; align-items: center; gap: 10px; }
+  .modal-icon { font-size: 1.1rem; color: var(--accent-warning); }
+  .modal-title {
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-text);
+  }
+  .modal-msg {
+    font-size: 0.75rem;
+    color: var(--color-muted);
+    line-height: 1.5;
+    margin: 0;
+    border-left: 2px solid var(--border-mid);
+    padding-left: 10px;
+  }
+  .modal-btns { display: flex; gap: 8px; }
+  .btn-cancel, .btn-confirm {
+    flex: 1;
+    padding: 8px 12px;
+    font-family: var(--font-display);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: border-color var(--t-fast), color var(--t-fast), background var(--t-fast);
+    text-align: center;
+  }
+  .btn-cancel {
+    background: transparent;
+    border: 1px solid var(--border-mid);
+    color: var(--color-muted);
+  }
+  .btn-cancel:hover { border-color: var(--accent-white); color: var(--accent-white); }
+  .btn-confirm {
+    background: transparent;
+    border: 1px solid var(--accent-warning);
+    color: var(--accent-warning);
+  }
+  .btn-confirm:hover { background: rgba(255, 190, 0, 0.1); color: var(--accent-white); border-color: var(--accent-white); }
 </style>

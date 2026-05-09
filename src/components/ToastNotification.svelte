@@ -5,6 +5,7 @@
 {#if uiStore.toast}
   {#key uiStore.toast.id}
     <div class="toast toast-{uiStore.toast.type}">
+      <span class="toast-bar"></span>
       {uiStore.toast.message}
     </div>
   {/key}
@@ -13,28 +14,39 @@
 <style>
 .toast {
   position: fixed;
-  bottom: 80px;
+  bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
-  font-family: var(--font-cyber);
-  font-size: 0.75rem;
-  padding: 8px 16px;
-  border-radius: 2px;
-  border: 1px solid var(--neon-blue);
-  background: rgba(0, 0, 0, 0.92);
-  color: var(--neon-blue);
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 9px 16px 9px 12px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border-mid);
+  border-left: 3px solid var(--accent-white);
+  color: var(--color-text);
   z-index: 9999;
   white-space: nowrap;
-  animation: toast-in 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  animation: toast-slide 0.15s ease;
   pointer-events: none;
 }
-.toast-success { border-color: var(--neon-green); color: var(--neon-green); }
-.toast-warn    { border-color: var(--neon-gold);  color: var(--neon-gold);  }
-.toast-danger  { border-color: var(--neon-red);   color: var(--neon-red);   }
-.toast-loot    { border-color: var(--neon-pink);  color: var(--neon-pink);  }
 
-@keyframes toast-in {
-  from { opacity: 0; transform: translateX(-50%) translateY(8px); }
-  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast-bar {
+  display: none;
+}
+
+.toast-success { border-left-color: var(--accent-green);   color: var(--accent-green);   }
+.toast-warn    { border-left-color: var(--accent-warning);  color: var(--accent-warning);  }
+.toast-danger  { border-left-color: var(--accent-danger);   color: var(--accent-danger);   }
+.toast-loot    { border-left-color: var(--accent-violet);   color: var(--accent-violet);   }
+
+@keyframes toast-slide {
+  from { opacity: 0; transform: translateX(-50%) translateY(6px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0);   }
 }
 </style>

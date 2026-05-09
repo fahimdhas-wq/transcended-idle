@@ -1,46 +1,56 @@
+/* Design tokens */
 :root {
-  /* Core palette */
-  --bg-dark:        hsl(0, 0%, 3%);
-  --panel-bg:       hsl(0, 0%, 7%);
-  --border-subtle:  hsl(0, 0%, 15%);
-  --border-active:  hsl(190, 100%, 50%);
+  /* ── SURFACE ────────────────────────────────── */
+  --bg-dark:        #0e0e0e;
+  --panel-bg:       #141414;
+  --panel-raised:   #1a1a1a;
+  --panel-inset:    #0a0a0a;
 
-  /* Text */
-  --color-text:     hsl(0, 0%, 90%);
-  --color-muted:    hsl(0, 0%, 50%);
+  /* ── BORDER ─────────────────────────────────── */
+  --border-subtle:  #252525;
+  --border-mid:     #333333;
+  --border-active:  #ffffff;
 
-  /* Neon accents */
-  --neon-blue:      hsl(190, 100%, 50%);
-  --neon-pink:      hsl(300, 100%, 50%);
-  --neon-red:       hsl(0, 100%, 50%);
-  --neon-green:     hsl(120, 100%, 45%);
-  --neon-gold:      hsl(50, 80%, 50%);
-  --neon-purple:    hsl(270, 100%, 60%);
-  --neon-purple:    hsl(270, 100%, 60%);
+  /* ── TEXT ───────────────────────────────────── */
+  --color-text:     #e2e2e2;
+  --color-muted:    #666666;
+  --color-dim:      #3a3a3a;
 
-  /* Glow tokens */
-  --glow-blue:      0 0 10px hsla(190, 100%, 50%, 0.5);
-  --glow-pink:      0 0 10px hsla(300, 100%, 50%, 0.5);
-  --glow-green:     0 0 10px hsla(120, 100%, 45%, 0.4);
-  --glow-gold:      0 0 10px hsla(50, 80%, 50%, 0.5);
-  --glow-red:       0 0 10px hsla(0, 100%, 50%, 0.5);
-  --glow-purple:    0 0 10px hsla(270, 100%, 60%, 0.5);
-  --glow-purple:    0 0 10px hsla(270, 100%, 60%, 0.5);
-  --glow-text:      0 0 4px currentColor;
+  /* ── FUNCTIONAL ACCENTS ─────────────────────── */
+  --accent-white:   #ffffff;
+  --accent-warning: #ffbe00;
+  --accent-danger:  #ff3333;
+  --accent-green:   #00cc66;
+  --accent-steel:   #5a8aaa;
+  --accent-violet:  #8866cc;
+  --accent-amber:   #cc8844;
 
-  /* Fonts */
-  --font-cyber:     'Oxanium', sans-serif;
-  --font-data:      'JetBrains Mono', monospace;
-
-  /* Aliases */
-  --hsl-blue:       var(--neon-blue);
-  --hsl-pink:       var(--neon-pink);
-  --hsl-red:        var(--neon-red);
-  --hsl-text:       var(--color-text);
-  --hsl-border:     var(--border-subtle);
-  --hsl-panel:      var(--panel-bg);
-  --hsl-bg:         var(--bg-dark);
-  --color-primary:  var(--neon-blue);
-  --color-accent:   var(--neon-pink);
+  /* ── LEGACY VAR ALIASES ─────────────────────── */
+  --neon-blue:      var(--accent-steel);
+  --neon-pink:      var(--accent-violet);
+  --neon-red:       var(--accent-danger);
+  --neon-green:     var(--accent-green);
+  --neon-gold:      var(--accent-warning);
+  --neon-purple:    var(--accent-violet);
+  --color-primary:  var(--accent-steel);
+  --color-accent:   var(--accent-white);
   --border-color:   var(--border-subtle);
+
+  /* ── TYPOGRAPHY ─────────────────────────────── */
+  --font-display:   'Barlow Condensed', sans-serif;
+  --font-mono:      'Azeret Mono', monospace;
+  --font-cyber:     'Barlow Condensed', sans-serif;
+  --font-data:      'Azeret Mono', monospace;
+
+  /* ── SPACING SCALE ─────────────────────────── */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+
+  /* ── TRANSITION ─────────────────────────────── */
+  --t-fast: 80ms ease;
+  --t-mid: 160ms ease;
 }

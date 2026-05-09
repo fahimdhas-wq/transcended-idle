@@ -262,7 +262,7 @@ import { maxAffordable } from '../utils/maxAffordable.js';
 import { getAffordableAmount } from '../utils/adjustUpgradeAmount.js';
 
 
-export function buyForestryUpgrade(type: ForestryUpgradeType, amount: number | 'max' = 1): void {
+export function buyForestryUpgrade(type: ForestryUpgradeType, amount: number | 'max' = 1): number {
   let formula: CostFormula;
 
   if (type === 'chainsawFuel')    formula = { type: 'linear', base: 0, gain: 500 };
@@ -271,7 +271,7 @@ export function buyForestryUpgrade(type: ForestryUpgradeType, amount: number | '
   else if (type === 'mutationPower')   formula = { type: 'linear', base: 1500, gain: 1500 };
   else if (type === 'overclockPower')  formula = { type: 'linear', base: 2000, gain: 2000 };
   else if (type === 'efficiency')      formula = { type: 'linear', base: 1000, gain: 1000 };
-  else return;
+  else return 0;
 
   const currentLv = (forestryState[type] || 0);
   let count = 0;
@@ -287,7 +287,7 @@ export function buyForestryUpgrade(type: ForestryUpgradeType, amount: number | '
     count = Math.min(count, 10 - currentLv);
   }
 
-  if (count <= 0) return;
+  if (count <= 0) return 0;
   const totalCost = calculateBulkCost(formula, currentLv, count);
 
   // Already checked via getAffordableAmount
@@ -295,7 +295,9 @@ export function buyForestryUpgrade(type: ForestryUpgradeType, amount: number | '
     forestryState.dnaFragments = forestryState.dnaFragments.sub(totalCost);
     forestryState[type] += count;
     addLog(`[FORESTRY] Upgrade complete: ${type} x${count}.`, 'system');
+    return count;
   }
+  return 0;
 }
 
 export function upgradeBioTool(): void {

@@ -3,32 +3,104 @@
 @import './typography.css';
 @import './components.css';
 
-/* Global Overrides & Transitions */
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
-/* Base transitions for smooth UI */
+/* ── SMOOTH BAR TRANSITIONS ──────────────────── */
 .bar-fill {
-  transition: width 0.25s ease-out;
+  transition: width 200ms linear;
 }
 
-.glow-pulse {
-  animation: pulse-glow 2s infinite alternate;
+/* ── KILL ALL AMBIENT ANIMATIONS ─────────────── */
+/* Only state-triggered transitions allowed. */
+.glow-pulse          { animation: none !important; }
+.shimmer-effect      { animation: none !important; background: none !important; }
+
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg-dark);
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-@keyframes pulse-glow {
-  0%, 100% { text-shadow: var(--glow-gold); }
-  50% { text-shadow: 0 0 20px var(--neon-gold); }
+#app {
+  max-width: none;
+  padding: 0;
+  margin: 0;
+  text-align: left;
 }
 
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+/* ── SCROLLBARS ──────────────────────────────── */
+::-webkit-scrollbar       { width: 3px; height: 3px; }
+::-webkit-scrollbar-track { background: var(--panel-inset); }
+::-webkit-scrollbar-thumb { background: var(--border-mid); }
+::-webkit-scrollbar-thumb:hover { background: var(--color-muted); }
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-mid) var(--panel-inset);
 }
 
-.shimmer-effect {
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-  background-size: 200% 100%;
-  animation: shimmer 2s infinite;
+/* ── FOCUS ───────────────────────────────────── */
+button:focus-visible {
+  outline: 1px solid var(--accent-white);
+  outline-offset: 1px;
 }
+
+/* ── SIZE SCALE ─────────────────────────────── */
+.text-xs   { font-size: 0.62rem; }
+.text-sm   { font-size: 0.72rem; }
+.text-base { font-size: 0.82rem; }
+.text-lg   { font-size: 1rem; }
+.text-xl   { font-size: 1.2rem; }
+
+/* ── LABELS (section headers, column labels) ── */
+.label-caps {
+  font-family: var(--font-display);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+/* ── DISPLAY HEADING ─────────────────────────── */
+.transcended-text {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.1rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text);
+  background: none;
+  -webkit-text-fill-color: unset;
+  filter: none;
+}
+
+.transcended-sub {
+  font-family: var(--font-display);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  margin: 0;
+}
+
+/* ── DATA VALUES ─────────────────────────────── */
+.val-mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── COLOR UTILITIES ─────────────────────────── */
+.color-warning { color: var(--accent-warning); }
+.color-danger  { color: var(--accent-danger);  }
+.color-green   { color: var(--accent-green);   }
+.color-steel   { color: var(--accent-steel);   }
+.color-violet  { color: var(--accent-violet);  }
+.color-amber   { color: var(--accent-amber);   }
+.color-muted   { color: var(--color-muted);    }

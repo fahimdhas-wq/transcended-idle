@@ -2,24 +2,23 @@
   import { uiStore, dismissOfflineSummary } from '../stores/uiStore.svelte.js';
   import { formatValue } from '../systems/formatValue.js';
 
-  function fmt() {
+  function fmt(): string {
     const summary = uiStore.offlineSummary;
     if (!summary) return '';
     const mins = Math.floor(summary.seconds / 60);
     const hrs  = Math.floor(mins / 60);
     const days = Math.floor(hrs / 24);
-    
-    if (days > 0) return `${days}d ${hrs % 24}h ${mins % 60}m`;
-    if (hrs > 0) return `${hrs}h ${mins % 60}m`;
-    return `${mins}m`;
+    if (days > 0) return `${days}D ${hrs % 24}H ${mins % 60}M`;
+    if (hrs > 0)  return `${hrs}H ${mins % 60}M`;
+    return `${mins}M`;
   }
 </script>
 
 {#if uiStore.offlineSummary}
   <div class="overlay">
     <div class="modal">
-      <div class="modal-title transcended-text">OFFLINE SYNC</div>
-      <div class="modal-sub">You were away for <span class="highlight">{fmt()}</span></div>
+      <div class="modal-label">OFFLINE SYNC</div>
+      <div class="elapsed">{fmt()}</div>
 
       <div class="stats-grid">
         <div class="stat-cell">
@@ -36,7 +35,7 @@
         </div>
       </div>
 
-      <button class="dismiss-btn" onclick={dismissOfflineSummary}>⚡ CONTINUE</button>
+      <button class="continue-btn" onclick={dismissOfflineSummary}>CONTINUE</button>
     </div>
   </div>
 {/if}
@@ -45,58 +44,92 @@
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.75);
+  background: rgba(0,0,0,0.8);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 9000;
 }
+
 .modal {
-  background: hsl(0,0%,6%);
-  border: 1px solid var(--neon-blue);
+  background: var(--panel-bg);
+  border: 1px solid var(--border-mid);
+  border-top: 2px solid var(--accent-white);
   padding: 24px;
-  width: 280px;
+  width: 300px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  box-shadow: 0 0 30px rgba(0,190,255,0.2);
+  gap: 16px;
 }
-.modal-title { font-size: 1.1rem; }
-.modal-sub { font-size: 0.75rem; color: var(--color-muted); font-family: var(--font-cyber); }
-.highlight { color: var(--neon-blue); }
+
+.modal-label {
+  font-family: var(--font-display);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.elapsed {
+  font-family: var(--font-mono);
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
 
 .stats-grid {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  gap: 8px;
-  width: 100%;
-}
-.stat-cell {
-  background: rgba(0,0,0,0.4);
+  gap: 1px;
+  background: var(--border-subtle);
   border: 1px solid var(--border-subtle);
-  padding: 8px 4px;
-  text-align: center;
+}
+
+.stat-cell {
+  background: var(--panel-inset);
+  padding: 10px 8px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
+  align-items: center;
 }
-.sc-label { font-size: 0.55rem; color: var(--neon-blue); font-family: var(--font-cyber); }
-.sc-val   { font-size: 0.9rem; color: #fff; font-family: var(--font-cyber); }
 
-.dismiss-btn {
-  width: 100%;
-  background: rgba(0,190,255,0.1);
-  border: 1px solid var(--neon-blue);
-  color: var(--neon-blue);
-  font-family: var(--font-cyber);
-  font-size: 0.8rem;
+.sc-label {
+  font-family: var(--font-display);
+  font-size: 0.54rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.sc-val {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.continue-btn {
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  background: var(--accent-white);
+  border: 1px solid var(--accent-white);
+  color: #0e0e0e;
   padding: 10px;
   cursor: pointer;
-  transition: 0.15s;
+  width: 100%;
+  transition: background var(--t-fast);
 }
-.dismiss-btn:hover {
-  background: rgba(0,190,255,0.2);
-  color: #fff;
+.continue-btn:hover {
+  background: #cccccc;
+  border-color: #cccccc;
 }
 </style>

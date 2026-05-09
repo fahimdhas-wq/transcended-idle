@@ -1,28 +1,45 @@
-/* Typography Utilities with Fluid Scaling */
-.text-xs   { font-size: clamp(0.55rem, 1vw, 0.65rem); }
-.text-sm   { font-size: clamp(0.65rem, 1.2vw, 0.75rem); }
-.text-base { font-size: clamp(0.7rem, 1.4vw, 0.8rem); }
-.text-lg   { font-size: clamp(0.9rem, 1.8vw, 1rem); }
-.text-xl   { font-size: clamp(1.1rem, 2.2vw, 1.3rem); }
+/* Typography system */
 
-/* Gradient title */
-.transcended-text {
-  font-family: var(--font-cyber);
-  font-weight: 700;
-  letter-spacing: 2px;
-  background: linear-gradient(90deg, var(--neon-blue), var(--neon-pink));
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  text-transform: uppercase;
-  filter: drop-shadow(0 0 5px rgba(0, 190, 255, 0.5));
+/* Base typography */
+body {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-.transcended-sub {
-  font-family: var(--font-cyber);
-  font-size: 0.75rem;
-  color: var(--neon-blue);
+/* Headings */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  letter-spacing: 1px;
-  margin: 0;
+}
+
+/* Monospace elements */
+code, pre, kbd {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+
+/* Small text */
+small, .small {
+  font-size: 0.85em;
+}
+
+/* Strong */
+strong, b {
+  font-weight: 700;
+}
+
+/* Links */
+a {
+  color: var(--accent-steel);
+  transition: color var(--t-fast);
+}
+
+a:hover {
+  color: var(--accent-white);
 }

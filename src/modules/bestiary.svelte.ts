@@ -125,13 +125,13 @@ import { calculateBulkCost, type CostFormula } from '../utils/bulkCost.js';
 import { maxAffordable } from '../utils/maxAffordable.js';
 import { getAffordableAmount } from '../utils/adjustUpgradeAmount.js';
 
-export function buyBestiaryUpgrade(type: BestiaryUpgradeType, amount: number | 'max' = 1): void {
+export function buyBestiaryUpgrade(type: BestiaryUpgradeType, amount: number | 'max' = 1, skipUpdate = false): number {
   let formula: CostFormula;
-  
+
   if (type === 'anatomy')           formula = { type: 'linear', base: 0, gain: 500 };
   else if (type === 'huntersGreed')  formula = { type: 'linear', base: 1000, gain: 1000 };
   else if (type === 'soulExtraction') formula = { type: 'linear', base: 0, gain: 2500 };
-  else return;
+  else return 0;
 
   const currentLv = Number(bestiaryState[type]);
   let count = 0;
@@ -142,7 +142,7 @@ export function buyBestiaryUpgrade(type: BestiaryUpgradeType, amount: number | '
     count = getAffordableAmount(bestiaryState.dataFragments, currentLv, formula, amount);
   }
 
-  if (count <= 0) return;
+  if (count <= 0) return 0;
   const totalCost = calculateBulkCost(formula, currentLv, count);
 
   // Already checked via getAffordableAmount
@@ -150,15 +150,20 @@ export function buyBestiaryUpgrade(type: BestiaryUpgradeType, amount: number | '
     bestiaryState.dataFragments = bestiaryState.dataFragments.sub(totalCost);
     bestiaryState[type] += count;
 
-    if (type === 'anatomy') {
-      updateGlobalBoost();
+    // Skip individual updates during batch operations
+    if (!skipUpdate) {
+      if (type === 'anatomy') {
+        updateGlobalBoost();
+      }
+      if (type === 'huntersGreed') {
+        character.quality = bestiaryState.huntersGreed;
+        character.stats.quality = bestiaryState.huntersGreed;
+      }
+      addLog(`[BESTIARY] Upgraded ${type} x${count}!`, 'system');
     }
-    if (type === 'huntersGreed') {
-      character.quality = bestiaryState.huntersGreed;
-      character.stats.quality = bestiaryState.huntersGreed;
-    }
-    addLog(`[BESTIARY] Upgraded ${type} x${count}!`, 'system');
+    return count;
   }
+  return 0;
 }
 
 export function updateGlobalBoost(): void {

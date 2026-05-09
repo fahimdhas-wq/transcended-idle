@@ -16,6 +16,7 @@ import { rewardSystem } from '../systems/rewardSystem.js';
 import { Decimal } from '../systems/decimal.js';
 import { showOfflineSummary } from '../stores/uiStore.svelte.js';
 import { gameConfig } from '../data/config.js';
+import { mobs } from '../data/mobs.js';
 
 import { getTotalTicks, incrementTotalTicks, addTotalTicks } from './tickState.js';
 
@@ -41,7 +42,7 @@ export function processOfflineProgress(ms: number): void {
   updateDerivedStats();
 
   const MONTH_IN_SECONDS = 30 * 24 * 3600;
-  
+
   // FIXED: Use actual tick rate from config
   const tickRateVal = tickRate / 1000; // Convert ms to seconds (match gameTick)
   const totalSeconds = Math.min(ms / 1000, MONTH_IN_SECONDS);
@@ -51,15 +52,29 @@ export function processOfflineProgress(ms: number): void {
 
   const preLevel = new Decimal(character.level);
   const preKills = new Decimal(character.kills);
-  
+
   const stats = getEffectiveCombatStats();
-  const enemy = aiSystem.generateEnemy(character);
-  
-  const ticksPerKill = Decimal.max(1, enemy.maxHp.div(stats.atk)).toNumber();
+
+  // FIXED: Calculate scaled enemy stats based on player level progression during offline
+  // Since enemy level scales with player level and enemies are killed in batches,
+  // we need to account for the fact that player level increases over time during offline.
+  // Use current player level as base (simplified - enemy level ~ player level)
+  const playerLevelDec = new Decimal(character.level);
+  const enemyLvl = playerLevelDec.add(Math.floor(Math.random() * 3) - 1).max(1);
+  const mobData = mobs[Math.floor(Math.random() * mobs.length)];
+
+  const enemyGrowth = new Decimal(1.15).pow(enemyLvl.sub(1).max(0));
+  const enemyMaxHp = new Decimal(50).mul(enemyGrowth);
+  const enemyAttack = new Decimal(5).mul(enemyGrowth);
+
+  // FIXED: Calculate kills based purely on player attack vs enemy HP
+  // Skills work based on rank only, always active, no cooldowns
+  const ticksPerKill = Math.max(1, enemyMaxHp.div(stats.atk).toNumber());
+
   const totalKills = new Decimal(Math.floor(ticks / ticksPerKill));
 
   if (totalKills.gt(0)) {
-    rewardSystem.grantRewards(enemy, totalKills);
+    rewardSystem.grantRewards({ id: mobData.id, name: mobData.name, type: mobData.type, level: enemyLvl, maxHp: enemyMaxHp, hp: enemyMaxHp, attack: enemyAttack }, totalKills);
   }
   flushInventoryUpdates();
   
@@ -114,8 +129,11 @@ if (typeof document !== 'undefined') {
       hiddenTime = performance.now();
     } else {
       const elapsed = performance.now() - hiddenTime;
-      processOfflineProgress(elapsed);
-      lastTick = performance.now(); // Reset loop anchor
+      // Defer offline processing so browser can finish visibility change first
+      setTimeout(() => {
+        processOfflineProgress(elapsed);
+        lastTick = performance.now();
+      }, 0);
     }
   });
 }

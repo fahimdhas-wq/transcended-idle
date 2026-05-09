@@ -4,247 +4,269 @@
   import { doOverclock, getPendingThreads, LEVEL_REQ, LEVEL_WALL } from '../modules/overclock.svelte.js';
   import { formatValue } from '../systems/formatValue.js';
 
-  // Three states: locked | optional | required
   let state = $derived(
     character.level.gte(LEVEL_WALL) ? 'required' :
-    character.level.gte(LEVEL_REQ) ? 'optional' : 'locked'
+    character.level.gte(LEVEL_REQ)  ? 'optional' : 'locked'
   );
 
   let pendingThreads = $derived(getPendingThreads(character.level));
 
-  // Progress toward the optional threshold (0–100%)
   let optionalProgress = $derived(
     Math.min(100, character.level.div(LEVEL_REQ).mul(100).toNumber())
   );
 </script>
 
-<div class="premium-header">
-  <div class="header-main">
-    <div class="header-icon">🔥</div>
-    <div class="header-title-box">
-      <h2 class="transcended-text">SYSTEM OVERCLOCK</h2>
-      <div class="header-subtitle">TRANSCEND PHYSICAL LIMITS</div>
+<div class="oc-panel">
+
+  <div class="premium-header">
+    <div class="header-main">
+      <div class="header-icon">◈</div>
+      <div class="header-title-box">
+        <h2 class="transcended-text">SYSTEM OVERCLOCK</h2>
+        <div class="header-subtitle">TRANSCEND PHYSICAL LIMITS</div>
+      </div>
+    </div>
+    <div class="header-stats">
+      <div class="header-stat-box">
+        <span class="stat-label">THREADS</span>
+        <span class="stat-value" style="color:var(--accent-warning)">{formatValue(overclockState.coreThreads)}</span>
+      </div>
+      <div class="header-stat-box">
+        <span class="stat-label">MULTIPLIER</span>
+        <span class="stat-value">×{formatValue(overclockState.coreThreads.add(1))}</span>
+      </div>
     </div>
   </div>
-  <div class="header-stats">
-    <div class="header-stat-box">
-      <span class="stat-label">THREADS</span>
-      <span class="stat-value" style="color: var(--neon-gold);">{formatValue(overclockState.coreThreads)}</span>
-    </div>
-    <div class="header-stat-box">
-      <span class="stat-label">MULTIPLIER</span>
-      <span class="stat-value" style="color: var(--neon-blue);">x{formatValue(overclockState.coreThreads.add(1))}</span>
-    </div>
-  </div>
-</div>
 
-<div class="overclock-content">
-
-  <!-- Thread Stats -->
-  <div class="stats-grid">
-    <div class="stat-card">
+  <!-- Stats grid -->
+  <div class="stats-strip">
+    <div class="strip-cell">
       <span class="sc-label">TOTAL THREADS</span>
-      <span class="sc-val neon-gold">{formatValue(overclockState.coreThreads)}</span>
+      <span class="sc-val warning">{formatValue(overclockState.coreThreads)}</span>
     </div>
-    <div class="stat-card">
+    <div class="strip-cell">
       <span class="sc-label">GLOBAL MULT</span>
-      <span class="sc-val neon-blue">x{formatValue(overclockState.coreThreads.add(1))}</span>
+      <span class="sc-val">×{formatValue(overclockState.coreThreads.add(1))}</span>
     </div>
-    <div class="stat-card">
+    <div class="strip-cell">
       <span class="sc-label">RESETS</span>
       <span class="sc-val">{overclockState.timesOverclocked}</span>
     </div>
-    <div class="stat-card">
-      <span class="sc-label">THREADS IF OC NOW</span>
-      <span class="sc-val neon-green">+{formatValue(pendingThreads)}</span>
+    <div class="strip-cell">
+      <span class="sc-label">PENDING</span>
+      <span class="sc-val green">+{formatValue(pendingThreads)}</span>
     </div>
   </div>
 
-  <!-- State: LOCKED -->
-  {#if state === 'locked'}
-    <div class="action-box locked-box">
-      <div class="lock-icon">🔒</div>
-      <h3 class="lock-title">OVERCLOCK LOCKED</h3>
-      <p class="lock-desc">Reach Level <span class="neon-gold">{formatValue(LEVEL_REQ)}</span> to unlock optional prestige.<br>
-        Until then, your progress is completely unrestricted.</p>
-      <div class="progress-bar-bg">
-        <div class="progress-bar-fill" style="width: {optionalProgress}%"></div>
-      </div>
-      <p class="progress-label">Level {formatValue(character.level)} / {formatValue(LEVEL_REQ)}</p>
-    </div>
+  <!-- State block -->
+  <div class="state-block">
 
-  <!-- State: OPTIONAL PRESTIGE -->
-  {:else if state === 'optional'}
-    <div class="action-box optional-box">
-      <div class="state-badge optional-badge">⚡ OPTIONAL PRESTIGE</div>
-      <h3>Overclock Available</h3>
-      <p class="desc-text">
-        You can reset your level now for <span class="neon-gold">+{formatValue(pendingThreads)} Core Threads</span>.<br>
-        <strong>You do NOT need to.</strong> The game keeps progressing freely until you reach the level cap: <span class="neon-wall">{formatValue(LEVEL_WALL)}</span>.
-      </p>
-      <p class="tip-text">💡 Tip: The higher your level before Overclocking, the more threads you earn.<br>
-        (Threads = log₁₀ of current level)</p>
-      <div class="btn-row">
-        <button class="overclock-btn optional-btn" onclick={doOverclock}>
-          ⚡ OVERCLOCK NOW (+{formatValue(pendingThreads)} Threads)
+    {#if state === 'locked'}
+      <div class="state-card locked">
+        <div class="state-tag">LOCKED</div>
+        <p class="state-desc">Reach Level <strong>{formatValue(LEVEL_REQ)}</strong> to unlock optional prestige. Progress is unrestricted until then.</p>
+        <div class="prog-wrap">
+          <div class="prog-fill" style="width:{optionalProgress}%"></div>
+        </div>
+        <span class="prog-label">LVL {formatValue(character.level)} / {formatValue(LEVEL_REQ)}</span>
+      </div>
+
+    {:else if state === 'optional'}
+      <div class="state-card optional">
+        <div class="state-tag steel">OPTIONAL PRESTIGE</div>
+        <p class="state-desc">Reset level for <strong class="warn-text">+{formatValue(pendingThreads)} Core Threads</strong>. Not required — game continues freely until Level {formatValue(LEVEL_WALL)}.</p>
+        <p class="tip-text">Higher level before Overclock = more threads (threads = log₁₀ of level).</p>
+        <button class="oc-btn optional" onclick={doOverclock}>
+          OVERCLOCK — +{formatValue(pendingThreads)} THREADS
         </button>
       </div>
-    </div>
 
-  <!-- State: REQUIRED (hit 1ZZZ wall) -->
-  {:else}
-    <div class="action-box required-box">
-      <div class="state-badge required-badge">⚠️ LEVEL CAP REACHED</div>
-      <h3 class="wall-title">You've hit the 1ZZZ Wall!</h3>
-      <p class="desc-text">
-        Your level is locked at <span class="neon-wall">{formatValue(LEVEL_WALL)}</span>.<br>
-        XP is no longer accumulating. You <strong>must Overclock</strong> to continue progressing.
-      </p>
-      <p class="reward-text">
-        Overclocking now grants <span class="neon-gold">+{formatValue(pendingThreads)} Core Threads</span>.<br>
-        Each thread permanently multiplies ALL progression by +100%.
-      </p>
-      <button class="overclock-btn required-btn" onclick={doOverclock}>
-        🔥 OVERCLOCK — BREAK THE WALL
-      </button>
-    </div>
-  {/if}
+    {:else}
+      <div class="state-card required">
+        <div class="state-tag danger">LEVEL CAP REACHED</div>
+        <p class="state-desc">Locked at <strong class="danger-text">{formatValue(LEVEL_WALL)}</strong>. XP no longer accumulates. Overclock required to continue.</p>
+        <p class="reward-text">Grants <strong class="warn-text">+{formatValue(pendingThreads)} Core Threads</strong> — each thread multiplies all progression permanently.</p>
+        <button class="oc-btn required" onclick={doOverclock}>
+          OVERCLOCK — BREAK THE WALL
+        </button>
+      </div>
+    {/if}
 
-  <!-- Info -->
-  <div class="info-box">
-    <p><strong>How Overclock Works:</strong> Resets your Level, XP, Skills, and Combat Stats to 1.
-      In return, you gain permanent <strong>Core Threads</strong> that multiply XP, damage, and all stats in every future run.
-      The further you level before Overclocking, the more Threads you earn.</p>
   </div>
+
+  <div class="info-strip">
+    Overclock resets Level / XP / Skills / Stats. In return: permanent Core Threads that multiply everything. The higher your level before reset, the more threads earned.
+  </div>
+
 </div>
 
 <style>
-  .overclock-content {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    padding: 10px;
-  }
+.oc-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  height: 100%;
+}
 
-  .stats-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr 1fr;
-    gap: 8px;
-  }
-  .stat-card {
-    background: rgba(0,0,0,0.5);
-    border: 1px solid var(--border-subtle);
-    padding: 10px 8px;
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-  .sc-label { font-size: 0.55rem; color: var(--neon-blue); font-family: var(--font-cyber); letter-spacing: 1px; }
-  .sc-val   { font-size: 0.9rem; color: #fff; font-family: var(--font-cyber); font-weight: bold; }
-  .neon-gold  { color: var(--neon-gold) !important; }
-  .neon-blue  { color: var(--neon-blue) !important; }
-  .neon-green { color: var(--neon-green) !important; }
-  .neon-wall  { color: #ff4757; font-weight: bold; }
+.stats-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
 
-  .action-box {
-    border: 1px solid var(--border-subtle);
-    padding: 20px;
-    background: rgba(0,0,0,0.5);
-    border-radius: 4px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-  .action-box h3 { margin: 0; font-family: var(--font-cyber); font-size: 1rem; }
+.strip-cell {
+  background: var(--panel-inset);
+  padding: 10px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: center;
+}
 
-  /* LOCKED */
-  .locked-box { border-color: #333; text-align: center; }
-  .lock-icon  { font-size: 2.5rem; }
-  .lock-title { color: var(--color-muted); font-family: var(--font-cyber); margin: 0; }
-  .lock-desc  { color: var(--color-muted); font-size: 0.8rem; margin: 0; }
-  .progress-label { font-size: 0.7rem; color: var(--color-muted); text-align: center; margin: 0; }
+.sc-label {
+  font-family: var(--font-display);
+  font-size: 0.54rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
 
-  /* OPTIONAL */
-  .optional-box  { border-color: var(--neon-blue); background: rgba(0,190,255,0.04); }
-  .optional-badge { font-size: 0.75rem; font-weight: bold; color: var(--neon-blue); font-family: var(--font-cyber); }
+.sc-val {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+.sc-val.warning { color: var(--accent-warning); }
+.sc-val.green   { color: var(--accent-green); }
 
-  /* REQUIRED */
-  .required-box   { border-color: #ff4757; background: rgba(255,71,87,0.06); animation: wall-pulse 2s ease-in-out infinite; }
-  .required-badge { font-size: 0.75rem; font-weight: bold; color: #ff4757; font-family: var(--font-cyber); }
-  .wall-title     { color: #ff4757 !important; }
-  .reward-text    { font-size: 0.82rem; margin: 0; }
+/* ── STATE BLOCK ────────────────────────────── */
+.state-block {
+  flex: 1;
+  padding: 14px;
+  overflow-y: auto;
+}
 
-  @keyframes wall-pulse {
-    0%, 100% { box-shadow: 0 0 8px rgba(255,71,87,0.3); }
-    50%       { box-shadow: 0 0 20px rgba(255,71,87,0.6); }
-  }
+.state-card {
+  border: 1px solid var(--border-mid);
+  border-left: 3px solid var(--border-mid);
+  background: var(--panel-inset);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.state-card.optional { border-left-color: var(--accent-steel); }
+.state-card.required { border-left-color: var(--accent-danger); }
+.state-card.locked   { border-left-color: var(--border-mid); }
 
-  .state-badge { font-size: 0.75rem; letter-spacing: 1px; }
-  .desc-text   { font-size: 0.82rem; color: var(--color-text); margin: 0; }
-  .tip-text    { font-size: 0.72rem; color: var(--color-muted); margin: 0; background: rgba(255,255,255,0.03); padding: 8px; border-left: 2px solid var(--neon-gold); }
+.state-tag {
+  font-family: var(--font-display);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+.state-tag.steel  { color: var(--accent-steel); }
+.state-tag.danger { color: var(--accent-danger); }
 
-  .btn-row { display: flex; gap: 10px; }
+.state-desc {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--color-text);
+  line-height: 1.7;
+  margin: 0;
+}
 
-  .progress-bar-bg {
-    width: 100%;
-    height: 10px;
-    background: #111;
-    border: 1px solid var(--border-subtle);
-    border-radius: 2px;
-  }
-  .progress-bar-fill {
-    height: 100%;
-    background: var(--neon-gold);
-    box-shadow: 0 0 5px var(--neon-gold);
-    transition: width 0.3s;
-    border-radius: 2px;
-  }
+.tip-text {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--color-muted);
+  line-height: 1.6;
+  margin: 0;
+  padding: 8px;
+  border-left: 2px solid var(--border-mid);
+}
 
-  .overclock-btn {
-    width: 100%;
-    padding: 14px;
-    font-size: 1rem;
-    font-weight: bold;
-    border: none;
-    cursor: pointer;
-    transition: all 0.2s;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    font-family: var(--font-cyber);
-  }
-  .optional-btn {
-    background: rgba(0,190,255,0.15);
-    border: 1px solid var(--neon-blue) !important;
-    color: var(--neon-blue);
-  }
-  .optional-btn:hover {
-    background: rgba(0,190,255,0.3);
-    box-shadow: 0 0 20px rgba(0,190,255,0.4);
-    color: #fff;
-  }
-  .required-btn {
-    background: linear-gradient(90deg, #ff4757, #ff6b81);
-    color: #fff;
-    animation: btn-pulse 1.5s ease-in-out infinite;
-  }
-  .required-btn:hover {
-    transform: scale(1.02);
-    box-shadow: 0 0 25px rgba(255,71,87,0.7);
-  }
-  @keyframes btn-pulse {
-    0%, 100% { box-shadow: 0 0 10px rgba(255,71,87,0.5); }
-    50%       { box-shadow: 0 0 25px rgba(255,71,87,0.9); }
-  }
+.reward-text {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--color-text);
+  line-height: 1.6;
+  margin: 0;
+}
 
-  .info-box {
-    border: 1px solid #333;
-    padding: 12px;
-    background: rgba(0,0,0,0.3);
-    border-radius: 4px;
-    font-size: 0.75rem;
-    color: var(--color-muted);
-    line-height: 1.6;
-  }
-  .info-box strong { color: var(--color-text); }
+.warn-text   { color: var(--accent-warning); }
+.danger-text { color: var(--accent-danger); }
+
+/* ── PROGRESS BAR ───────────────────────────── */
+.prog-wrap {
+  height: 4px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border-subtle);
+  overflow: hidden;
+}
+.prog-fill {
+  height: 100%;
+  background: var(--accent-warning);
+  transition: width 0.3s linear;
+}
+.prog-label {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--color-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── OC BUTTONS ─────────────────────────────── */
+.oc-btn {
+  width: 100%;
+  padding: 12px;
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  border: 1px solid var(--border-mid);
+  cursor: pointer;
+  transition: background var(--t-fast), border-color var(--t-fast), color var(--t-fast);
+}
+
+.oc-btn.optional {
+  background: rgba(90,138,170,0.08);
+  border-color: var(--accent-steel);
+  color: var(--accent-steel);
+}
+.oc-btn.optional:hover {
+  background: rgba(90,138,170,0.2);
+  color: var(--accent-white);
+  border-color: var(--accent-white);
+}
+
+.oc-btn.required {
+  background: var(--accent-danger);
+  border-color: var(--accent-danger);
+  color: var(--accent-white);
+}
+.oc-btn.required:hover {
+  background: #cc2222;
+  border-color: #cc2222;
+}
+
+/* ── INFO STRIP ─────────────────────────────── */
+.info-strip {
+  padding: 10px 14px;
+  border-top: 1px solid var(--border-subtle);
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  color: var(--color-muted);
+  line-height: 1.6;
+  flex-shrink: 0;
+}
 </style>

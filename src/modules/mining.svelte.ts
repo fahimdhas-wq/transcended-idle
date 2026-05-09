@@ -251,16 +251,16 @@ function handleRefining(id: string): void {
   }
 }
 
-export function buyMiningUpgrade(type: MiningUpgradeType, amount: number | 'max' = 1): void {
+export function buyMiningUpgrade(type: MiningUpgradeType, amount: number | 'max' = 1): number {
   let formula: CostFormula;
-  
+
   if (type === 'sharpness')      formula = { type: 'linear', base: 0, gain: 1000 };
   else if (type === 'extraction') formula = { type: 'linear', base: 0, gain: 200 };
   else if (type === 'discovery')  formula = { type: 'geometric', base: 500, multiplier: 10 };
   else if (type === 'sensors')    formula = { type: 'linear', base: 2000, gain: 2000 };
   else if (type === 'overclockPower') formula = { type: 'linear', base: 2500, gain: 2500 };
   else if (type === 'efficiency') formula = { type: 'linear', base: 1500, gain: 1500 };
-  else return;
+  else return 0;
 
   const currentLv = Number(miningState[type] || 0);
   let count = 0;
@@ -271,12 +271,12 @@ export function buyMiningUpgrade(type: MiningUpgradeType, amount: number | 'max'
     // Dynamically adjust the requested amount if it's too expensive
     count = getAffordableAmount(bestiaryState.dataFragments, currentLv, formula, amount);
   }
-  
+
   if (type === 'discovery') {
     count = Math.min(count, 10 - currentLv);
   }
 
-  if (count <= 0) return;
+  if (count <= 0) return 0;
 
   const totalCost = calculateBulkCost(formula, currentLv, count);
 
@@ -285,7 +285,9 @@ export function buyMiningUpgrade(type: MiningUpgradeType, amount: number | 'max'
     bestiaryState.dataFragments = bestiaryState.dataFragments.sub(totalCost);
     miningState[type] += count;
     addLog(`[MINING] Upgraded ${type} x${count}.`, 'system');
+    return count;
   }
+  return 0;
 }
 
 export function upgradeTool(): void {
