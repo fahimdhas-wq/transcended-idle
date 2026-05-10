@@ -1,3 +1,4 @@
+
 export interface MatrixState {
   autoAchieve: boolean;
   autoSkill: boolean;
@@ -17,3 +18,4 @@ export const matrixState: MatrixState = $state({
   autoBestiary: false,
   targetOverclockLevel: 1000
 });
+

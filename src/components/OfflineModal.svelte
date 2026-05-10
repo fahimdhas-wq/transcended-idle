@@ -1,3 +1,4 @@
+
 <script lang="ts">
   import { uiStore, dismissOfflineSummary } from '../stores/uiStore.svelte.js';
   import { formatValue } from '../systems/formatValue.js';
@@ -133,3 +134,4 @@
   border-color: #cccccc;
 }
 </style>
+

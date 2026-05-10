@@ -1,3 +1,4 @@
+
 import { tiers } from '../modules/skills.svelte.js';
 import { Decimal, type DecimalSource } from './decimal.js';
 
@@ -32,3 +33,4 @@ export function getPowerTier(val: DecimalSource | null | undefined): PowerTier {
   const className = 'tier-' + tierName.replace(/\+/g, 'plus').replace(/-/g, 'minus');
   return { name: tierName, class: className };
 }
+

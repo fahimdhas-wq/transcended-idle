@@ -1,3 +1,4 @@
+
 import { character } from './character.svelte.js';
 import { addLog } from '../ui/LogPanelState.svelte.js';
 import { getMiningSpeedBonus, getEnergyEfficiencyBonus } from './bestiaryBonuses.js';
@@ -8,6 +9,7 @@ import { calculateBulkCost, type CostFormula } from '../utils/bulkCost.js';
 import { formatNumber } from '../systems/scalingSystem.js';
 import { GATHERING_CONSTANTS, makeTools, type GatheringTool } from '../data/gatheringConfig.js';
 import { maxAffordable } from '../utils/maxAffordable.js';
+import { miningResources } from './miningResources.js';
 
 export type MiningUpgradeType = 'sharpness' | 'discovery' | 'sensors' | 'overclockPower' | 'efficiency' | 'extraction';
 export type MiningAutomationType = 'drone' | 'extractor';
@@ -32,7 +34,20 @@ export interface MiningState {
   overclockPower: number;
   efficiency: number;
   extraction: number;
-  resources: Record<string, Decimal>;
+  // Legacy accessor - returns Record for compatibility but uses typed array internally
+  resources: {
+    get(id: string): Decimal;
+    set(id: string, value: Decimal | number): void;
+    add(id: string, amount: Decimal | number): void;
+    sub(id: string, amount: Decimal | number): void;
+    gte(id: string, amount: Decimal | number): boolean;
+    gt(id: string, amount: Decimal | number): boolean;
+    lte(id: string, amount: Decimal | number): boolean;
+    getRaw(id: string): number;
+    floorDiv(id: string, divisor: number): number;
+    toRecord(): Record<string, Decimal>;
+    fromRecord(record: Record<string, Decimal>): void;
+  };
 }
 
 export const tools = makeTools([
@@ -62,28 +77,16 @@ export const miningState: MiningState = $state({
   miningProgress: 0,
   minesPerSecond: 0,
   dataRate: 0,
-  
+
   sharpness: 0,
   discovery: 0,
   sensors: 0,
   overclockPower: 0,
   efficiency: 0,
   extraction: 0,
-  
-  resources: {
-    ferrite: new Decimal(0), carbite: new Decimal(0), cuprite: new Decimal(0),
-    argentite: new Decimal(0), aurite: new Decimal(0), crystite: new Decimal(0),
-    verdite: new Decimal(0), obsidite: new Decimal(0), neutrite: new Decimal(0),
-    voidite: new Decimal(0),
-    alloyX: new Decimal(0), fuelX: new Decimal(0), conduitX: new Decimal(0),
-    lumenAlloy: new Decimal(0), solarAlloy: new Decimal(0), phaseCrystal: new Decimal(0),
-    quantumCrystal: new Decimal(0), darkAlloy: new Decimal(0), denseMatter: new Decimal(0),
-    exoticMatter: new Decimal(0),
-    titanCore: new Decimal(0), fusionCore: new Decimal(0), plasmaCoil: new Decimal(0),
-    photonCore: new Decimal(0), stellarCore: new Decimal(0), prismCore: new Decimal(0),
-    entropyCore: new Decimal(0), voidCore: new Decimal(0), singularityCore: new Decimal(0),
-    cosmicCore: new Decimal(0)
-  }
+
+  // Use typed array via wrapper for performance
+  resources: miningResources
 });
 
 let _dataAccum = 0;
@@ -201,19 +204,18 @@ function executeMine(amount: number, luck: number, tier: number): void {
   const availableOres = oreTiers.filter(o => o.tier <= miningState.discovery + 1);
   if (availableOres.length === 0) return;
 
-  const yieldMult = new Decimal(10).pow(
-    (tier - 1) * GATHERING_CONSTANTS.YIELD_TIER_STEP + GATHERING_CONSTANTS.YIELD_BASE_EXPONENT
-  );
-  const totalAmount = new Decimal(amount).mul(critMult).mul(yieldMult);
+  // Use raw numbers for hot path calculations
+  const yieldMult = Math.pow(10, (tier - 1) * GATHERING_CONSTANTS.YIELD_TIER_STEP + GATHERING_CONSTANTS.YIELD_BASE_EXPONENT);
+  const totalAmount = amount * critMult * yieldMult;
 
-  const amountPerOre = totalAmount.div(availableOres.length).floor();
-  const remainder = totalAmount.mod(availableOres.length).toNumber();
+  const amountPerOre = Math.floor(totalAmount / availableOres.length);
+  const remainder = totalAmount % availableOres.length;
 
   availableOres.forEach((ore, index) => {
     let finalAmount = amountPerOre;
-    if (index < remainder) finalAmount = finalAmount.add(1);
-    if (finalAmount.gt(0)) {
-      miningState.resources[ore.id] = miningState.resources[ore.id].add(finalAmount);
+    if (index < remainder) finalAmount += 1;
+    if (finalAmount > 0) {
+      miningState.resources.add(ore.id, finalAmount);
       handleRefining(ore.id);
     }
   });
@@ -243,15 +245,35 @@ const REFINE_MAP: Record<string, string> = {
 
 function handleRefining(id: string): void {
   const target = REFINE_MAP[id];
-  if (target && miningState.autoRefine[id] && miningState.resources[id].gte(MINING_CONSTANTS.REFINE_RATIO)) {
-    const count = miningState.resources[id].div(MINING_CONSTANTS.REFINE_RATIO).floor();
-    miningState.resources[target] = miningState.resources[target].add(count);
-    miningState.resources[id] = miningState.resources[id].sub(count.mul(MINING_CONSTANTS.REFINE_RATIO));
-    handleRefining(target);
+  if (!target || !miningState.autoRefine[id]) return;
+
+  const resource = miningState.resources.getRaw(id);
+  if (resource < MINING_CONSTANTS.REFINE_RATIO) return;
+
+  const count = Math.floor(resource / MINING_CONSTANTS.REFINE_RATIO);
+  if (count <= 0) return;
+
+  miningState.resources.sub(id, count * MINING_CONSTANTS.REFINE_RATIO);
+  miningState.resources.add(target, count);
+
+  // Iterative chain processing
+  if (miningState.autoRefine[target]) {
+    let currentId = target;
+    while (currentId) {
+      const nextTarget = REFINE_MAP[currentId];
+      if (!nextTarget || !miningState.autoRefine[currentId]) break;
+      const res = miningState.resources.getRaw(currentId);
+      if (res < MINING_CONSTANTS.REFINE_RATIO) break;
+      const cnt = Math.floor(res / MINING_CONSTANTS.REFINE_RATIO);
+      if (cnt <= 0) break;
+      miningState.resources.sub(currentId, cnt * MINING_CONSTANTS.REFINE_RATIO);
+      miningState.resources.add(nextTarget, cnt);
+      currentId = nextTarget;
+    }
   }
 }
 
-export function buyMiningUpgrade(type: MiningUpgradeType, amount: number | 'max' = 1): number {
+export function buyMiningUpgrade(type: MiningUpgradeType, amount: number | 'max' = 1, silent: boolean = false): number {
   let formula: CostFormula;
 
   if (type === 'sharpness')      formula = { type: 'linear', base: 0, gain: 1000 };
@@ -265,26 +287,25 @@ export function buyMiningUpgrade(type: MiningUpgradeType, amount: number | 'max'
   const currentLv = Number(miningState[type] || 0);
   let count = 0;
 
-  if (amount === 'max') {
-    count = maxAffordable(bestiaryState.dataFragments, currentLv, formula).toNumber();
-  } else {
-    // Dynamically adjust the requested amount if it's too expensive
-    count = getAffordableAmount(bestiaryState.dataFragments, currentLv, formula, amount);
+  let maxBuy = 1000000000000;
+  if (type === 'discovery') {
+    maxBuy = 10 - currentLv;
   }
 
-  if (type === 'discovery') {
-    count = Math.min(count, 10 - currentLv);
+  if (amount === 'max') {
+    count = maxAffordable(bestiaryState.dataFragments, currentLv, formula, maxBuy).toNumber();
+  } else {
+    count = getAffordableAmount(bestiaryState.dataFragments, currentLv, formula, Math.min(amount, maxBuy));
   }
 
   if (count <= 0) return 0;
 
   const totalCost = calculateBulkCost(formula, currentLv, count);
 
-  // We already checked affordability via getAffordableAmount, but keeping the check for safety
   if (bestiaryState.dataFragments.gte(totalCost)) {
     bestiaryState.dataFragments = bestiaryState.dataFragments.sub(totalCost);
     miningState[type] += count;
-    addLog(`[MINING] Upgraded ${type} x${count}.`, 'system');
+    if (!silent) addLog(`[MINING] Upgraded ${type} x${count}.`, 'system');
     return count;
   }
   return 0;
@@ -307,7 +328,7 @@ export function upgradeEnergy(amount: number | 'max' = 1): void {
 
   let count = 0;
   if (amount === 'max') {
-    count = maxAffordable(miningState.resources.fuelX, 0, formula).toNumber();
+    count = maxAffordable(miningState.resources.get('fuelX'), 0, formula).toNumber();
   } else {
     count = amount;
   }
@@ -315,8 +336,8 @@ export function upgradeEnergy(amount: number | 'max' = 1): void {
   if (count <= 0) return;
   const totalCost = calculateBulkCost(formula, 0, count);
 
-  if (miningState.resources.fuelX.gte(totalCost)) {
-    miningState.resources.fuelX = miningState.resources.fuelX.sub(totalCost);
+  if (miningState.resources.gte('fuelX', totalCost)) {
+    miningState.resources.sub('fuelX', totalCost);
     miningState.maxEnergy += (100 * count);
     miningState.energy = miningState.maxEnergy;
     addLog(`[MINING] Energy expanded.`, 'system');
@@ -327,10 +348,10 @@ export function upgradeAutomation(type: MiningAutomationType, amount: number | '
   const isDrone = type === 'drone';
   const currentLv = isDrone ? miningState.drones : miningState.autoExtractors;
   const formula: CostFormula = { type: 'linear', base: 0, gain: isDrone ? 50 : 100 };
-  
+
   let count = 0;
   if (amount === 'max') {
-    count = maxAffordable(miningState.resources.alloyX, currentLv, formula).toNumber();
+    count = maxAffordable(miningState.resources.get('alloyX'), currentLv, formula).toNumber();
   } else {
     count = amount;
   }
@@ -338,8 +359,8 @@ export function upgradeAutomation(type: MiningAutomationType, amount: number | '
   if (count <= 0) return;
   const totalCost = calculateBulkCost(formula, currentLv, count);
 
-  if (miningState.resources.alloyX.gte(totalCost)) {
-    miningState.resources.alloyX = miningState.resources.alloyX.sub(totalCost);
+  if (miningState.resources.gte('alloyX', totalCost)) {
+    miningState.resources.sub('alloyX', totalCost);
     if (isDrone) miningState.drones += count;
     else miningState.autoExtractors += count;
     addLog(`[MINING] Purchased ${count} ${type}(s).`, 'system');
@@ -347,9 +368,9 @@ export function upgradeAutomation(type: MiningAutomationType, amount: number | '
 }
 
 export function triggerOverclock(): void {
-  const cost = new Decimal(25);
-  if (miningState.resources.fuelX.gte(cost) && !miningState.isOverclocked) {
-    miningState.resources.fuelX = miningState.resources.fuelX.sub(cost);
+  const cost = 25;
+  if (miningState.resources.gte('fuelX', cost) && !miningState.isOverclocked) {
+    miningState.resources.sub('fuelX', cost);
     miningState.isOverclocked = true;
     miningState.overclockTicks = MINING_CONSTANTS.OVERCLOCK_DURATION;
     addLog(`[MINING] Overclock active!`, 'system');
@@ -358,9 +379,11 @@ export function triggerOverclock(): void {
 
 export function refineSingle(id: string): void {
   const target = REFINE_MAP[id];
-  if (target && miningState.resources[id].gte(50)) {
-    miningState.resources[target] = miningState.resources[target].add(1);
-    miningState.resources[id] = miningState.resources[id].sub(50);
+  const resource = miningState.resources.getRaw(id);
+  if (target && resource >= 50) {
+    miningState.resources.add(target, 1);
+    miningState.resources.sub(id, 50);
   }
 }
+
 

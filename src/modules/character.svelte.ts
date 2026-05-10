@@ -1,3 +1,4 @@
+
 import { Decimal, type DecimalSource } from '../systems/decimal.js';
 import { getOverclockMultiplier } from './overclockState.svelte.js';
 
@@ -155,3 +156,4 @@ export function resetCharacter(): void {
   character.statsUnlocked = false;
   updateDerivedStats();
 }
+

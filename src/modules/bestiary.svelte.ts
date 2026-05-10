@@ -1,3 +1,4 @@
+
 import { mobs, type MobDefinition, type MobType } from '../data/mobs.js';
 import { character } from './character.svelte.js';
 import { addLog } from '../ui/LogPanelState.svelte.js';
@@ -176,4 +177,5 @@ export function updateGlobalBoost(): void {
 }
 
 updateGlobalBoost();
+
 

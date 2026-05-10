@@ -1,3 +1,4 @@
+
 import type { Decimal } from '../systems/decimal';
 import { calculateBulkCost, type CostFormula } from './bulkCost';
 import { maxAffordable } from './maxAffordable';
@@ -17,5 +18,6 @@ export function getAffordableAmount(
   }
   
   // If we can't afford requestedCount, return the absolute max affordable
-  return maxAffordable(budget, currentLv, formula);
+  return maxAffordable(budget, currentLv, formula).toNumber();
 }
+

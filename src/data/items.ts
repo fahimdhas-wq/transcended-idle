@@ -1,3 +1,4 @@
+
 export type ItemRarity = 'Common' | 'Rare' | 'Epic' | 'Legendary' | 'Mythic';
 
 export const itemRarities: ItemRarity[] = [
@@ -19,3 +20,4 @@ export const itemNames: string[] = [
   'Core',
   'Bone'
 ];
+

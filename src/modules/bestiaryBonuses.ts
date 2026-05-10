@@ -1,3 +1,4 @@
+
 import { bestiaryState } from './bestiary.svelte.js';
 import { Decimal } from '../systems/decimal.js';
 import { mobs, type MobType } from '../data/mobs.js';
@@ -76,3 +77,4 @@ export function getEnergyEfficiencyBonus(): number {
 export function getQuality(): number {
   return bestiaryState.huntersGreed || 0;
 }
+

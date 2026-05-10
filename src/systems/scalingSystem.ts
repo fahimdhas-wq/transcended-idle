@@ -1,3 +1,4 @@
+
 import { Decimal, type DecimalSource } from './decimal.js';
 import { formatValue } from './formatValue.js';
 
@@ -9,3 +10,4 @@ export function isLevelZZ(level: DecimalSource): boolean {
   const d = new Decimal(level);
   return d.e >= 6;
 }
+

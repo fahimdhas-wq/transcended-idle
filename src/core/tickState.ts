@@ -1,3 +1,4 @@
+
 let _totalGameTicks = 0;
 
 /**
@@ -15,3 +16,4 @@ export function incrementTotalTicks(): void {
 export function addTotalTicks(val: number): void {
   _totalGameTicks += val;
 }
+

@@ -1,3 +1,4 @@
+
 <script lang="ts">
   import { summaryState } from '../ui/LogPanelState.svelte.js';
   import { formatValue } from '../systems/formatValue.js';
@@ -165,3 +166,4 @@
   text-transform: uppercase;
 }
 </style>
+

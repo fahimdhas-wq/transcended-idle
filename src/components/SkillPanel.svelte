@@ -1,3 +1,4 @@
+
 <script lang="ts">
   import { skillsState, tiers } from '../modules/skills.svelte.js';
   import type { Skill } from '../modules/skills.svelte.js';
@@ -179,3 +180,4 @@
     padding: 3px 8px;
   }
 </style>
+

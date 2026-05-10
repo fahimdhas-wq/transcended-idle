@@ -1,3 +1,4 @@
+
 // src/systems/achievementSystem.svelte.js
 import { character } from '../modules/character.svelte.js';
 import { addLog } from '../ui/LogPanelState.svelte.js';
@@ -80,8 +81,14 @@ export const achievementDefs: AchievementDef[] = [
   { id: 'level_10m',      name: 'Trans-Reality',     desc: 'Reach Level 10,000,000', req: () => character.level.gte(10000000), bonus: { all: 50.0 }, bonusDesc: '+5000% All Stats' },
   { id: 'level_100m',     name: 'Omega Point',       desc: 'Reach Level 100,000,000', req: () => character.level.gte(100000000), bonus: { all: 500.0 }, bonusDesc: '+50,000% All Stats' },
   { id: 'kills_1b',       name: 'Reaper of Stars',   desc: '1 Billion Kills',     req: () => character.kills.gte(1000000000), bonus: { atk: 1000.0 }, bonusDesc: '+100,000% ATK' },
-  { id: 'ore_hoarder',    name: 'Gems of Void',      desc: '1e15 Cosmic Cores',   req: () => miningState.resources.cosmicCore.gte(1e15), bonus: { all: 2.0 }, bonusDesc: '+200% All Stats' },
-  { id: 'wood_hoarder',   name: 'Forest of Souls',   desc: '1e15 Ethereal Cores', req: () => forestryState.resources.etherealCore.gte(1e15), bonus: { all: 2.0 }, bonusDesc: '+200% All Stats' },
+  { id: 'ore_hoarder',    name: 'Gems of Void',      desc: '1e15 Cosmic Cores',   req: () => {
+    const res = miningState.resources.get('cosmicCore');
+    return res && res.gte(1e15);
+  }, bonus: { all: 2.0 }, bonusDesc: '+200% All Stats' },
+  { id: 'wood_hoarder',   name: 'Forest of Souls',   desc: '1e15 Ethereal Cores', req: () => {
+    const res = forestryState.resources.get('etherealCore');
+    return res && res.gte(1e15);
+  }, bonus: { all: 2.0 }, bonusDesc: '+200% All Stats' },
   { id: 'perfect_hunter', name: 'Flawless Execution', desc: '100% Quality Stat',     req: () => (character.stats.quality || 0) >= 100, bonus: { drop: 0.50 }, bonusDesc: '+50% Drop Bonus' },
   { id: 'awakening_5',    name: 'Metamorphosis',    desc: 'Awakening Stage 5',   req: () => character.awakeningStage >= 5,   bonus: { all: 2.0 },   bonusDesc: '+200% All Stats' },
   { id: 'awakening_25',   name: 'Divine Evolution', desc: 'Awakening Stage 25',  req: () => character.awakeningStage >= 25,  bonus: { all: 50.0 },  bonusDesc: '+5000% All Stats' },
@@ -159,3 +166,4 @@ export function getAchievementMult(statType: 'atk' | 'hp' | 'regen'): Decimal {
 function applyBonus(bonus: AchievementBonus): void {
   if (bonus.drop) character.dropBonus = Math.min(0.9, (character.dropBonus || 0) + bonus.drop);
 }
+

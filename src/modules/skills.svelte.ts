@@ -1,3 +1,4 @@
+
 import { character } from './character.svelte.js';
 import { Decimal } from '../systems/decimal.js';
 import { flushStatCache } from './combat.svelte.js';
@@ -203,3 +204,4 @@ export function upgradeAllSkills(): string {
   }
   return `System Overhaul: ${totalUpgrades} skill tiers purchased using available fragments.`;
 }
+

@@ -1,3 +1,4 @@
+
 import { Decimal } from '../systems/decimal';
 import { calculateBulkCost, type CostFormula } from './bulkCost';
 
@@ -11,10 +12,11 @@ import { calculateBulkCost, type CostFormula } from './bulkCost';
 export function maxAffordable(
   budget: Decimal,
   currentLv: number,
-  formula: CostFormula
+  formula: CostFormula,
+  maxCount: number = 1000000000000
 ): Decimal {
   let low = new Decimal(0);
-  let high = new Decimal(1000000000000); // Start with a sufficiently large initial guess
+  let high = new Decimal(maxCount); 
   let affordable = new Decimal(0);
 
   // If budget is 0, we can afford 0
@@ -24,9 +26,11 @@ export function maxAffordable(
     const mid = low.add(high).div(2).floor();
     if (mid.lte(0)) {
       low = new Decimal(1);
+      if (low.gt(high)) break;
       continue;
     }
-    const cost = calculateBulkCost(formula, currentLv, mid.toNumber());
+    const count = mid.toNumber();
+    const cost = calculateBulkCost(formula, currentLv, count);
     if (cost.lte(budget)) {
       affordable = mid;
       low = mid.add(1);
@@ -36,3 +40,4 @@ export function maxAffordable(
   }
   return affordable;
 }
+

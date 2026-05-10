@@ -1,3 +1,4 @@
+
 <script lang="ts">
   import { character } from '../modules/character.svelte.js';
   import { formatNumber } from '../systems/scalingSystem.js';
@@ -49,10 +50,6 @@
       <div class="level-info">
         <span class="level-num">{formatNumber(character.level)}</span>
         <span class="level-label">LEVEL</span>
-      </div>
-      <div class="stage-info">
-        <span class="stage-num">{formatNumber(character.awakeningStage)}</span>
-        <span class="stage-label">AWAKENING</span>
       </div>
       <div class="tier-info">
         <span class="tier-badge {powerTier.class}">{powerTier.name}</span>
@@ -117,12 +114,8 @@
 
   </div>
 
-  <!-- Awakening footer -->
+  <!-- Stats footer -->
   <div class="awakening-block">
-    <div class="awk-row">
-      <span class="awk-label">AWAKENING MULT</span>
-      <span class="awk-val">×{formatNumber(Decimal.from(1.5).pow(character.awakeningStage))}</span>
-    </div>
     {#if isCritical}
       <div class="crit-warning">CRITICAL — LOW HP</div>
     {/if}
@@ -154,7 +147,7 @@
   gap: 24px;
 }
 
-.level-info, .stage-info, .tier-info {
+.level-info, .tier-info {
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -169,23 +162,6 @@
   line-height: 1;
 }
 .level-label {
-  font-family: var(--font-display);
-  font-size: 0.54rem;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  color: var(--color-muted);
-  text-transform: uppercase;
-}
-
-.stage-num {
-  font-family: var(--font-mono);
-  font-size: 1.4rem;
-  font-weight: 700;
-  color: var(--accent-amber);
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-}
-.stage-label {
   font-family: var(--font-display);
   font-size: 0.54rem;
   font-weight: 600;
@@ -278,7 +254,7 @@
 .s-sep { color: var(--color-dim); margin: 0 2px; }
 .s-max { color: var(--color-muted); }
 
-/* ── AWAKENING FOOTER ───────────────────────── */
+/* ── FOOTER ───────────────────────── */
 .awakening-block {
   padding: 10px 14px;
   border-top: 1px solid var(--border-subtle);
@@ -286,29 +262,6 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-}
-
-.awk-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.awk-label {
-  font-family: var(--font-display);
-  font-size: 0.6rem;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--color-muted);
-}
-
-.awk-val {
-  font-family: var(--font-mono);
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: var(--accent-amber);
-  font-variant-numeric: tabular-nums;
 }
 
 .crit-warning {
@@ -320,3 +273,4 @@
   color: var(--accent-danger);
 }
 </style>
+

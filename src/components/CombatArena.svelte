@@ -1,3 +1,4 @@
+
 <script lang="ts">
 import { combatState, getEffectiveCombatStats } from '../modules/combat.svelte.js';
 import { character } from '../modules/character.svelte.js';
@@ -428,3 +429,4 @@ let hpIsLow = $derived(playerHpPct < 25);
   50% { opacity: 0; }
 }
 </style>
+

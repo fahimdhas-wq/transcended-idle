@@ -1,3 +1,4 @@
+
 <script lang="ts">
   import { character } from '../modules/character.svelte.js';
   import { formatNumber } from '../systems/scalingSystem.js';
@@ -288,3 +289,4 @@
   border-color: var(--accent-white);
 }
 </style>
+

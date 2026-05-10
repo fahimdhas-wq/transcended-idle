@@ -1,3 +1,4 @@
+
 import type { Decimal } from '../systems/decimal.js';
 
 export const GATHERING_CONSTANTS = {
@@ -45,3 +46,4 @@ export function makeTools(names: readonly string[]): GatheringTool[] {
     dataCost: TOOL_COSTS[i]
   }));
 }
+

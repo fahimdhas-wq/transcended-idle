@@ -1,3 +1,4 @@
+
 import type { Decimal } from '../systems/decimal.js';
 
 export interface Toast {
@@ -42,3 +43,4 @@ export function showOfflineSummary(summary: OfflineSummary): void {
 export function dismissOfflineSummary(): void {
   uiStore.offlineSummary = null;
 }
+

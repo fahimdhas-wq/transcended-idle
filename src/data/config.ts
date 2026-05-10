@@ -1,3 +1,4 @@
+
 export interface GameConfig {
   baseTickRate: number;
   maxOfflineHours: number;
@@ -21,3 +22,4 @@ export const gameConfig: GameConfig = {
     perStage: 0.05
   }
 };
+

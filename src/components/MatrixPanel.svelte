@@ -1,3 +1,4 @@
+
 <script lang="ts">
   import { matrixState } from '../modules/matrix.svelte.js';
   import { overclockState } from '../modules/overclockState.svelte.js';
@@ -51,12 +52,12 @@
           <div class="node-header">
             <span class="node-label">{node.label}</span>
             <label class="toggle">
-              <input type="checkbox" bind:checked={matrixState[node.key as keyof typeof matrixState]} />
+              <input type="checkbox" bind:checked={matrixState[node.key as keyof typeof matrixState] as boolean} />
               <span class="toggle-track"><span class="toggle-thumb"></span></span>
             </label>
           </div>
           <p class="node-desc">{node.desc}</p>
-          {#if node.hasTarget && matrixState.autoOverclock}
+          {#if 'hasTarget' in node && node.hasTarget && matrixState.autoOverclock}
             <div class="target-row">
               <label class="target-label" for="target-{node.key}">Target Level:</label>
               <input
@@ -205,3 +206,4 @@
   .val-error { font-size: 0.6rem; color: var(--accent-danger); margin: 0; }
   .target-current { font-size: 0.6rem; color: var(--color-dim); margin: 0; font-family: var(--font-mono); }
 </style>
+

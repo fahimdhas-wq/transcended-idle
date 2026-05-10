@@ -1,9 +1,11 @@
+
 import { Decimal } from '../systems/decimal.js';
 import { character } from '../modules/character.svelte.js';
 import { miningState, tools, buyMiningUpgrade, upgradeEnergy, upgradeAutomation } from '../modules/mining.svelte.js';
 import { forestryState, bioTools, buyForestryUpgrade, addGrowthChamber, upgradeForestryEnergy } from '../modules/forestry.svelte.js';
 import { bestiaryState, buyBestiaryUpgrade } from '../modules/bestiary.svelte.js';
-import { invalidateBulkCostCache } from './bulkCost.js';
+import { invalidateBulkCostCache, calculateBulkCost, type CostFormula } from './bulkCost.js';
+import { maxAffordable } from './maxAffordable.js';
 
 /**
  * Throttle: minimum ms between auto-upgrade executions
@@ -23,6 +25,30 @@ function floorToCleanAmount(n: number): number {
   return Math.max(1, Math.floor(n / mag) * mag);
 }
 
+function _getForestryFormula(type: string): CostFormula {
+  switch (type) {
+    case 'chainsawFuel':    return { type: 'linear', base: 0, gain: 500 };
+    case 'reforestation':   return { type: 'linear', base: 0, gain: 200 };
+    case 'ancientSaplings': return { type: 'geometric', base: 100, multiplier: 10 };
+    case 'mutationPower':   return { type: 'linear', base: 1500, gain: 1500 };
+    case 'overclockPower':  return { type: 'linear', base: 2000, gain: 2000 };
+    case 'efficiency':      return { type: 'linear', base: 1000, gain: 1000 };
+    default:                return { type: 'linear', base: 0, gain: 500 };
+  }
+}
+
+function _getMiningFormula(type: string): CostFormula {
+  switch (type) {
+    case 'sharpness':      return { type: 'linear', base: 0, gain: 1000 };
+    case 'extraction':     return { type: 'linear', base: 0, gain: 200 };
+    case 'discovery':      return { type: 'geometric', base: 500, multiplier: 10 };
+    case 'sensors':        return { type: 'linear', base: 2000, gain: 2000 };
+    case 'overclockPower': return { type: 'linear', base: 2500, gain: 2500 };
+    case 'efficiency':     return { type: 'linear', base: 1500, gain: 1500 };
+    default:               return { type: 'linear', base: 0, gain: 1000 };
+  }
+}
+
 export function autoUpgradeMining(): void {
   if (!miningState.unlocked) return;
 
@@ -30,25 +56,33 @@ export function autoUpgradeMining(): void {
   if (now - _lastMiningAuto < AUTO_MIN_INTERVAL_MS) return;
   _lastMiningAuto = now;
 
-  const upgrades: Array<{ type: 'sharpness' | 'extraction' | 'discovery' | 'sensors' | 'overclockPower' | 'efficiency'; cap?: number }> = [
-    { type: 'sharpness',       cap: undefined },
-    { type: 'extraction',      cap: undefined },
-    { type: 'discovery',       cap: 10 },
-    { type: 'sensors',         cap: undefined },
-    { type: 'overclockPower',  cap: undefined },
-    { type: 'efficiency',      cap: undefined },
+  // Priority: cap-limited Discovery FIRST, then everything else
+  const priorityUpgrades: Array<{ type: 'sharpness' | 'extraction' | 'discovery' | 'sensors' | 'overclockPower' | 'efficiency'; cap?: number; priority: number }> = [
+    { type: 'discovery',       cap: 10, priority: 1 },
+    { type: 'sharpness',       priority: 2 },
+    { type: 'extraction',      priority: 3 },
+    { type: 'sensors',         priority: 4 },
+    { type: 'overclockPower',  priority: 5 },
+    { type: 'efficiency',       priority: 6 },
   ];
 
-  for (const u of upgrades) {
+  // Sort by priority
+  priorityUpgrades.sort((a, b) => a.priority - b.priority);
+
+  for (const u of priorityUpgrades) {
     const currentLv = Number(miningState[u.type] || 0);
+    // Skip if at cap
     if (u.cap !== undefined && currentLv >= u.cap) continue;
 
-    // Calculate max affordable with a clean count
-    const initialCount = buyMiningUpgrade(u.type, 'max');
+    const formula = _getMiningFormula(u.type);
+    const maxBuy = u.cap !== undefined ? u.cap - currentLv : 1000000000000;
+    
+    // Calculate max affordable WITHOUT buying
+    const initialCount = maxAffordable(bestiaryState.dataFragments, currentLv, formula, maxBuy).toNumber();
     const count = floorToCleanAmount(initialCount);
 
     if (count > 0) {
-      buyMiningUpgrade(u.type, count);
+      buyMiningUpgrade(u.type, count, true);
     }
   }
 
@@ -89,21 +123,35 @@ export function autoUpgradeForestry(): void {
   if (now - _lastForestryAuto < AUTO_MIN_INTERVAL_MS) return;
   _lastForestryAuto = now;
 
-  const upgrades: Array<{ type: 'chainsawFuel' | 'reforestation' | 'ancientSaplings' | 'mutationPower' | 'overclockPower' | 'efficiency'; cap?: number }> = [
-    { type: 'chainsawFuel',    cap: undefined },
-    { type: 'reforestation',   cap: undefined },
-    { type: 'ancientSaplings', cap: 10 },
-    { type: 'mutationPower',   cap: undefined },
-    { type: 'overclockPower',  cap: undefined },
-    { type: 'efficiency',      cap: undefined },
+  // Priority 1: Cap-limited upgrades FIRST (Ancient Saplings, Discovery)
+  // These only go to 10 max, so we skip gracefully when at cap
+  const priorityUpgrades: Array<{ type: 'chainsawFuel' | 'reforestation' | 'ancientSaplings' | 'mutationPower' | 'overclockPower' | 'efficiency'; cap?: number; priority?: number }> = [
+    { type: 'ancientSaplings', cap: 10, priority: 1 },
+    { type: 'chainsawFuel',    priority: 2 },
+    { type: 'reforestation',   priority: 3 },
+    { type: 'mutationPower',   priority: 4 },
+    { type: 'overclockPower',  priority: 5 },
+    { type: 'efficiency',      priority: 6 },
   ];
 
-  for (const u of upgrades) {
+  // Sort by priority
+  priorityUpgrades.sort((a, b) => (a.priority || 99) - (b.priority || 99));
+
+  for (const u of priorityUpgrades) {
     const currentLv = Number(forestryState[u.type] || 0);
+    // Skip if at cap
     if (u.cap !== undefined && currentLv >= u.cap) continue;
 
-    // Only call once - 'max' already calculates the affordable count
-    buyForestryUpgrade(u.type, 'max');
+    const formula = _getForestryFormula(u.type);
+    const maxBuy = u.cap !== undefined ? u.cap - currentLv : 1000000000000;
+
+    // Calculate max affordable WITHOUT buying
+    const initialCount = maxAffordable(forestryState.dnaFragments, currentLv, formula, maxBuy).toNumber();
+    const count = floorToCleanAmount(initialCount);
+
+    if (count > 0) {
+      buyForestryUpgrade(u.type, count, true);
+    }
   }
 
   // Handle growth chambers
@@ -157,3 +205,4 @@ export function applyGlobalMaxUpgrade(): void {
   autoUpgradeForestry();
   autoUpgradeBestiary();
 }
+

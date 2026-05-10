@@ -1,3 +1,4 @@
+
 <script lang="ts">
   import { onMount } from 'svelte';
   import type { Component } from 'svelte';
@@ -74,7 +75,7 @@
       <span class="version">V2.0</span>
     </div>
 
-    <nav class="tab-nav" role="tablist">
+    <div class="tab-nav" role="tablist">
       {#each tabs as t (t)}
         {#if isTabUnlocked(t)}
           <button
@@ -91,7 +92,7 @@
           </button>
         {/if}
       {/each}
-    </nav>
+    </div>
 
     <div class="top-bar-right">
       <span class="status-dot"></span>
@@ -346,3 +347,4 @@
   .desktop-hide { display: none !important; }
 }
 </style>
+

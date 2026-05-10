@@ -1,3 +1,4 @@
+
 import { Decimal, type DecimalSource } from './decimal.js';
 
 // Suffixes: '', K, M, B, T, then a-z, aa-az, ba-bz, ...
@@ -62,3 +63,4 @@ export function formatValue(val: DecimalSource | null | undefined): string {
 
   return (isNeg ? '-' : '') + str + suffix;
 }
+

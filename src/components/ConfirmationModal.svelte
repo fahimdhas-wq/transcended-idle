@@ -1,3 +1,4 @@
+
 <script lang="ts">
   let { show = $bindable(false), message = '', onConfirm = () => {} } = $props();
 
@@ -104,3 +105,4 @@
   }
   .btn-confirm:hover { background: rgba(255, 190, 0, 0.1); color: var(--accent-white); border-color: var(--accent-white); }
 </style>
+

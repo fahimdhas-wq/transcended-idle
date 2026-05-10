@@ -1,3 +1,4 @@
+
 import {
   character,
   updateDerivedStats,
@@ -291,3 +292,4 @@ export const rewardSystem = {
     }
   }
 };
+

@@ -1,3 +1,4 @@
+
 <script lang="ts">
   import { achievementDefs, achievementState } from '../systems/achievementSystem.svelte.js';
 
@@ -242,3 +243,4 @@
     background: var(--color-muted);
   }
 </style>
+

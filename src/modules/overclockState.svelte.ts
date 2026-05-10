@@ -1,3 +1,4 @@
+
 import { Decimal } from '../systems/decimal.js';
 
 export interface OverclockState {
@@ -13,3 +14,4 @@ export const overclockState: OverclockState = $state({
 export function getOverclockMultiplier(): Decimal {
   return overclockState.coreThreads.add(1);
 }
+

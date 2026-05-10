@@ -1,3 +1,4 @@
+
 export type MobType = 'organic' | 'robotic' | 'spectral';
 
 export interface MobDefinition {
@@ -16,3 +17,4 @@ export const mobs: MobDefinition[] = [
   { id: 'striker', name: 'Proxy Striker', type: 'robotic' },
   { id: 'leech', name: 'Data Leech', type: 'spectral' }
 ];
+

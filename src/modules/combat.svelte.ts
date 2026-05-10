@@ -1,3 +1,4 @@
+
 import { character } from './character.svelte.js';
 import { aiSystem } from '../systems/aiSystem.js';
 import { rewardSystem } from '../systems/rewardSystem.js';
@@ -266,3 +267,4 @@ export function getGlobalStatMult(type: 'atk' | 'hp' | 'regen'): Decimal {
     return new Decimal(1);
 }
 export function getGlobalCritChance(): number { return getEffectiveCombatStats().critChance; }
+

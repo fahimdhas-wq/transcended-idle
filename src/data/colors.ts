@@ -1,3 +1,4 @@
+
 import type { MobType } from './mobs.js';
 
 export interface TypeColor {
@@ -10,3 +11,4 @@ export const typeColors: Record<MobType, TypeColor> = {
   robotic: { color: 'var(--neon-blue)', label: 'ROBOTIC' },
   spectral: { color: 'var(--neon-pink)', label: 'SPECTRAL' }
 };
+

@@ -1,3 +1,4 @@
+
 import { character, safeKills, applyMomentumSoftcap, applyOverchargeSoftcap, updateDerivedStats } from '../modules/character.svelte.js';
 import { performCombatTick, combatState, getEffectiveCombatStats, flushStatCache } from '../modules/combat.svelte.js';
 import { getOmniMult, upgradeAllSkills } from '../modules/skills.svelte.js';
@@ -20,7 +21,26 @@ import { mobs } from '../data/mobs.js';
 
 import { getTotalTicks, incrementTotalTicks, addTotalTicks } from './tickState.js';
 
+// ============================================================
+// FORESTRY UI SNAPSHOT — Decouples simulation from rendering
+// Updated at 10 FPS regardless of tick rate
+// ============================================================
+let forestrySnapshot = $state({
+  harvestRate: 0,
+  dnaFragments: new Decimal(0),
+  growthProgress: 0,
+  energy: 0,
+  maxEnergy: 100,
+  unlocked: false,
+});
+
+export function getForestrySnapshot() {
+  return forestrySnapshot;
+}
+
 let lastTick = performance.now();
+let lastForestryUIUpdate = 0;
+const FORESTRY_UI_THROTTLE = 100; // 10 FPS for Forestry panel
 
 // Kept for backward compatibility: avoid removing export entirely.
 export const gameLoop = $state({});
@@ -143,6 +163,22 @@ if (typeof document !== 'undefined') {
   });
 }
 
+// ============================================================
+// SNAPSHOT UPDATE — Called at 10 FPS to decouple UI from ticks
+// ============================================================
+function updateSnapshots(now: number): void {
+  // Forestry snapshot at 10 FPS
+  if (now - lastForestryUIUpdate >= FORESTRY_UI_THROTTLE) {
+    lastForestryUIUpdate = now;
+    forestrySnapshot.harvestRate = forestryState.harvestRate;
+    forestrySnapshot.dnaFragments = forestryState.dnaFragments;
+    forestrySnapshot.growthProgress = forestryState.growthProgress;
+    forestrySnapshot.energy = forestryState.energy;
+    forestrySnapshot.maxEnergy = forestryState.maxEnergy;
+    forestrySnapshot.unlocked = forestryState.unlocked;
+  }
+}
+
 export function gameTick(now: number): number | void {
   const dt = now - lastTick;
   lastTick = now;
@@ -151,6 +187,9 @@ export function gameTick(now: number): number | void {
     processOfflineProgress(dt);
     return requestAnimationFrame(gameTick);
   }
+
+  // Update snapshots before tick processing
+  updateSnapshots(now);
 
   accumulatedTime += dt;
 
@@ -280,3 +319,4 @@ export function startGameLoop(): void {
 
   requestAnimationFrame(gameTick);
 }
+

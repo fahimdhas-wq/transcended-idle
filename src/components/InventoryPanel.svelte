@@ -1,3 +1,4 @@
+
 <script lang="ts">
   import { inventory } from '../modules/inventory.svelte.js';
   import { formatNumber } from '../systems/scalingSystem.js';
@@ -198,3 +199,4 @@
     color: var(--color-muted);
   }
 </style>
+

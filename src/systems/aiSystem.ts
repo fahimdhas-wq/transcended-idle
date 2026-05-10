@@ -1,3 +1,4 @@
+
 import { mobs, type MobType } from '../data/mobs.js';
 import type { Character } from '../modules/character.svelte.js';
 import { Decimal } from './decimal.js';
@@ -38,3 +39,4 @@ export const aiSystem = {
     // Intentionally left blank. Dynamic scaling causes rubber-banding death-loops.
   }
 };
+

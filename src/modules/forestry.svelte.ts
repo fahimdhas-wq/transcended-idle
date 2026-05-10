@@ -1,3 +1,4 @@
+
 import { character } from './character.svelte.js';
 import { addLog } from '../ui/LogPanelState.svelte.js';
 import { getForestryYieldBonus, getForestrySpeedBonus, getEnergyEfficiencyBonus } from './bestiaryBonuses.js';
@@ -5,6 +6,7 @@ import { bestiaryState, setDnaGainCallback } from './bestiary.svelte.js';
 import { Decimal } from '../systems/decimal.js';
 import { formatNumber } from '../systems/scalingSystem.js';
 import { GATHERING_CONSTANTS, makeTools, type GatheringTool } from '../data/gatheringConfig.js';
+import { forestryResources } from './forestryResources.js';
 
 export type ForestryUpgradeType =
   | 'chainsawFuel'
@@ -35,7 +37,20 @@ export interface ForestryState {
   mutationPower: number;
   overclockPower: number;
   efficiency: number;
-  resources: Record<string, Decimal>;
+  // Legacy accessor - returns Record for compatibility but uses typed array internally
+  resources: {
+    get(id: string): Decimal;
+    set(id: string, value: Decimal | number): void;
+    add(id: string, amount: Decimal | number): void;
+    sub(id: string, amount: Decimal | number): void;
+    gte(id: string, amount: Decimal | number): boolean;
+    gt(id: string, amount: Decimal | number): boolean;
+    lte(id: string, amount: Decimal | number): boolean;
+    getRaw(id: string): number;
+    floorDiv(id: string, divisor: number): number;
+    toRecord(): Record<string, Decimal>;
+    fromRecord(record: Record<string, Decimal>): void;
+  };
 }
 
 export const bioTools = makeTools([
@@ -58,12 +73,12 @@ export const forestryState: ForestryState = $state({
   toolName: 'Bio-Harvesting Tool',
   dnaFragments: new Decimal(0),
   growthProgress: 0,
-  harvestRate: 0, 
+  harvestRate: 0,
   dnaRate: 0,
   growthChambers: 1,
   mutationChance: 0.05,
   reforestation: 0,
-  
+
   energy: 100,
   maxEnergy: 100,
   isOverclocked: false,
@@ -75,20 +90,8 @@ export const forestryState: ForestryState = $state({
   overclockPower: 0,
   efficiency: 0,
 
-  resources: {
-    biomass: new Decimal(0), oakron: new Decimal(0), birchon: new Decimal(0),
-    pynex: new Decimal(0), willix: new Decimal(0), mahorix: new Decimal(0),
-    tecron: new Decimal(0), ironwood: new Decimal(0), darkwood: new Decimal(0),
-    voidwood: new Decimal(0),
-    biofiber: new Decimal(0), reinforcedFiber: new Decimal(0), lightPanel: new Decimal(0),
-    resinGel: new Decimal(0), flexFiber: new Decimal(0), denseCore: new Decimal(0),
-    armorFiber: new Decimal(0), darkMatterFiber: new Decimal(0), crystalGrowth: new Decimal(0),
-    spiritFlux: new Decimal(0),
-    bioCore: new Decimal(0), terraCore: new Decimal(0), photonBark: new Decimal(0),
-    cryoCore: new Decimal(0), psiCore: new Decimal(0), royalMatrix: new Decimal(0),
-    guardianCore: new Decimal(0), shadowCore: new Decimal(0), lumenCore: new Decimal(0),
-    etherealCore: new Decimal(0)
-  }
+  // Use typed array via wrapper for performance
+  resources: forestryResources
 });
 
 let _dnaAccum = 0;
@@ -206,19 +209,18 @@ function executeHarvest(tool: GatheringTool, amount: number): void {
     'mahorix','tecron','ironwood','darkwood','voidwood'
   ].slice(0, maxTier);
 
-  const yieldMult = new Decimal(10).pow(
-    (tool.tier - 1) * GATHERING_CONSTANTS.YIELD_TIER_STEP + GATHERING_CONSTANTS.YIELD_BASE_EXPONENT
-  );
-  const totalAmount = new Decimal(amount).mul(critMult).mul(yieldMult);
+  // Use raw numbers for hot path calculations
+  const yieldMult = Math.pow(10, (tool.tier - 1) * GATHERING_CONSTANTS.YIELD_TIER_STEP + GATHERING_CONSTANTS.YIELD_BASE_EXPONENT);
+  const totalAmount = amount * critMult * yieldMult;
 
-  const amountPerTier = totalAmount.div(availableTiers.length).floor();
-  const remainder = totalAmount.mod(availableTiers.length).toNumber();
+  const amountPerTier = Math.floor(totalAmount / availableTiers.length);
+  const remainder = totalAmount % availableTiers.length;
 
   availableTiers.forEach((id, index) => {
     let finalAmount = amountPerTier;
-    if (index < remainder) finalAmount = finalAmount.add(1);
-    if (finalAmount.gt(0)) {
-      forestryState.resources[id] = (forestryState.resources[id] ?? new Decimal(0)).add(finalAmount);
+    if (index < remainder) finalAmount += 1;
+    if (finalAmount > 0) {
+      forestryState.resources.add(id, finalAmount);
       handleBioRefining(id);
     }
   });
@@ -247,13 +249,43 @@ const BIO_REFINE_MAP: Record<string, string> = {
   spiritFlux: 'etherealCore'
 };
 
+// Iterative refinement - replaces recursive handleBioRefining
+function processBioRefiningChain(id: string): void {
+  let currentId = id;
+  while (currentId) {
+    const target = BIO_REFINE_MAP[currentId];
+    if (!target) break;
+
+    const resource = forestryState.resources.getRaw(currentId);
+    if (resource < FORESTRY_CONSTANTS.REFINE_RATIO) break;
+    if (!forestryState.autoRefine[currentId]) break;
+
+    const count = Math.floor(resource / FORESTRY_CONSTANTS.REFINE_RATIO);
+    if (count <= 0) break;
+
+    forestryState.resources.sub(currentId, count * FORESTRY_CONSTANTS.REFINE_RATIO);
+    forestryState.resources.add(target, count);
+    currentId = target;
+  }
+}
+
+// Legacy wrapper for single-resource refinement
 function handleBioRefining(id: string): void {
   const target = BIO_REFINE_MAP[id];
-  if (target && forestryState.autoRefine[id] && forestryState.resources[id] && forestryState.resources[id].gte(FORESTRY_CONSTANTS.REFINE_RATIO)) {
-    const count = forestryState.resources[id].div(FORESTRY_CONSTANTS.REFINE_RATIO).floor();
-    forestryState.resources[target] = (forestryState.resources[target] ?? new Decimal(0)).add(count);
-    forestryState.resources[id] = forestryState.resources[id].sub(count.mul(FORESTRY_CONSTANTS.REFINE_RATIO));
-    handleBioRefining(target);
+  if (target && forestryState.autoRefine[id]) {
+    processBioRefiningChain(id);
+  }
+}
+
+// Bulk refinement for tick processing - processes all auto-refine chains in one pass
+function processBulkRefining(): void {
+  const basicTreeIds = ['biomass', 'oakron', 'birchon', 'pynex', 'willix', 'mahorix', 'tecron', 'ironwood', 'darkwood', 'voidwood'];
+  const refinedIds = ['biofiber', 'reinforcedFiber', 'lightPanel', 'resinGel', 'flexFiber', 'denseCore', 'armorFiber', 'darkMatterFiber', 'crystalGrowth', 'spiritFlux'];
+
+  for (const id of [...basicTreeIds, ...refinedIds]) {
+    if (forestryState.autoRefine[id]) {
+      processBioRefiningChain(id);
+    }
   }
 }
 
@@ -262,7 +294,7 @@ import { maxAffordable } from '../utils/maxAffordable.js';
 import { getAffordableAmount } from '../utils/adjustUpgradeAmount.js';
 
 
-export function buyForestryUpgrade(type: ForestryUpgradeType, amount: number | 'max' = 1): number {
+export function buyForestryUpgrade(type: ForestryUpgradeType, amount: number | 'max' = 1, silent: boolean = false): number {
   let formula: CostFormula;
 
   if (type === 'chainsawFuel')    formula = { type: 'linear', base: 0, gain: 500 };
@@ -276,15 +308,16 @@ export function buyForestryUpgrade(type: ForestryUpgradeType, amount: number | '
   const currentLv = (forestryState[type] || 0);
   let count = 0;
 
-  if (amount === 'max') {
-    count = maxAffordable(forestryState.dnaFragments, currentLv, formula).toNumber();
-  } else {
-    // Dynamically adjust the requested amount if it's too expensive
-    count = getAffordableAmount(forestryState.dnaFragments, currentLv, formula, amount);
+  let maxBuy = 1000000000000;
+  if (type === 'ancientSaplings') {
+    maxBuy = 10 - currentLv;
   }
 
-  if (type === 'ancientSaplings') {
-    count = Math.min(count, 10 - currentLv);
+  if (amount === 'max') {
+    count = maxAffordable(forestryState.dnaFragments, currentLv, formula, maxBuy).toNumber();
+  } else {
+    // Dynamically adjust the requested amount if it's too expensive
+    count = getAffordableAmount(forestryState.dnaFragments, currentLv, formula, Math.min(amount, maxBuy));
   }
 
   if (count <= 0) return 0;
@@ -294,7 +327,7 @@ export function buyForestryUpgrade(type: ForestryUpgradeType, amount: number | '
   if (forestryState.dnaFragments.gte(totalCost)) {
     forestryState.dnaFragments = forestryState.dnaFragments.sub(totalCost);
     forestryState[type] += count;
-    addLog(`[FORESTRY] Upgrade complete: ${type} x${count}.`, 'system');
+    if (!silent) addLog(`[FORESTRY] Upgrade complete: ${type} x${count}.`, 'system');
     return count;
   }
   return 0;
@@ -313,11 +346,11 @@ export function upgradeBioTool(): void {
 
 export function addGrowthChamber(amount: number | 'max' = 1): void {
   const getCost = (lv: number): Decimal => new Decimal(Math.floor(Math.pow(lv, 1.5) * 50));
-  
+
   const currentLv = forestryState.growthChambers - 1;
   let count = 0;
   if (amount === 'max') {
-    count = maxAffordable(forestryState.resources.biofiber ?? new Decimal(0), currentLv, getCost).toNumber();
+    count = maxAffordable(forestryState.resources.get('biofiber'), currentLv, getCost).toNumber();
   } else {
     count = amount;
   }
@@ -325,8 +358,8 @@ export function addGrowthChamber(amount: number | 'max' = 1): void {
   if (count <= 0) return;
   const totalCost = calculateBulkCost(getCost, currentLv, count);
 
-  if (forestryState.resources.biofiber && forestryState.resources.biofiber.gte(totalCost)) {
-    forestryState.resources.biofiber = forestryState.resources.biofiber.sub(totalCost);
+  if (forestryState.resources.gte('biofiber', totalCost)) {
+    forestryState.resources.sub('biofiber', totalCost);
     forestryState.growthChambers += count;
     addLog(`[FORESTRY] Built ${count} Chambers.`, 'system');
   }
@@ -338,7 +371,7 @@ export function upgradeMutationChance(amount: number | 'max' = 1): void {
 
   let count = 0;
   if (amount === 'max') {
-    count = maxAffordable(forestryState.resources.resinGel ?? new Decimal(0), currentLv, formula).toNumber();
+    count = maxAffordable(forestryState.resources.get('resinGel'), currentLv, formula).toNumber();
   } else {
     count = amount;
   }
@@ -346,8 +379,8 @@ export function upgradeMutationChance(amount: number | 'max' = 1): void {
   if (count <= 0) return;
   const totalCost = calculateBulkCost(formula, currentLv, count);
 
-  if (forestryState.resources.resinGel && forestryState.resources.resinGel.gte(totalCost)) {
-    forestryState.resources.resinGel = forestryState.resources.resinGel.sub(totalCost);
+  if (forestryState.resources.gte('resinGel', totalCost)) {
+    forestryState.resources.sub('resinGel', totalCost);
     forestryState.mutationChance += (0.01 * count);
     addLog(`[FORESTRY] Mutation chance increased by ${Math.floor(count)}%.`, 'system');
   }
@@ -359,7 +392,7 @@ export function upgradeForestryEnergy(amount: number | 'max' = 1): void {
 
   let count = 0;
   if (amount === 'max') {
-    count = maxAffordable(forestryState.resources.reinforcedFiber ?? new Decimal(0), 0, formula).toNumber();
+    count = maxAffordable(forestryState.resources.get('reinforcedFiber'), 0, formula).toNumber();
   } else {
     count = amount;
   }
@@ -367,8 +400,8 @@ export function upgradeForestryEnergy(amount: number | 'max' = 1): void {
   if (count <= 0) return;
   const totalCost = calculateBulkCost(formula, 0, count);
 
-  if (forestryState.resources.reinforcedFiber && forestryState.resources.reinforcedFiber.gte(totalCost)) {
-    forestryState.resources.reinforcedFiber = forestryState.resources.reinforcedFiber.sub(totalCost);
+  if (forestryState.resources.gte('reinforcedFiber', totalCost)) {
+    forestryState.resources.sub('reinforcedFiber', totalCost);
     forestryState.maxEnergy += (100 * count);
     forestryState.energy = forestryState.maxEnergy;
     addLog(`[FORESTRY] Nutrient capacity expanded.`, 'system');
@@ -376,9 +409,9 @@ export function upgradeForestryEnergy(amount: number | 'max' = 1): void {
 }
 
 export function triggerForestryOverclock(): void {
-  const cost = new Decimal(25);
-  if (forestryState.resources.reinforcedFiber && forestryState.resources.reinforcedFiber.gte(cost) && !forestryState.isOverclocked) {
-    forestryState.resources.reinforcedFiber = forestryState.resources.reinforcedFiber.sub(cost);
+  const cost = 25;
+  if (forestryState.resources.gte('reinforcedFiber', cost) && !forestryState.isOverclocked) {
+    forestryState.resources.sub('reinforcedFiber', cost);
     forestryState.isOverclocked = true;
     forestryState.overclockTicks = FORESTRY_CONSTANTS.OVERCLOCK_DURATION;
     addLog(`[FORESTRY] Growth Surge active!`, 'system');
@@ -387,9 +420,11 @@ export function triggerForestryOverclock(): void {
 
 export function refineBioSingle(id: string): void {
   const target = BIO_REFINE_MAP[id];
-  if (target && forestryState.resources[id] && forestryState.resources[id].gte(25)) {
-    forestryState.resources[target] = (forestryState.resources[target] ?? new Decimal(0)).add(1);
-    forestryState.resources[id] = forestryState.resources[id].sub(25);
+  const resource = forestryState.resources.getRaw(id);
+  if (target && resource >= 25) {
+    forestryState.resources.add(target, 1);
+    forestryState.resources.sub(id, 25);
   }
 }
+
 

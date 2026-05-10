@@ -1,3 +1,4 @@
+
 import { Decimal } from '../systems/decimal.js';
 
 export function calculateMaxLevels(
@@ -23,3 +24,4 @@ export function calculateMaxLevels(
 
   return canAfford;
 }
+

@@ -1,3 +1,4 @@
+
 export interface ResourceDefinition {
   id: string;
   name: string;
@@ -83,3 +84,4 @@ export const advancedTrees: ResourceDefinition[] = [
   { id: 'lumenCore',         name: 'Lumen Core' },
   { id: 'etherealCore',      name: 'Ethereal Core' },
 ];
+

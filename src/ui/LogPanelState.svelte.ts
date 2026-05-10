@@ -1,3 +1,4 @@
+
 import { Decimal, type DecimalSource } from '../systems/decimal.js';
 
 export interface LogEvent {
@@ -135,3 +136,4 @@ setInterval(() => {
     summaryState.live = { kills: 0, loot: 0, levels: 0, verges: 0 };
   }
 }, 1000);
+

@@ -1,3 +1,4 @@
+
 <script lang="ts">
   import { saveSystem } from '../core/saveSystem.js';
   import { addLog } from '../ui/LogPanelState.svelte.js';
@@ -180,3 +181,4 @@
   }
   textarea:focus { border-color: var(--accent-steel); }
 </style>
+

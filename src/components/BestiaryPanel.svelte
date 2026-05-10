@@ -1,3 +1,4 @@
+
 <script lang="ts">
   import { bestiaryState, buyBestiaryUpgrade } from '../modules/bestiary.svelte.js';
   import { autoUpgradeBestiary } from '../utils/globalMaxUpgrade.js';
@@ -272,3 +273,4 @@
   .mob-stage { font-size: 0.62rem; font-weight: 600; letter-spacing: 0.08em; }
   .mob-stats { display: flex; gap: 12px; color: var(--color-muted); font-size: 0.62rem; margin-top: 3px; font-family: var(--font-display); letter-spacing: 0.06em; }
 </style>
+

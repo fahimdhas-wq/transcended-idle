@@ -1,0 +1,25 @@
+{
+  "extends": "assemblyscript/std/assembly.json",
+  "targets": {
+    "release": {
+      "target": "wasm32-unknown-unknown",
+      "optimizeLevel": 3,
+      "shrinkLevel": 1,
+      "converge": false,
+      "noAssert": false,
+      "duplicateSignatures": true
+    },
+    "debug": {
+      "target": "wasm32-unknown-unknown",
+      "optimizeLevel": 0,
+      "shrinkLevel": 0,
+      "noValidate": false
+    }
+  },
+  "options": {
+    "bindings": "esm"
+  },
+  "exports": [
+    "assembly/index.ts"
+  ]
+}

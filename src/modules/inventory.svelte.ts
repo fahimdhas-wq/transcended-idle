@@ -1,3 +1,4 @@
+
 import type { ItemRarity } from '../data/items.js';
 
 export interface InventoryItem {
@@ -62,3 +63,4 @@ export function flushInventoryUpdates(): void {
 
   _pendingUpdates.clear();
 }
+

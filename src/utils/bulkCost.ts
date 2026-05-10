@@ -1,3 +1,4 @@
+
 import { Decimal, type DecimalSource } from '../systems/decimal.js';
 
 export type CostFormula =
@@ -86,3 +87,4 @@ export function calculateBulkCost(
 export function invalidateBulkCostCache(): void {
   _cache.clear();
 }
+

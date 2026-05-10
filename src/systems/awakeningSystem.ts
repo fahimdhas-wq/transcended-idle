@@ -1,3 +1,4 @@
+
 import { character, updateDerivedStats } from '../modules/character.svelte.js';
 import { addLog } from '../ui/LogPanelState.svelte.js';
 import { Decimal } from './decimal.js';
@@ -21,3 +22,4 @@ export function triggerAwakening() {
 
   addLog(`[SYSTEM] Awakening Stage ${character.awakeningStage} complete! Power scaling boosted.`, 'awakening');
 }
+

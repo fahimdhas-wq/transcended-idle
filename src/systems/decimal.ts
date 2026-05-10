@@ -1,3 +1,4 @@
+
 export type DecimalSource = number | string | Decimal | { m: number; e: number };
 
 export class Decimal {
@@ -205,3 +206,4 @@ export class Decimal {
     return this.m.toFixed(2) + 'e' + this.e;
   }
 }
+

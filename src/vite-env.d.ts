@@ -1,3 +1,4 @@
+
 /// <reference types="svelte" />
 
 interface ImportMetaEnv {
@@ -17,3 +18,4 @@ interface Window {
 }
 
 declare module '*.css';
+

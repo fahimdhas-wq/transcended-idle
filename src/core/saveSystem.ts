@@ -1,3 +1,4 @@
+
 import { character } from '../modules/character.svelte.js';
 import { inventory, rebuildInventoryMap } from '../modules/inventory.svelte.js';
 import { skillsState } from '../modules/skills.svelte.js';
@@ -178,3 +179,4 @@ if (typeof window !== 'undefined') {
 }
 
 setInterval(() => saveSystem.save(), gameConfig.saveInterval);
+
