@@ -218,7 +218,7 @@ function executeHarvest(tool: GatheringTool, amount: number): void {
     let finalAmount = amountPerTier;
     if (index < remainder) finalAmount = finalAmount.add(1);
     if (finalAmount.gt(0)) {
-      forestryState.resources[id] = (forestryState.resources[id] || new Decimal(0)).add(finalAmount);
+      forestryState.resources[id] = (forestryState.resources[id] ?? new Decimal(0)).add(finalAmount);
       handleBioRefining(id);
     }
   });
@@ -251,7 +251,7 @@ function handleBioRefining(id: string): void {
   const target = BIO_REFINE_MAP[id];
   if (target && forestryState.autoRefine[id] && forestryState.resources[id] && forestryState.resources[id].gte(FORESTRY_CONSTANTS.REFINE_RATIO)) {
     const count = forestryState.resources[id].div(FORESTRY_CONSTANTS.REFINE_RATIO).floor();
-    forestryState.resources[target] = (forestryState.resources[target] || new Decimal(0)).add(count);
+    forestryState.resources[target] = (forestryState.resources[target] ?? new Decimal(0)).add(count);
     forestryState.resources[id] = forestryState.resources[id].sub(count.mul(FORESTRY_CONSTANTS.REFINE_RATIO));
     handleBioRefining(target);
   }
@@ -317,7 +317,7 @@ export function addGrowthChamber(amount: number | 'max' = 1): void {
   const currentLv = forestryState.growthChambers - 1;
   let count = 0;
   if (amount === 'max') {
-    count = maxAffordable(forestryState.resources.biofiber || new Decimal(0), currentLv, getCost).toNumber();
+    count = maxAffordable(forestryState.resources.biofiber ?? new Decimal(0), currentLv, getCost).toNumber();
   } else {
     count = amount;
   }
@@ -338,7 +338,7 @@ export function upgradeMutationChance(amount: number | 'max' = 1): void {
 
   let count = 0;
   if (amount === 'max') {
-    count = maxAffordable(forestryState.resources.resinGel || new Decimal(0), currentLv, formula).toNumber();
+    count = maxAffordable(forestryState.resources.resinGel ?? new Decimal(0), currentLv, formula).toNumber();
   } else {
     count = amount;
   }
@@ -359,7 +359,7 @@ export function upgradeForestryEnergy(amount: number | 'max' = 1): void {
 
   let count = 0;
   if (amount === 'max') {
-    count = maxAffordable(forestryState.resources.reinforcedFiber || new Decimal(0), 0, formula).toNumber();
+    count = maxAffordable(forestryState.resources.reinforcedFiber ?? new Decimal(0), 0, formula).toNumber();
   } else {
     count = amount;
   }
@@ -388,7 +388,7 @@ export function triggerForestryOverclock(): void {
 export function refineBioSingle(id: string): void {
   const target = BIO_REFINE_MAP[id];
   if (target && forestryState.resources[id] && forestryState.resources[id].gte(25)) {
-    forestryState.resources[target] = (forestryState.resources[target] || new Decimal(0)).add(1);
+    forestryState.resources[target] = (forestryState.resources[target] ?? new Decimal(0)).add(1);
     forestryState.resources[id] = forestryState.resources[id].sub(25);
   }
 }

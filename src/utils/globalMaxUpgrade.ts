@@ -102,12 +102,8 @@ export function autoUpgradeForestry(): void {
     const currentLv = Number(forestryState[u.type] || 0);
     if (u.cap !== undefined && currentLv >= u.cap) continue;
 
-    const initialCount = buyForestryUpgrade(u.type, 'max');
-    const count = floorToCleanAmount(initialCount);
-
-    if (count > 0) {
-      buyForestryUpgrade(u.type, count);
-    }
+    // Only call once - 'max' already calculates the affordable count
+    buyForestryUpgrade(u.type, 'max');
   }
 
   // Handle growth chambers

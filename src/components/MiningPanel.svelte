@@ -130,7 +130,6 @@ const DISCOVERY_FORMULA = { type: 'geometric', base: 500, multiplier: 10 };
       <div class="accordion" class:open={openSections.status}>
         <button class="acc-head" onclick={() => toggle('status')}>
           <span>DRILL STATUS</span>
-          <span class="acc-arrow">{openSections.status ? '&#9650;' : '&#9660;'}</span>
         </button>
         {#if openSections.status}
           <div class="acc-body">
@@ -184,7 +183,6 @@ const DISCOVERY_FORMULA = { type: 'geometric', base: 500, multiplier: 10 };
       <div class="accordion" class:open={openSections.upgrades}>
         <button class="acc-head" onclick={() => toggle('upgrades')}>
           <span>CALIBRATION</span>
-          <span class="acc-arrow">{openSections.upgrades ? '&#9650;' : '&#9660;'}</span>
         </button>
         {#if openSections.upgrades}
           <div class="acc-body">
@@ -235,7 +233,6 @@ const DISCOVERY_FORMULA = { type: 'geometric', base: 500, multiplier: 10 };
       <div class="accordion" class:open={openSections.automation}>
         <button class="acc-head" onclick={() => toggle('automation')}>
           <span>LOGISTICS</span>
-          <span class="acc-arrow">{openSections.automation ? '&#9650;' : '&#9660;'}</span>
         </button>
         {#if openSections.automation}
           <div class="acc-body">
@@ -283,7 +280,6 @@ const DISCOVERY_FORMULA = { type: 'geometric', base: 500, multiplier: 10 };
       <div class="accordion" class:open={openSections.resources}>
         <button class="acc-head" onclick={() => toggle('resources')}>
           <span>RESOURCES</span>
-          <span class="acc-arrow">{openSections.resources ? '&#9650;' : '&#9660;'}</span>
         </button>
         {#if openSections.resources}
           <div class="acc-body">

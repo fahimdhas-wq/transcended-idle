@@ -129,11 +129,16 @@ if (typeof document !== 'undefined') {
       hiddenTime = performance.now();
     } else {
       const elapsed = performance.now() - hiddenTime;
-      // Defer offline processing so browser can finish visibility change first
-      setTimeout(() => {
+      // Defer offline processing using requestIdleCallback to avoid blocking
+      const doProcess = () => {
         processOfflineProgress(elapsed);
         lastTick = performance.now();
-      }, 0);
+      };
+      if (typeof requestIdleCallback !== 'undefined') {
+        requestIdleCallback(doProcess, { timeout: 1000 });
+      } else {
+        setTimeout(doProcess, 16);
+      }
     }
   });
 }
