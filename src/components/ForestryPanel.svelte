@@ -9,12 +9,15 @@ import type { ForestryUpgradeType } from '../modules/forestry.svelte.js';
 import { formatValue } from '../systems/formatValue.js';
 import { uiStore, showToast } from '../stores/uiStore.svelte.js';
 import { Decimal } from '../systems/decimal.js';
-import { calculateBulkCost, type CostFormula } from '../utils/bulkCost.js';
+import { calculateBulkCost, invalidateBulkCostCache, type CostFormula } from '../utils/bulkCost.js';
 import { maxAffordable } from '../utils/maxAffordable.js';
 import { basicTrees, refinedTrees, advancedTrees } from '../data/resources.js';
 
 let buyAmount = $derived(uiStore.buyAmount);
 let resources = $derived(forestryState.resources);
+let biofiber = $derived(resources.biofiber ?? new Decimal(0));
+let resinGel = $derived(resources.resinGel ?? new Decimal(0));
+let reinforced = $derived(resources.reinforcedFiber ?? new Decimal(0));
 
 // Core state refs - single source of truth
 let dnaFragments = $derived(forestryState.dnaFragments);
@@ -44,25 +47,81 @@ function toggle(key: string) { openSections[key] = !openSections[key]; }
 
 let resourceTab = $state<'basic' | 'refined' | 'advanced'>('basic');
 
-// Actions
-function doBuy(t: ForestryUpgradeType) { buyForestryUpgrade(t, buyAmount); }
-function doTool() { upgradeBioTool(); showToast('Bio tool upgraded!', 'success'); }
-function doOC() { triggerForestryOverclock(); showToast('Growth Surge active!', 'warn'); }
-function doEnergy() { upgradeForestryEnergy(buyAmount); }
-function doMax() { autoUpgradeForestry(); showToast('Bio-Harvester optimized!', 'success'); }
+function fmt(v: any): string { return formatValue(v); }
 
-// Cost calculations - computed on demand, cached inline
-function costLinear(level: number, base: number, gain: number, budget: Decimal): Decimal {
-  const count = buyAmount === 'max' ? maxAffordable(budget, level, { type: 'linear', base, gain }).toNumber() : buyAmount;
-  return calculateBulkCost({ type: 'linear', base, gain }, level, count);
+function resolveCost(formula: CostFormula, currentLevel: number, amount: number | 'max', budget: Decimal): { cost: Decimal, count: number } {
+  const count = amount === 'max' ? maxAffordable(budget, currentLevel, formula).toNumber() : amount;
+  const cost = calculateBulkCost(formula, currentLevel, count);
+  return { cost, count };
 }
-function costGeo(level: number, cap: number, budget: Decimal): Decimal {
-  const amt = buyAmount === 'max' ? Math.min(cap, cap - level) : buyAmount;
-  return calculateBulkCost({ type: 'geometric', base: 100, multiplier: 10 }, level, amt);
+
+let costs = $derived.by(() => {
+  const a = buyAmount;
+  const dna = dnaFragments;
+  const biof = resources.biofiber ?? new Decimal(0);
+  const resin = resources.resinGel ?? new Decimal(0);
+  const reinf = resources.reinforcedFiber ?? new Decimal(0);
+
+  return {
+    chainsawFuel:      resolveCost({ type: 'linear',     base: 0,    gain: 500   }, chainsawFuel,      a, dna),
+    reforestation:      resolveCost({ type: 'linear',     base: 0,    gain: 200   }, reforestation,   a, dna),
+    ancientSaplings:    resolveCost({ type: 'geometric',  base: 100,  multiplier: 10 }, ancientSaplings, a === 'max' ? Math.min(10 - ancientSaplings, 10) : Math.min(a as number, 10 - ancientSaplings), dna),
+    mutationPower:      resolveCost({ type: 'linear',     base: 1500, gain: 1500  }, mutationPower,   a, dna),
+    overclockPower:     resolveCost({ type: 'linear',     base: 2000, gain: 2000  }, overclockPower,  a, dna),
+    efficiency:         resolveCost({ type: 'linear',     base: 1000, gain: 1000  }, efficiency,      a, dna),
+    growthChamber:      resolveCost((lv: number) => new Decimal(Math.floor(Math.pow(lv, 1.5) * 50)), growthChambers - 1, a, biof),
+    mutationChance:     resolveCost({ type: 'linear',     base: 0,    gain: 500   }, Math.round((mutationChance / 0.01) - 1), a, resin),
+    energy:             resolveCost({ type: 'linear',     base: ((maxEnergy - 100) / 100 + 1) * 25, gain: 25 }, 0, a, reinf),
+    nextTool:           bioTools[toolTier]?.dataCost ?? new Decimal(Infinity),
+  };
+});
+
+function canAfford(cost: Decimal | number): boolean { return dnaFragments.gte(cost); }
+
+// Actions
+function doBuy(t: ForestryUpgradeType) {
+  buyForestryUpgrade(t, buyAmount);
+  invalidateBulkCostCache();
+}
+function doMax(t: ForestryUpgradeType) {
+  buyForestryUpgrade(t, 'max');
+  invalidateBulkCostCache();
+}
+function doTool() {
+  upgradeBioTool();
+  showToast('Bio tool upgraded!', 'success');
+}
+function doOC() {
+  triggerForestryOverclock();
+  showToast('Growth Surge active!', 'warn');
+}
+function doEnergy() {
+  upgradeForestryEnergy(buyAmount);
+  invalidateBulkCostCache();
+}
+function doGrowthChamber() {
+  addGrowthChamber(buyAmount);
+  invalidateBulkCostCache();
+}
+function doGrowthChamberMax() {
+  addGrowthChamber('max');
+  invalidateBulkCostCache();
+}
+function doMutationChance() {
+  upgradeMutationChance(buyAmount);
+  invalidateBulkCostCache();
+}
+function doMutationChanceMax() {
+  upgradeMutationChance('max');
+  invalidateBulkCostCache();
+}
+function doAutoUp() {
+  autoUpgradeForestry();
+  invalidateBulkCostCache();
+  showToast('Bio-Harvester optimized!', 'success');
 }
 
 // Helper
-function fmt(v: any): string { return formatValue(v); }
 function getRes(id: string): Decimal { return resources[id] || new Decimal(0); }
 </script>
 
@@ -103,7 +162,7 @@ function getRes(id: string): Decimal { return resources[id] || new Decimal(0); }
           </button>
         {/each}
       </div>
-      <button class="auto-up-btn" onclick={doMax}>AUTO UP</button>
+      <button class="auto-up-btn" onclick={doAutoUp}>AUTO UP</button>
     </div>
 
     <div class="sections">
@@ -142,18 +201,18 @@ function getRes(id: string): Decimal { return resources[id] || new Decimal(0); }
 
             <div class="three-col">
               <button class="act-btn" onclick={doTool}
-                disabled={toolTier >= 10 || !dnaFragments.gte(bioTools[toolTier]?.dataCost ?? Infinity)}>
+                disabled={toolTier >= 10 || !canAfford(costs.nextTool)}>
                 <span class="act-name">UPGRADE TOOL</span>
-                <small>{toolTier >= 10 ? 'MAX' : fmt(bioTools[toolTier]?.dataCost ?? 0) + ' DNA'}</small>
+                <small>{toolTier >= 10 ? 'MAX' : fmt(costs.nextTool) + ' DNA'}</small>
               </button>
               <button class="act-btn" onclick={doOC} disabled={isOverclocked}>
                 <span class="act-name">{isOverclocked ? 'SURGE ACTIVE' : 'GROWTH SURGE'}</span>
                 <small>25 Reinf.Fiber</small>
               </button>
               <button class="act-btn" onclick={doEnergy}
-                disabled={!(resources.reinforcedFiber) || resources.reinforcedFiber.lt(costLinear(0, ((maxEnergy - 100) / 100 + 1) * 25, 25, resources.reinforcedFiber))}>
+                disabled={!reinforced.gte(costs.energy.cost)}>
                 <span class="act-name">+NUTRIENT CAP</span>
-                <small>{fmt(costLinear(0, ((maxEnergy - 100) / 100 + 1) * 25, 25, resources.reinforcedFiber || new Decimal(0)))} Reinf.Fiber</small>
+                <small>{fmt(costs.energy.cost)} Reinf.Fiber</small>
               </button>
             </div>
           </div>
@@ -174,12 +233,12 @@ function getRes(id: string): Decimal { return resources[id] || new Decimal(0); }
                   <span class="upg-lv">Lv.{chainsawFuel}</span>
                 </div>
                 <div class="upg-btns">
-                  <button class="upg-buy-btn" onclick={doBuy} data-type="chainsawFuel"
-                    disabled={!dnaFragments.gte(costLinear(chainsawFuel, 0, 500, dnaFragments))}>
+                  <button class="upg-buy-btn" onclick={() => doBuy('chainsawFuel')}
+                    disabled={!canAfford(costs.chainsawFuel.cost)}>
                     +{buyAmount}
-                    <span class="btn-cost">{fmt(costLinear(chainsawFuel, 0, 500, dnaFragments))}</span>
+                    <span class="btn-cost">{fmt(costs.chainsawFuel.cost)}</span>
                   </button>
-                  <button class="upg-max-btn" onclick={() => buyForestryUpgrade('chainsawFuel', 'max')}>
+                  <button class="upg-max-btn" onclick={() => doMax('chainsawFuel')}>
                     MAX
                   </button>
                 </div>
@@ -192,11 +251,11 @@ function getRes(id: string): Decimal { return resources[id] || new Decimal(0); }
                 </div>
                 <div class="upg-btns">
                   <button class="upg-buy-btn" onclick={() => doBuy('reforestation')}
-                    disabled={!dnaFragments.gte(costLinear(reforestation, 0, 200, dnaFragments))}>
+                    disabled={!canAfford(costs.reforestation.cost)}>
                     +{buyAmount}
-                    <span class="btn-cost">{fmt(costLinear(reforestation, 0, 200, dnaFragments))}</span>
+                    <span class="btn-cost">{fmt(costs.reforestation.cost)}</span>
                   </button>
-                  <button class="upg-max-btn" onclick={() => buyForestryUpgrade('reforestation', 'max')}>
+                  <button class="upg-max-btn" onclick={() => doMax('reforestation')}>
                     MAX
                   </button>
                 </div>
@@ -210,11 +269,11 @@ function getRes(id: string): Decimal { return resources[id] || new Decimal(0); }
                 <div class="upg-btns">
                   {#if ancientSaplings < 10}
                     <button class="upg-buy-btn" onclick={() => doBuy('ancientSaplings')}
-                      disabled={!dnaFragments.gte(costGeo(ancientSaplings, 10, dnaFragments))}>
+                      disabled={!canAfford(costs.ancientSaplings.cost)}>
                       +{buyAmount}
-                      <span class="btn-cost">{fmt(costGeo(ancientSaplings, 10, dnaFragments))}</span>
+                      <span class="btn-cost">{fmt(costs.ancientSaplings.cost)}</span>
                     </button>
-                    <button class="upg-max-btn" onclick={() => buyForestryUpgrade('ancientSaplings', 'max')}>
+                    <button class="upg-max-btn" onclick={() => doMax('ancientSaplings')}>
                       MAX
                     </button>
                   {:else}
@@ -230,11 +289,11 @@ function getRes(id: string): Decimal { return resources[id] || new Decimal(0); }
                 </div>
                 <div class="upg-btns">
                   <button class="upg-buy-btn" onclick={() => doBuy('mutationPower')}
-                    disabled={!dnaFragments.gte(costLinear(mutationPower, 1500, 1500, dnaFragments))}>
+                    disabled={!canAfford(costs.mutationPower.cost)}>
                     +{buyAmount}
-                    <span class="btn-cost">{fmt(costLinear(mutationPower, 1500, 1500, dnaFragments))}</span>
+                    <span class="btn-cost">{fmt(costs.mutationPower.cost)}</span>
                   </button>
-                  <button class="upg-max-btn" onclick={() => buyForestryUpgrade('mutationPower', 'max')}>
+                  <button class="upg-max-btn" onclick={() => doMax('mutationPower')}>
                     MAX
                   </button>
                 </div>
@@ -247,11 +306,11 @@ function getRes(id: string): Decimal { return resources[id] || new Decimal(0); }
                 </div>
                 <div class="upg-btns">
                   <button class="upg-buy-btn" onclick={() => doBuy('overclockPower')}
-                    disabled={!dnaFragments.gte(costLinear(overclockPower, 2000, 2000, dnaFragments))}>
+                    disabled={!canAfford(costs.overclockPower.cost)}>
                     +{buyAmount}
-                    <span class="btn-cost">{fmt(costLinear(overclockPower, 2000, 2000, dnaFragments))}</span>
+                    <span class="btn-cost">{fmt(costs.overclockPower.cost)}</span>
                   </button>
-                  <button class="upg-max-btn" onclick={() => buyForestryUpgrade('overclockPower', 'max')}>
+                  <button class="upg-max-btn" onclick={() => doMax('overclockPower')}>
                     MAX
                   </button>
                 </div>
@@ -264,11 +323,11 @@ function getRes(id: string): Decimal { return resources[id] || new Decimal(0); }
                 </div>
                 <div class="upg-btns">
                   <button class="upg-buy-btn" onclick={() => doBuy('efficiency')}
-                    disabled={!dnaFragments.gte(costLinear(efficiency, 1000, 1000, dnaFragments))}>
+                    disabled={!canAfford(costs.efficiency.cost)}>
                     +{buyAmount}
-                    <span class="btn-cost">{fmt(costLinear(efficiency, 1000, 1000, dnaFragments))}</span>
+                    <span class="btn-cost">{fmt(costs.efficiency.cost)}</span>
                   </button>
-                  <button class="upg-max-btn" onclick={() => buyForestryUpgrade('efficiency', 'max')}>
+                  <button class="upg-max-btn" onclick={() => doMax('efficiency')}>
                     MAX
                   </button>
                 </div>
@@ -292,12 +351,12 @@ function getRes(id: string): Decimal { return resources[id] || new Decimal(0); }
                   <span class="upg-lv">Lv.{growthChambers}</span>
                 </div>
                 <div class="upg-btns">
-                  <button class="upg-buy-btn" onclick={() => addGrowthChamber(buyAmount)}
-                    disabled={!(resources.biofiber) || resources.biofiber.lt(costLinear(0, 0, 1, resources.biofiber))}>
+                  <button class="upg-buy-btn" onclick={doGrowthChamber}
+                    disabled={!biofiber.gte(costs.growthChamber.cost)}>
                     +{buyAmount}
-                    <span class="btn-cost">{fmt(costLinear(0, 0, 1, resources.biofiber || new Decimal(0)))} Biofiber</span>
+                    <span class="btn-cost">{fmt(costs.growthChamber.cost)} Biofiber</span>
                   </button>
-                  <button class="upg-max-btn" onclick={() => addGrowthChamber('max')}>
+                  <button class="upg-max-btn" onclick={doGrowthChamberMax}>
                     MAX
                   </button>
                 </div>
@@ -309,12 +368,12 @@ function getRes(id: string): Decimal { return resources[id] || new Decimal(0); }
                   <span class="upg-lv">{Math.floor(mutationChance * 100)}%</span>
                 </div>
                 <div class="upg-btns">
-                  <button class="upg-buy-btn" onclick={() => upgradeMutationChance(buyAmount)}
-                    disabled={!(resources.resinGel) || resources.resinGel.lt(costLinear(0, 0, 500, resources.resinGel))}>
+                  <button class="upg-buy-btn" onclick={doMutationChance}
+                    disabled={!resinGel.gte(costs.mutationChance.cost)}>
                     +{buyAmount}
-                    <span class="btn-cost">{fmt(costLinear(0, 0, 500, resources.resinGel || new Decimal(0)))} Resin Gel</span>
+                    <span class="btn-cost">{fmt(costs.mutationChance.cost)} Resin Gel</span>
                   </button>
-                  <button class="upg-max-btn" onclick={() => upgradeMutationChance('max')}>
+                  <button class="upg-max-btn" onclick={doMutationChanceMax}>
                     MAX
                   </button>
                 </div>

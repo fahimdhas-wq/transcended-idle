@@ -8,17 +8,17 @@ export interface LogEvent {
 
 export interface SummaryEntry {
   time: string;
-  kills: Decimal;
-  loot: Decimal;
-  levels: Decimal;
-  verges: Decimal;
+  kills: number;
+  loot: number;
+  levels: number;
+  verges: number;
 }
 
 export interface SummaryCounters {
-  kills: Decimal;
-  loot: Decimal;
-  levels: Decimal;
-  verges: Decimal;
+  kills: number;
+  loot: number;
+  levels: number;
+  verges: number;
 }
 
 export interface SummaryState {
@@ -67,16 +67,16 @@ const MAX_EVENTS = 30;
 const eventBuffer = new CircularBuffer<LogEvent>(MAX_EVENTS);
 
 export const summaryState: SummaryState = $state({
-  live: { kills: new Decimal(0), loot: new Decimal(0), levels: new Decimal(0), verges: new Decimal(0) },
+  live: { kills: 0, loot: 0, levels: 0, verges: 0 },
   history: [],
   events: []
 });
 
 let hotTally: SummaryCounters & { startTime: number } = {
-  kills: new Decimal(0),
-  loot: new Decimal(0),
-  levels: new Decimal(0),
-  verges: new Decimal(0),
+  kills: 0,
+  loot: 0,
+  levels: 0,
+  verges: 0,
   startTime: Date.now()
 };
 
@@ -86,11 +86,11 @@ function syncEvents(): void {
 
 export function addLog(message: string, type: string = 'normal'): void {
   if (type === 'spawn') return;
-  if (type === 'loot') hotTally.loot = hotTally.loot.add(1);
-  if (type === 'system' && message.includes('Level')) hotTally.levels = hotTally.levels.add(1);
+  if (type === 'loot') hotTally.loot++;
+  if (type === 'system' && message.includes('Level')) hotTally.levels++;
   if (type === 'awakening' && message.includes('Verge')) {
-    hotTally.verges = hotTally.verges.add(1);
-    hotTally.kills = hotTally.kills.add(1);
+    hotTally.verges++;
+    hotTally.kills++;
   }
 
   const notable = type === 'loot' || type === 'awakening' || type === 'system';
@@ -100,16 +100,21 @@ export function addLog(message: string, type: string = 'normal'): void {
   }
 }
 
-export function incrementKills(amount: DecimalSource = 1): void {
-  hotTally.kills = hotTally.kills.add(amount);
+export function incrementKills(amount: number = 1): void {
+  hotTally.kills += amount;
 }
 
+// Single batched reactive update per second — replace the entire live object
+// so Svelte only fires one signal instead of four separate property mutations.
 setInterval(() => {
   const now = Date.now();
-  summaryState.live.kills = hotTally.kills;
-  summaryState.live.loot = hotTally.loot;
-  summaryState.live.levels = hotTally.levels;
-  summaryState.live.verges = hotTally.verges;
+
+  summaryState.live = {
+    kills: hotTally.kills,
+    loot: hotTally.loot,
+    levels: hotTally.levels,
+    verges: hotTally.verges,
+  };
 
   if (now - hotTally.startTime >= 60000) {
     summaryState.history.unshift({
@@ -121,15 +126,12 @@ setInterval(() => {
     });
     if (summaryState.history.length > 5) summaryState.history.pop();
 
-    hotTally.kills = new Decimal(0);
-    hotTally.loot = new Decimal(0);
-    hotTally.levels = new Decimal(0);
-    hotTally.verges = new Decimal(0);
+    hotTally.kills = 0;
+    hotTally.loot = 0;
+    hotTally.levels = 0;
+    hotTally.verges = 0;
     hotTally.startTime = now;
 
-    summaryState.live.kills = new Decimal(0);
-    summaryState.live.loot = new Decimal(0);
-    summaryState.live.levels = new Decimal(0);
-    summaryState.live.verges = new Decimal(0);
+    summaryState.live = { kills: 0, loot: 0, levels: 0, verges: 0 };
   }
 }, 1000);

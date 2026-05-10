@@ -4,7 +4,7 @@
   import type { BestiaryUpgradeType } from '../modules/bestiary.svelte.js';
   import { formatValue } from '../systems/formatValue.js';
   import { uiStore, showToast } from '../stores/uiStore.svelte.js';
-  import { calculateBulkCost, type CostFormula } from '../utils/bulkCost.js';
+  import { calculateBulkCost, invalidateBulkCostCache, type CostFormula } from '../utils/bulkCost.js';
   import { maxAffordable } from '../utils/maxAffordable.js';
   import { Decimal } from '../systems/decimal.js';
 
@@ -34,11 +34,18 @@
     };
   });
 
-  function doBuy(type: BestiaryUpgradeType) { buyBestiaryUpgrade(type, buyAmount); }
-  function doMax(type: BestiaryUpgradeType) { buyBestiaryUpgrade(type, 'max'); }
+  function doBuy(type: BestiaryUpgradeType) {
+    buyBestiaryUpgrade(type, buyAmount);
+    invalidateBulkCostCache();
+  }
+  function doMax(type: BestiaryUpgradeType) {
+    buyBestiaryUpgrade(type, 'max');
+    invalidateBulkCostCache();
+  }
   function doAutoUp() {
     autoUpgradeBestiary();
-    setTimeout(() => showToast('Bestiary optimized!', 'success'), 50);
+    invalidateBulkCostCache();
+    showToast('Bestiary optimized!', 'success');
   }
 
   const STAGE_COLORS: Record<string, string> = {
