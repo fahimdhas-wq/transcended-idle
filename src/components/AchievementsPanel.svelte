@@ -122,15 +122,17 @@
   }
 
   .ach-progress-track {
-    height: 4px;
+    height: 6px;
     background: var(--panel-inset);
     flex-shrink: 0;
+    overflow: hidden;
   }
 
   .ach-progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, var(--accent-warning), #ffcc00);
+    background: var(--accent-danger);
     transition: width 200ms ease;
+    box-shadow: 0 0 10px var(--accent-danger);
   }
 
   .ach-list {
@@ -147,16 +149,26 @@
   .ach-card {
     display: flex;
     flex-direction: column;
-    background: var(--panel-bg);
+    background: transparent;
     border: 1px solid var(--border-subtle);
-    border-left: 3px solid var(--color-dim);
     padding: 12px 14px;
-    transition: border-color 80ms ease, background 80ms ease;
+    transition: all var(--t-fast);
+    position: relative;
   }
+  .ach-card::before, .ach-card::after {
+    content: ''; position: absolute;
+    width: 6px; height: 6px; border: 1px solid var(--border-mid);
+    transition: border-color var(--t-fast);
+  }
+  .ach-card::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+  .ach-card::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
 
   .ach-card.unlocked {
-    border-left-color: var(--accent-warning);
-    background: rgba(255, 190, 0, 0.04);
+    border-color: var(--accent-danger);
+    background: hsla(0, 100%, 50%, 0.05);
+  }
+  .ach-card.unlocked::before, .ach-card.unlocked::after {
+    border-color: var(--accent-danger);
   }
 
   .ach-card:hover {
@@ -164,7 +176,8 @@
   }
 
   .ach-card.unlocked:hover {
-    border-left-color: var(--accent-warning);
+    border-color: var(--accent-danger);
+    background: hsla(0, 100%, 50%, 0.1);
   }
 
   .ach-top {
@@ -183,7 +196,7 @@
   }
 
   .ach-card.unlocked .ach-icon {
-    color: var(--accent-warning);
+    color: var(--accent-danger);
   }
 
   .ach-info {
@@ -222,7 +235,7 @@
   }
 
   .ach-bonus.bonus-active {
-    color: var(--accent-warning);
+    color: var(--accent-danger);
   }
 
   /* Scrollbar styling */

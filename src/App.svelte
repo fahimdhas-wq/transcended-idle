@@ -155,14 +155,22 @@
 .top-bar {
   display: flex;
   align-items: center;
-  height: 44px;
+  height: 60px;
   flex-shrink: 0;
-  padding: 0 16px;
-  background: var(--panel-bg);
-  border-bottom: 1px solid var(--border-subtle);
+  padding: 0 20px;
+  background: var(--bg-dark);
+  border-bottom: 2px solid var(--accent-danger);
+  box-shadow: 0 4px 15px hsla(0, 100%, 50%, 0.1), inset 0 -2px 10px hsla(0, 100%, 50%, 0.05);
   gap: 0;
   position: relative;
   z-index: 10;
+}
+/* Top decorative hardware lines */
+.top-bar::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 3px;
+  background: repeating-linear-gradient(90deg, transparent, transparent 10px, var(--border-mid) 10px, var(--border-mid) 12px);
 }
 
 .top-bar-left {
@@ -178,10 +186,19 @@
 .wordmark {
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 1rem;
-  letter-spacing: 0.18em;
+  font-size: 1.25rem;
+  letter-spacing: 0.25em;
   text-transform: uppercase;
-  color: var(--color-text);
+  color: var(--accent-white);
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.4);
+  position: relative;
+}
+.wordmark::after {
+  content: ' ///';
+  color: var(--accent-danger);
+  font-style: italic;
+  font-weight: 900;
+  text-shadow: 0 0 8px var(--accent-danger);
 }
 
 .version {
@@ -195,60 +212,71 @@
 .tab-nav {
   flex: 1;
   display: flex;
-  align-items: stretch;
+  align-items: center;
+  gap: 8px;
   overflow-x: auto;
   scrollbar-width: none;
   height: 100%;
-  padding: 0 8px;
+  padding: 0 16px;
 }
 .tab-nav::-webkit-scrollbar { display: none; }
 
 .tab-btn {
   position: relative;
   background: transparent;
-  border: none;
-  border-bottom: 2px solid transparent;
-  border-radius: 0;
+  border: 1px solid transparent;
   color: var(--color-muted);
   font-family: var(--font-display);
-  font-size: 0.66rem;
-  font-weight: 600;
-  letter-spacing: 0.12em;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
-  padding: 0 14px;
+  padding: 0 24px;
   cursor: pointer;
-  height: 100%;
+  height: 36px;
+  line-height: 34px;
   white-space: nowrap;
   flex-shrink: 0;
-  transition: color var(--t-fast), border-color var(--t-fast);
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
 }
+.tab-btn::before, .tab-btn::after {
+  content: ''; position: absolute;
+  width: 6px; height: 6px; border: 1px solid var(--border-mid);
+  transition: border-color var(--t-fast);
+}
+.tab-btn::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+.tab-btn::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
 
 .tab-btn:hover {
-  background: transparent;
-  color: var(--color-text);
-  border-bottom-color: var(--border-mid);
-  box-shadow: none;
+  background: hsla(0, 100%, 50%, 0.15);
+  color: var(--accent-white);
+  border-color: transparent;
 }
+.tab-btn:hover::before, .tab-btn:hover::after { border-color: var(--accent-danger); }
 
 .tab-btn.active {
-  color: var(--accent-white);
-  border-bottom-color: var(--accent-white);
-  background: transparent;
+  color: #fff;
+  background: hsla(0, 100%, 50%, 0.15);
+  border-color: var(--accent-danger);
+  box-shadow: 0 0 15px hsla(0, 100%, 50%, 0.4);
 }
+.tab-btn.active::before, .tab-btn.active::after { border-color: var(--accent-danger); }
 
 .tab-btn.new-tab {
-  color: var(--accent-warning);
-  border-bottom-color: var(--accent-warning);
+  color: var(--accent-danger);
+  border-bottom-color: var(--accent-danger);
+  animation: pulse-glow 2s infinite;
 }
 
 .new-dot {
   position: absolute;
-  top: 8px;
+  top: 6px;
   right: 6px;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--accent-warning);
+  width: 6px;
+  height: 6px;
+  border-radius: 0; /* Square for hardware look */
+  background: var(--accent-danger);
+  box-shadow: 0 0 6px var(--accent-danger);
 }
 
 .top-bar-right {
@@ -262,10 +290,12 @@
 }
 
 .status-dot {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: var(--accent-green);
+  box-shadow: 0 0 8px var(--accent-green);
+  animation: pulse-glow 3s infinite;
 }
 
 .status-label {

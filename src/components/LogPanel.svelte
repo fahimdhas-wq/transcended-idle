@@ -51,7 +51,7 @@
       {#if summaryState.events.length === 0}
         <div class="no-events">NO EVENTS</div>
       {:else}
-        {#each summaryState.events as ev (ev.ts)}
+        {#each summaryState.events as ev, i (ev.ts + '_' + i)}
           <div class="event-row" style="color: {eventColor(ev.type)}">
             {ev.message}
           </div>
@@ -81,24 +81,36 @@
 }
 
 .mode-btn {
+  position: relative;
   font-family: var(--font-display);
-  font-size: 0.58rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
-  padding: 3px 8px;
+  padding: 4px 14px;
   background: transparent;
-  border: none;
-  border-bottom: 2px solid transparent;
+  border: 1px solid var(--border-mid);
   color: var(--color-muted);
   cursor: pointer;
-  transition: color var(--t-fast), border-color var(--t-fast);
+  transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
 }
-.mode-btn:hover { color: var(--color-text); background: transparent; }
+.mode-btn::before, .mode-btn::after {
+  content: ''; position: absolute;
+  width: 4px; height: 4px; border: 1px solid var(--accent-danger);
+}
+.mode-btn::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+.mode-btn::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+
+.mode-btn:hover { 
+  color: var(--accent-white); 
+  background: hsla(0, 100%, 50%, 0.1); 
+  border-color: var(--accent-danger);
+}
 .mode-btn.active {
-  color: var(--color-text);
-  border-bottom-color: var(--accent-white);
-  background: transparent;
+  color: #fff;
+  background: var(--accent-danger);
+  border-color: var(--accent-danger);
+  box-shadow: 0 0 10px hsla(0, 100%, 50%, 0.4);
 }
 
 .badge {

@@ -91,32 +91,5 @@ function doMutationChanceMax() {
 
 <style>
   .upg-list { display:flex; flex-direction:column; gap:4px; }
-  .upg-row {
-    display:flex; justify-content:space-between; align-items:center;
-    background:var(--panel-inset); padding:8px 10px;
-    border-left:2px solid var(--accent-green);
-  }
-  .upg-info { display:flex; flex-direction:column; gap:1px; min-width:80px; }
-  .upg-name { font-size:0.68rem; font-weight:700; color:var(--color-text); font-family:var(--font-display); letter-spacing:0.04em; }
-  .upg-lv   { font-size:0.6rem; color:var(--accent-green); }
 
-  .upg-btns { display:flex; gap:5px; align-items:center; }
-  .upg-buy-btn {
-    background:transparent; border:1px solid var(--border-mid); color:var(--color-text);
-    font-family:var(--font-display); font-size:0.62rem; font-weight:600; letter-spacing:0.06em;
-    padding:5px 10px; cursor:pointer; transition:border-color var(--t-fast);
-    white-space:nowrap; min-width:70px; text-align:center;
-  }
-  .upg-buy-btn:hover:not(:disabled) { border-color:var(--accent-white); }
-  .upg-buy-btn:disabled { opacity:0.35; cursor:not-allowed; }
-  .btn-cost { font-size:0.55rem; color:var(--color-muted); margin-left:3px; }
-
-  .upg-max-btn {
-    background:transparent; border:1px solid var(--border-mid); color:var(--color-muted);
-    font-family:var(--font-display); font-size:0.62rem; font-weight:600; letter-spacing:0.06em;
-    padding:5px 10px; cursor:pointer; transition:border-color var(--t-fast), color var(--t-fast);
-    white-space:nowrap; min-width:70px; text-align:center;
-  }
-  .upg-max-btn:hover:not(:disabled) { border-color:var(--accent-green); color:var(--accent-green); }
-  .upg-max-btn:disabled { opacity:0.35; cursor:not-allowed; }
 </style>

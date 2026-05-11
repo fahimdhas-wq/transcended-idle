@@ -55,13 +55,19 @@
 .modal {
   background: var(--panel-bg);
   border: 1px solid var(--border-mid);
-  border-top: 2px solid var(--accent-white);
   padding: 24px;
   width: 300px;
   display: flex;
   flex-direction: column;
   gap: 16px;
+  position: relative;
 }
+.modal::before, .modal::after {
+  content: ''; position: absolute;
+  width: 12px; height: 12px; border: 3px solid var(--accent-danger);
+}
+.modal::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+.modal::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
 
 .modal-label {
   font-family: var(--font-display);
@@ -121,17 +127,26 @@
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  background: var(--accent-white);
-  border: 1px solid var(--accent-white);
-  color: #0e0e0e;
+  background: transparent;
+  border: 1px solid var(--accent-danger);
+  color: var(--accent-danger);
   padding: 10px;
   cursor: pointer;
   width: 100%;
-  transition: background var(--t-fast);
+  transition: all var(--t-fast);
+  position: relative;
 }
+.continue-btn::before, .continue-btn::after {
+  content: ''; position: absolute;
+  width: 6px; height: 6px; border: 1px solid var(--accent-danger);
+}
+.continue-btn::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+.continue-btn::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+
 .continue-btn:hover {
-  background: #cccccc;
-  border-color: #cccccc;
+  background: hsla(0, 100%, 50%, 0.15);
+  color: var(--accent-white);
+  box-shadow: 0 0 10px hsla(0, 100%, 50%, 0.4);
 }
 </style>
 

@@ -177,10 +177,12 @@
     letter-spacing: 0.08em;
     padding: 3px 7px;
     cursor: pointer;
-    transition: border-color var(--t-fast), color var(--t-fast);
+    transition: all var(--t-fast);
+    position: relative;
+    margin-right: -1px;
   }
-  .amt-btn.active { border-color: var(--accent-steel); color: var(--accent-steel); }
-  .amt-btn:hover:not(.active) { border-color: var(--border-mid); color: var(--color-text); }
+  .amt-btn.active { border-color: var(--accent-danger); color: #fff; background: var(--accent-danger); box-shadow: 0 0 10px hsla(0, 100%, 50%, 0.4); z-index: 2; }
+  .amt-btn:hover:not(.active) { border-color: var(--accent-danger); color: var(--accent-white); background: hsla(0, 100%, 50%, 0.1); }
 
   .auto-up-btn {
     background: transparent;
@@ -224,42 +226,7 @@
   .upg-lv { font-size: 0.6rem; color: var(--accent-steel); }
 
   .upg-btns { display: flex; gap: 5px; align-items: center; }
-  .upg-buy-btn {
-    background: transparent;
-    border: 1px solid var(--border-mid);
-    color: var(--color-text);
-    font-family: var(--font-display);
-    font-size: 0.62rem;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    padding: 5px 10px;
-    cursor: pointer;
-    transition: border-color var(--t-fast);
-    white-space: nowrap;
-    min-width: 70px;
-    text-align: center;
-  }
-  .upg-buy-btn:hover:not(:disabled) { border-color: var(--accent-white); }
-  .upg-buy-btn:disabled { opacity: 0.35; cursor: not-allowed; }
-  .btn-cost { font-size: 0.55rem; color: var(--color-muted); margin-left: 3px; }
 
-  .upg-max-btn {
-    background: transparent;
-    border: 1px solid var(--border-mid);
-    color: var(--color-muted);
-    font-family: var(--font-display);
-    font-size: 0.62rem;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    padding: 5px 10px;
-    cursor: pointer;
-    transition: border-color var(--t-fast), color var(--t-fast);
-    white-space: nowrap;
-    min-width: 70px;
-    text-align: center;
-  }
-  .upg-max-btn:hover:not(:disabled) { border-color: var(--accent-steel); color: var(--accent-steel); }
-  .upg-max-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
   .mob-list { display: flex; flex-direction: column; padding: 0 14px 14px; gap: 4px; flex: 1; }
   .mob-entry {

@@ -2,29 +2,29 @@
 /* Design tokens */
 :root {
   /* ── SURFACE ────────────────────────────────── */
-  --bg-dark:        #0e0e0e;
-  --panel-bg:       #141414;
-  --panel-raised:   #1a1a1a;
-  --panel-inset:    #0a0a0a;
+  --bg-dark:        hsl(0, 0%, 6%);
+  --panel-bg:       hsla(0, 100%, 8%, 0.65);
+  --panel-raised:   hsla(0, 100%, 12%, 0.85);
+  --panel-inset:    hsla(0, 100%, 4%, 0.6);
 
   /* ── BORDER ─────────────────────────────────── */
-  --border-subtle:  #252525;
-  --border-mid:     #333333;
-  --border-active:  #ffffff;
+  --border-subtle:  hsla(0, 100%, 50%, 0.15);
+  --border-mid:     hsla(0, 100%, 50%, 0.35);
+  --border-active:  hsl(0, 100%, 50%);
 
   /* ── TEXT ───────────────────────────────────── */
-  --color-text:     #e2e2e2;
-  --color-muted:    #666666;
-  --color-dim:      #3a3a3a;
+  --color-text:     hsl(0, 100%, 90%);
+  --color-muted:    hsl(0, 60%, 60%);
+  --color-dim:      hsl(0, 60%, 30%);
 
   /* ── FUNCTIONAL ACCENTS ─────────────────────── */
-  --accent-white:   #ffffff;
-  --accent-warning: #ffbe00;
-  --accent-danger:  #ff3333;
-  --accent-green:   #00cc66;
-  --accent-steel:   #5a8aaa;
-  --accent-violet:  #8866cc;
-  --accent-amber:   #cc8844;
+  --accent-white:   hsl(0, 0%, 100%);
+  --accent-warning: hsl(30, 100%, 50%); /* Neon Orange */
+  --accent-danger:  hsl(0, 100%, 50%); /* Pure Neon Red */
+  --accent-green:   hsl(120, 100%, 40%); /* Neon Green */
+  --accent-steel:   hsl(348, 100%, 50%); /* Crimson Red for primary */
+  --accent-violet:  hsl(300, 100%, 50%); /* Neon Magenta */
+  --accent-amber:   hsl(45, 100%, 50%); /* Neon Gold */
 
   /* ── LEGACY VAR ALIASES ─────────────────────── */
   --neon-blue:      var(--accent-steel);
@@ -33,15 +33,15 @@
   --neon-green:     var(--accent-green);
   --neon-gold:      var(--accent-warning);
   --neon-purple:    var(--accent-violet);
-  --color-primary:  var(--accent-steel);
+  --color-primary:  var(--accent-danger);
   --color-accent:   var(--accent-white);
   --border-color:   var(--border-subtle);
 
   /* ── TYPOGRAPHY ─────────────────────────────── */
-  --font-display:   'Barlow Condensed', sans-serif;
-  --font-mono:      'Azeret Mono', monospace;
-  --font-cyber:     'Barlow Condensed', sans-serif;
-  --font-data:      'Azeret Mono', monospace;
+  --font-display:   'Orbitron', sans-serif;
+  --font-mono:      'Share Tech Mono', monospace;
+  --font-cyber:     'Orbitron', sans-serif;
+  --font-data:      'Share Tech Mono', monospace;
 
   /* ── SPACING SCALE ─────────────────────────── */
   --sp-1: 4px;
@@ -51,7 +51,12 @@
   --sp-5: 24px;
   --sp-6: 32px;
 
+  /* ── EFFECTS ────────────────────────────────── */
+  --shadow-glow:    0 0 15px hsla(0, 100%, 50%, 0.35), inset 0 0 10px hsla(0, 100%, 50%, 0.15);
+  --shadow-hover:   0 0 25px hsla(0, 100%, 50%, 0.6), inset 0 0 15px hsla(0, 100%, 50%, 0.3);
+  --glass-blur:     12px;
+
   /* ── TRANSITION ─────────────────────────────── */
-  --t-fast: 80ms ease;
-  --t-mid: 160ms ease;
+  --t-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --t-mid: 300ms cubic-bezier(0.4, 0, 0.2, 1);
 }

@@ -177,19 +177,28 @@
   align-items: center;
   gap: 10px;
   padding: 8px 14px;
-  border-left: 2px solid var(--border-subtle);
-  transition: background var(--t-fast), border-color var(--t-fast);
+  border: 1px solid var(--border-subtle);
+  background: transparent;
+  transition: all var(--t-fast);
+  position: relative;
 }
+.seal-row::before, .seal-row::after {
+  content: ''; position: absolute;
+  width: 4px; height: 4px; border: 1px solid var(--accent-danger);
+}
+.seal-row::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+.seal-row::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
 
 .seal-row.broken {
-  border-left-color: var(--accent-steel);
-  background: rgba(90,138,170,0.04);
+  border-color: var(--accent-danger);
+  background: hsla(0, 100%, 50%, 0.05);
   opacity: 0.6;
 }
 
 .seal-row.available {
-  border-left-color: var(--accent-warning);
-  background: rgba(255,190,0,0.04);
+  border-color: var(--accent-danger);
+  background: hsla(0, 100%, 50%, 0.15);
+  box-shadow: 0 0 10px hsla(0, 100%, 50%, 0.2);
 }
 
 .seal-row.locked {
@@ -228,7 +237,7 @@
 
 .kill-bar-wrap {
   width: 100%;
-  height: 4px;
+  height: 6px;
   background: var(--panel-inset);
   border: 1px solid var(--border-subtle);
   overflow: hidden;
@@ -236,8 +245,9 @@
 
 .kill-bar-fill {
   height: 100%;
-  background: var(--accent-warning);
+  background: var(--accent-danger);
   transition: width 0.4s linear;
+  box-shadow: 0 0 10px var(--accent-danger);
 }
 
 .pct-text {
@@ -276,17 +286,24 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
   padding: 5px 12px;
-  background: rgba(255,190,0,0.08);
-  border: 1px solid var(--accent-warning);
-  color: var(--accent-warning);
+  background: transparent;
+  border: 1px solid var(--accent-danger);
+  color: var(--accent-white);
   cursor: pointer;
-  transition: background var(--t-fast), color var(--t-fast);
+  transition: all var(--t-fast);
+  position: relative;
 }
+.break-btn::before, .break-btn::after {
+  content: ''; position: absolute;
+  width: 3px; height: 3px; border: 1px solid var(--accent-white);
+}
+.break-btn::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+.break-btn::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
 
 .break-btn:hover {
-  background: rgba(255,190,0,0.2);
+  background: var(--accent-danger);
   color: var(--accent-white);
-  border-color: var(--accent-white);
+  box-shadow: 0 0 10px var(--accent-danger);
 }
 </style>
 

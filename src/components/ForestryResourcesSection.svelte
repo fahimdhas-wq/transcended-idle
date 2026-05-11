@@ -78,20 +78,32 @@ function doRefine(id: string) {
 </div>
 
 <style>
-  .res-tabs { display:flex; gap:4px; margin-bottom:6px; }
+  .res-tabs { display:flex; gap:0; margin-bottom:6px; border-bottom: 1px solid var(--border-mid); }
   .res-tabs button {
-    background:transparent; border:1px solid transparent;
-    color:#555; font-size:0.62rem; padding:3px 10px; cursor:pointer;
-    font-family:var(--font-display); font-weight:600; letter-spacing:0.08em; transition:border-color var(--t-fast), color var(--t-fast);
+    flex:1; padding:6px 0; background:transparent; border:none; 
+    border-right: 1px solid var(--border-subtle);
+    color:var(--color-muted); font-family:var(--font-display); 
+    font-size:0.65rem; font-weight:800; cursor:pointer;
+    transition: all 150ms ease;
   }
-  .res-tabs button.active { border-color:var(--accent-green); color:var(--accent-green); }
-  .res-tabs button:hover:not(.active) { color:var(--color-text); }
+  .res-tabs button.active { 
+    background: var(--accent-danger); color: #fff; 
+    box-shadow: 0 0 10px hsla(0, 100%, 50%, 0.4); border-right: none;
+  }
+  .res-tabs button:hover:not(.active) { color:var(--accent-white); background: hsla(0, 100%, 50%, 0.1); }
 
   .res-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:5px; }
   .res-card {
-    background:var(--panel-inset); border:1px solid var(--border-subtle); padding:7px 6px;
+    background:transparent; border:1px solid var(--border-subtle); padding:7px 6px;
     display:flex; flex-direction:column; align-items:center; gap:3px;
+    position: relative;
   }
+  .res-card::before, .res-card::after {
+    content: ''; position: absolute;
+    width: 4px; height: 4px; border: 1px solid var(--accent-danger);
+  }
+  .res-card::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+  .res-card::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
   .res-card.locked { opacity:0.2; pointer-events:none; }
   .res-name { font-size:0.58rem; color:var(--color-muted); text-align:center; text-transform:uppercase; font-family:var(--font-display); font-weight:600; letter-spacing:0.06em; }
   .res-amt { font-size:0.82rem; color:var(--accent-white); font-weight:700; font-family:var(--font-mono); font-variant-numeric: tabular-nums; }
@@ -104,14 +116,14 @@ function doRefine(id: string) {
     content:''; position:absolute; width:8px; height:8px;
     background:var(--color-dim); top:2px; left:2px; transition:transform var(--t-mid);
   }
-  .mini-toggle input:checked + .mini-slider { background:var(--accent-green); }
+  .mini-toggle input:checked + .mini-slider { background:var(--accent-danger); box-shadow: 0 0 5px var(--accent-danger); }
   .mini-toggle input:checked + .mini-slider::before { transform:translateX(10px); background:var(--accent-white); }
 
   .refine-btn {
     background:transparent; border:1px solid var(--border-mid); color:var(--color-muted);
-    font-size:0.55rem; padding:2px 6px; cursor:pointer; transition:border-color var(--t-fast), color var(--t-fast);
+    font-size:0.55rem; padding:2px 6px; cursor:pointer; transition:all var(--t-fast);
     font-family:var(--font-display); font-weight:600; letter-spacing:0.06em;
   }
-  .refine-btn:hover:not(:disabled) { border-color:var(--accent-white); color:var(--accent-white); }
+  .refine-btn:hover:not(:disabled) { border-color:var(--accent-danger); color:var(--accent-white); background: hsla(0, 100%, 50%, 0.1); box-shadow: 0 0 5px hsla(0, 100%, 50%, 0.4); }
   .refine-btn:disabled { opacity:0.3; cursor:not-allowed; }
 </style>

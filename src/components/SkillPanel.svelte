@@ -125,22 +125,30 @@
   .skills-list { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
 
   .skill-card {
-    background: var(--panel-bg);
+    background: transparent;
     border: 1px solid var(--border-subtle);
     padding: 10px 12px;
     display: flex;
     flex-direction: column;
     gap: 6px;
-    transition: border-color var(--t-fast);
+    transition: all var(--t-fast);
+    position: relative;
   }
-  .skill-card:hover { border-color: var(--border-mid); }
+  .skill-card::before, .skill-card::after {
+    content: ''; position: absolute;
+    width: 6px; height: 6px; border: 1px solid var(--accent-danger);
+  }
+  .skill-card::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+  .skill-card::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+
+  .skill-card:hover { border-color: var(--accent-danger); background: hsla(0, 100%, 50%, 0.05); }
 
   .skill-top { display: flex; justify-content: space-between; align-items: center; }
   .skill-name { font-weight: 700; font-size: 0.8rem; color: var(--color-text); letter-spacing: 0.04em; }
   .skill-desc { margin: 0; font-size: 0.68rem; color: var(--color-muted); line-height: 1.4; }
 
-  .progress-track { height: 4px; background: var(--panel-inset); border: 1px solid var(--border-subtle); }
-  .progress-fill { height: 100%; background: var(--accent-violet); transition: width var(--t-mid); }
+  .progress-track { height: 6px; background: var(--panel-inset); border: 1px solid var(--border-mid); overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--accent-danger); transition: width var(--t-mid); box-shadow: 0 0 10px var(--accent-danger); }
 
   .frag-row { display: flex; justify-content: space-between; }
 
@@ -156,16 +164,24 @@
     letter-spacing: 0.08em;
     padding: 3px 10px;
     cursor: pointer;
-    transition: border-color var(--t-fast), color var(--t-fast);
+    transition: all var(--t-fast);
+    position: relative;
   }
-  .btn-sm:hover:not(:disabled) { border-color: var(--accent-white); color: var(--accent-white); }
+  .btn-sm::before, .btn-sm::after {
+    content: ''; position: absolute;
+    width: 3px; height: 3px; border: 1px solid var(--accent-danger);
+  }
+  .btn-sm::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+  .btn-sm::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+
+  .btn-sm:hover:not(:disabled) { border-color: var(--accent-danger); color: var(--accent-white); background: hsla(0, 100%, 50%, 0.1); }
   .btn-sm:disabled { opacity: 0.3; cursor: not-allowed; }
 
   .btn-sm.accent-btn {
-    border-color: var(--accent-violet);
-    color: var(--accent-violet);
+    border-color: var(--accent-danger);
+    color: var(--accent-danger);
   }
-  .btn-sm.accent-btn:hover:not(:disabled) { background: rgba(136, 102, 204, 0.1); border-color: var(--accent-violet); color: var(--accent-white); }
+  .btn-sm.accent-btn:hover:not(:disabled) { background: hsla(0, 100%, 50%, 0.15); border-color: var(--accent-danger); color: var(--accent-white); }
 
   .auto-tog { display: flex; align-items: center; gap: 4px; cursor: pointer; font-size: 0.62rem; font-family: var(--font-display); font-weight: 600; letter-spacing: 0.08em; color: var(--color-muted); }
   .auto-tog input { accent-color: var(--accent-violet); }

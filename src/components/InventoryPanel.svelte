@@ -131,7 +131,7 @@
   }
   .sort-btn {
     background: transparent;
-    border: 1px solid transparent;
+    border: 1px solid var(--border-mid);
     color: var(--color-muted);
     font-family: var(--font-display);
     font-size: 0.6rem;
@@ -139,13 +139,21 @@
     letter-spacing: 0.1em;
     padding: 3px 8px;
     cursor: pointer;
-    transition: border-color var(--t-fast), color var(--t-fast);
+    transition: all var(--t-fast);
     display: flex;
     align-items: center;
     gap: 3px;
+    position: relative;
   }
-  .sort-btn.active { border-color: var(--border-mid); color: var(--color-text); }
-  .sort-btn:hover:not(.active) { color: var(--color-text); }
+  .sort-btn::before, .sort-btn::after {
+    content: ''; position: absolute;
+    width: 3px; height: 3px; border: 1px solid var(--accent-danger);
+  }
+  .sort-btn::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+  .sort-btn::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+
+  .sort-btn.active { border-color: var(--accent-danger); color: #fff; background: var(--accent-danger); box-shadow: 0 0 10px hsla(0, 100%, 50%, 0.4); }
+  .sort-btn:hover:not(.active) { color: var(--accent-white); background: hsla(0, 100%, 50%, 0.1); border-color: var(--accent-danger); }
   .sort-arrow { font-size: 0.5rem; }
 
   .empty-state {
@@ -162,17 +170,16 @@
 
   .inv-grid { flex: 1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 10px; overflow-y: auto; }
   .inv-cell {
-    background: var(--panel-bg);
+    background: transparent;
     border: 1px solid var(--border-subtle);
-    border-left: 3px solid var(--border-subtle);
     padding: 10px 6px;
     display: flex;
     flex-direction: column;
     align-items: center;
     position: relative;
-    transition: border-color var(--t-fast);
+    transition: all var(--t-fast);
   }
-  .inv-cell:hover { border-color: var(--accent-white) !important; }
+  .inv-cell:hover { background: hsla(0, 100%, 50%, 0.05); }
 
   .cell-count {
     position: absolute;

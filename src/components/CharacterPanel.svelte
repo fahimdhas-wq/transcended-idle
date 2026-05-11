@@ -133,13 +133,24 @@
 
 /* ── LEVEL BLOCK ────────────────────────────── */
 .level-block {
-  padding: 12px 14px;
-  border-bottom: 1px solid var(--border-subtle);
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--accent-danger);
+  background: transparent;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
   flex-shrink: 0;
+  position: relative;
 }
+.level-block::before, .level-block::after {
+  content: '';
+  position: absolute;
+  width: 15px;
+  height: 15px;
+  border: 2px solid var(--accent-danger);
+}
+.level-block::before { top: 0; left: 0; border-right: none; border-bottom: none; }
+.level-block::after { bottom: 0; right: 0; border-left: none; border-top: none; }
 
 .level-row {
   display: flex;
@@ -155,9 +166,10 @@
 
 .level-num {
   font-family: var(--font-mono);
-  font-size: 1.4rem;
+  font-size: 1.8rem;
   font-weight: 700;
-  color: var(--color-text);
+  color: var(--accent-white);
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
@@ -185,15 +197,16 @@
 /* ── XP BAR ─────────────────────────────────── */
 .xp-block { display: flex; flex-direction: column; gap: 3px; }
 .xp-bar-wrap {
-  height: 4px;
+  height: 6px;
   background: var(--panel-inset);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--border-mid);
   overflow: hidden;
 }
 .xp-bar-fill {
   height: 100%;
   background: var(--accent-warning);
-  transition: width 300ms linear;
+  box-shadow: 0 0 10px var(--accent-warning);
+  transition: width 300ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 .xp-text-row {
   display: flex;
@@ -223,13 +236,14 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 6px 14px;
-  border-left: 2px solid transparent;
-  transition: border-color var(--t-fast), background var(--t-fast);
+  padding: 8px 16px;
+  border: 1px solid transparent;
+  transition: all var(--t-fast);
+  background: transparent;
 }
 .stat-row:hover {
-  border-left-color: var(--border-mid);
-  background: var(--panel-inset);
+  border-color: var(--border-mid);
+  background: hsla(0, 100%, 50%, 0.1);
 }
 
 .s-label {

@@ -8,18 +8,32 @@
 
 /* ── SMOOTH BAR TRANSITIONS ──────────────────── */
 .bar-fill {
-  transition: width 200ms linear;
+  transition: width 300ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ── KILL ALL AMBIENT ANIMATIONS ─────────────── */
-/* Only state-triggered transitions allowed. */
-.glow-pulse          { animation: none !important; }
-.shimmer-effect      { animation: none !important; background: none !important; }
+/* ── AMBIENT ANIMATIONS ──────────────────────── */
+@keyframes pulse-glow {
+  0% { box-shadow: 0 0 5px rgba(0, 240, 255, 0.2); }
+  50% { box-shadow: 0 0 20px rgba(0, 240, 255, 0.6); }
+  100% { box-shadow: 0 0 5px rgba(0, 240, 255, 0.2); }
+}
+
+@keyframes text-glow {
+  0% { text-shadow: 0 0 2px var(--color-text); }
+  50% { text-shadow: 0 0 8px var(--accent-steel), 0 0 12px var(--accent-steel); }
+  100% { text-shadow: 0 0 2px var(--color-text); }
+}
 
 body {
   margin: 0;
   padding: 0;
-  background: var(--bg-dark);
+  background-color: #030508;
+  background-image: 
+    linear-gradient(rgba(0, 240, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 240, 255, 0.04) 1px, transparent 1px),
+    radial-gradient(circle at 50% 0%, rgba(0, 119, 255, 0.15) 0%, transparent 60%);
+  background-size: 40px 40px, 40px 40px, 100% 100%;
+  background-attachment: fixed;
   color: var(--color-text);
   font-family: var(--font-mono);
   font-size: 13px;

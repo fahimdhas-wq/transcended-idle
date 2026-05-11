@@ -54,16 +54,22 @@
   }
   .modal {
     background: var(--panel-bg);
-    border: 1px solid var(--accent-warning);
-    border-left: 3px solid var(--accent-warning);
+    border: 1px solid var(--border-mid);
     padding: 24px;
     width: 300px;
     display: flex;
     flex-direction: column;
     gap: 16px;
+    position: relative;
   }
+  .modal::before, .modal::after {
+    content: ''; position: absolute;
+    width: 10px; height: 10px; border: 2px solid var(--accent-danger);
+  }
+  .modal::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+  .modal::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
   .modal-head { display: flex; align-items: center; gap: 10px; }
-  .modal-icon { font-size: 1.1rem; color: var(--accent-warning); }
+  .modal-icon { font-size: 1.1rem; color: var(--accent-danger); }
   .modal-title {
     font-family: var(--font-display);
     font-size: 0.8rem;
@@ -97,12 +103,20 @@
     border: 1px solid var(--border-mid);
     color: var(--color-muted);
   }
-  .btn-cancel:hover { border-color: var(--accent-white); color: var(--accent-white); }
+  .btn-cancel:hover { border-color: var(--accent-danger); color: var(--accent-white); }
   .btn-confirm {
     background: transparent;
-    border: 1px solid var(--accent-warning);
-    color: var(--accent-warning);
+    border: 1px solid var(--accent-danger);
+    color: var(--accent-danger);
+    position: relative;
   }
-  .btn-confirm:hover { background: rgba(255, 190, 0, 0.1); color: var(--accent-white); border-color: var(--accent-white); }
+  .btn-confirm::before, .btn-confirm::after {
+    content: ''; position: absolute;
+    width: 4px; height: 4px; border: 1px solid var(--accent-danger);
+  }
+  .btn-confirm::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+  .btn-confirm::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+
+  .btn-confirm:hover { background: hsla(0, 100%, 50%, 0.1); color: var(--accent-white); box-shadow: 0 0 10px hsla(0, 100%, 50%, 0.4); }
 </style>
 

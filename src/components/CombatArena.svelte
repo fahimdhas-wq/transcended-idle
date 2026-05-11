@@ -272,18 +272,20 @@ let hpIsLow = $derived(playerHpPct < 25);
 
 .bar-track {
   flex: 1;
-  height: 6px;
+  height: 8px;
   background: var(--panel-inset);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--border-mid);
+  border-radius: 4px;
   overflow: hidden;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);
 }
-.bar-track.bar-thick { height: 12px; }
+.bar-track.bar-thick { height: 14px; }
 
-.bar-fill { height: 100%; transition: width 200ms linear; }
-.bar-fill.hp    { background: var(--accent-danger); }
-.bar-fill.hp.hp-low { background: #661111; }
-.bar-fill.sh    { background: var(--accent-steel); }
-.bar-fill.xp    { background: var(--accent-warning); }
+.bar-fill { height: 100%; transition: width 300ms cubic-bezier(0.4, 0, 0.2, 1); }
+.bar-fill.hp    { background: var(--accent-danger); box-shadow: 0 0 10px var(--accent-danger); }
+.bar-fill.hp.hp-low { background: #880000; animation: pulse-glow 1s infinite; }
+.bar-fill.sh    { background: var(--color-muted); box-shadow: 0 0 10px var(--color-muted); }
+.bar-fill.xp    { background: var(--accent-warning); box-shadow: 0 0 10px var(--accent-warning); }
 
 .bar-num {
   font-family: var(--font-mono);
@@ -330,13 +332,23 @@ let hpIsLow = $derived(playerHpPct < 25);
   max-width: 380px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  background: var(--panel-bg);
+  gap: 12px;
+  background: transparent;
   border: 1px solid var(--border-mid);
-  border-left: 3px solid var(--accent-danger);
-  padding: 14px;
+  padding: 16px;
   position: relative;
 }
+
+/* Bracket corners */
+.enemy-card::before, .enemy-card::after {
+  content: '';
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--accent-danger);
+}
+.enemy-card::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+.enemy-card::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
 
 .enemy-head {
   display: flex;
@@ -380,15 +392,16 @@ let hpIsLow = $derived(playerHpPct < 25);
 }
 
 .enemy-bar-track {
-  height: 8px;
+  height: 6px;
   background: var(--panel-inset);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--border-mid);
   overflow: hidden;
 }
 .enemy-bar-fill {
   height: 100%;
   background: var(--accent-danger);
-  transition: width 150ms linear;
+  box-shadow: 0 0 10px var(--accent-danger);
+  transition: width 200ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .enemy-hp-row {

@@ -154,17 +154,24 @@
 }
 
 .state-card {
-  border: 1px solid var(--border-mid);
-  border-left: 3px solid var(--border-mid);
-  background: var(--panel-inset);
+  border: 1px solid var(--border-subtle);
+  background: transparent;
   padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  position: relative;
 }
-.state-card.optional { border-left-color: var(--accent-steel); }
-.state-card.required { border-left-color: var(--accent-danger); }
-.state-card.locked   { border-left-color: var(--border-mid); }
+.state-card::before, .state-card::after {
+  content: ''; position: absolute;
+  width: 8px; height: 8px; border: 2px solid var(--accent-danger);
+}
+.state-card::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+.state-card::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+
+.state-card.optional { border-color: var(--accent-danger); }
+.state-card.required { border-color: var(--accent-danger); box-shadow: 0 0 15px hsla(0, 100%, 50%, 0.2); }
+.state-card.locked   { border-color: var(--border-mid); }
 
 .state-tag {
   font-family: var(--font-display);
@@ -215,8 +222,9 @@
 }
 .prog-fill {
   height: 100%;
-  background: var(--accent-warning);
+  background: var(--accent-danger);
   transition: width 0.3s linear;
+  box-shadow: 0 0 10px var(--accent-danger);
 }
 .prog-label {
   font-family: var(--font-mono);
@@ -225,7 +233,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* ── OC BUTTONS ─────────────────────────────── */
 .oc-btn {
   width: 100%;
   padding: 12px;
@@ -234,30 +241,36 @@
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  border: 1px solid var(--border-mid);
+  border: 1px solid var(--accent-danger);
   cursor: pointer;
-  transition: background var(--t-fast), border-color var(--t-fast), color var(--t-fast);
+  background: transparent;
+  color: var(--accent-danger);
+  transition: all var(--t-fast);
+  position: relative;
 }
+.oc-btn::before, .oc-btn::after {
+  content: ''; position: absolute;
+  width: 6px; height: 6px; border: 1px solid var(--accent-danger);
+}
+.oc-btn::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+.oc-btn::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
 
 .oc-btn.optional {
-  background: rgba(90,138,170,0.08);
-  border-color: var(--accent-steel);
-  color: var(--accent-steel);
+  background: hsla(0, 100%, 50%, 0.05);
 }
 .oc-btn.optional:hover {
-  background: rgba(90,138,170,0.2);
+  background: hsla(0, 100%, 50%, 0.2);
   color: var(--accent-white);
-  border-color: var(--accent-white);
 }
 
 .oc-btn.required {
   background: var(--accent-danger);
-  border-color: var(--accent-danger);
-  color: var(--accent-white);
+  color: #fff;
+  box-shadow: 0 0 15px hsla(0, 100%, 50%, 0.4);
 }
 .oc-btn.required:hover {
-  background: #cc2222;
-  border-color: #cc2222;
+  background: hsla(0, 100%, 50%, 0.8);
+  color: #fff;
 }
 
 /* ── INFO STRIP ─────────────────────────────── */

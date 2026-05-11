@@ -141,7 +141,7 @@ let isReady = $derived(getEngineState().isReady);
 
   .init-btn {
     background: transparent;
-    border: 2px solid var(--accent-warning);
+    border: 1px solid var(--accent-warning);
     color: var(--accent-warning);
     font-family: var(--font-display);
     font-size: 0.8rem;
@@ -149,12 +149,20 @@ let isReady = $derived(getEngineState().isReady);
     letter-spacing: 0.1em;
     padding: 12px 24px;
     cursor: pointer;
-    transition: background 0.15s, color 0.15s;
+    transition: all var(--t-fast);
+    position: relative;
   }
+  .init-btn::before, .init-btn::after {
+    content: ''; position: absolute;
+    width: 6px; height: 6px; border: 1px solid var(--accent-warning);
+  }
+  .init-btn::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+  .init-btn::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
 
   .init-btn:hover {
-    background: rgba(255, 200, 50, 0.1);
+    background: hsla(45, 100%, 50%, 0.1);
     color: var(--accent-white);
+    box-shadow: 0 0 10px hsla(45, 100%, 50%, 0.4);
   }
 
   .hint {
@@ -194,13 +202,25 @@ let isReady = $derived(getEngineState().isReady);
   }
 
   .stat-card {
-    background: var(--panel-inset);
+    background: transparent;
     border: 1px solid var(--border-subtle);
     padding: 8px;
     display: flex;
     flex-direction: column;
     gap: 2px;
+    position: relative;
+    transition: border-color var(--t-fast);
   }
+  .stat-card::before, .stat-card::after {
+    content: ''; position: absolute;
+    width: 4px; height: 4px; border: 1px solid var(--border-mid);
+    transition: border-color var(--t-fast);
+  }
+  .stat-card::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+  .stat-card::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+  
+  .stat-card:hover { border-color: var(--accent-warning); }
+  .stat-card:hover::before, .stat-card:hover::after { border-color: var(--accent-warning); }
 
   .stat-name {
     font-family: var(--font-display);
