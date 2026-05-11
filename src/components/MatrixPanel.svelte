@@ -88,11 +88,11 @@
     display: flex;
     align-items: center;
     padding: 10px 14px;
-    border-bottom: 1px solid var(--border-subtle);
+    border-bottom: 1px solid var(--line);
     flex-shrink: 0;
   }
   .header-left { display: flex; align-items: center; gap: 10px; }
-  .header-icon { font-size: 1rem; color: var(--accent-steel); }
+  .header-icon { font-size: 1rem; color: var(--cyan); }
   .header-text { display: flex; flex-direction: column; gap: 1px; }
 
   .locked-screen {
@@ -104,26 +104,26 @@
     gap: 6px;
     padding: 20px;
   }
-  .lock-icon { font-size: 2.5rem; color: var(--accent-danger); }
+  .lock-icon { font-size: 2.5rem; color: var(--red); }
   .lock-title {
-    font-family: var(--font-display);
+    font-family: var(--font-hud);
     font-size: 1.1rem;
     font-weight: 700;
     letter-spacing: 0.14em;
-    color: var(--accent-danger);
+    color: var(--red);
     margin: 0;
   }
   .lock-sub {
-    font-family: var(--font-display);
+    font-family: var(--font-hud);
     font-size: 0.65rem;
     font-weight: 600;
     letter-spacing: 0.14em;
-    color: var(--color-muted);
+    color: var(--text-2);
     margin: 0;
   }
   .lock-hint {
     font-size: 0.68rem;
-    color: var(--color-dim);
+    color: var(--text-2);
     margin: 0;
     margin-top: 8px;
     text-align: center;
@@ -133,85 +133,85 @@
 
   .node-card {
     background: transparent;
-    border: 1px solid var(--border-subtle);
+    border: 1px solid var(--line);
     padding: 12px 14px;
     display: flex;
     flex-direction: column;
     gap: 6px;
-    transition: all var(--t-fast);
+    transition: all var(--fast);
     position: relative;
   }
   .node-card::before, .node-card::after {
     content: ''; position: absolute;
-    width: 6px; height: 6px; border: 1px solid var(--accent-danger);
+    width: 6px; height: 6px; border: 1px solid var(--red);
   }
   .node-card::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
   .node-card::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
 
-  .node-card.node-active { border-color: var(--accent-danger); background: hsla(0, 100%, 50%, 0.04); }
-  .node-card:hover { border-color: var(--accent-danger); }
+  .node-card.node-active { border-color: var(--red); background: hsl(0 100% 60% / 0.04); }
+  .node-card:hover { border-color: var(--red); }
 
   .node-header { display: flex; justify-content: space-between; align-items: center; }
   .node-label {
-    font-family: var(--font-display);
+    font-family: var(--font-hud);
     font-size: 0.75rem;
     font-weight: 700;
     letter-spacing: 0.1em;
-    color: var(--accent-steel);
+    color: var(--cyan);
     text-transform: uppercase;
   }
-  .node-desc { font-size: 0.65rem; color: var(--color-muted); margin: 0; line-height: 1.4; }
+  .node-desc { font-size: 0.65rem; color: var(--text-2); margin: 0; line-height: 1.4; }
 
   /* Toggle */
   .toggle { display: inline-block; position: relative; width: 40px; height: 20px; cursor: pointer; }
   .toggle input { opacity: 0; width: 0; height: 0; }
   .toggle-track {
     position: absolute; inset: 0;
-    background: var(--border-mid);
-    transition: background var(--t-mid);
-    border: 1px solid var(--border-mid);
+    background: var(--bg-3);
+    transition: background var(--fast);
+    border: 1px solid var(--line);
   }
   .toggle-thumb {
     position: absolute;
     width: 14px; height: 14px;
-    background: var(--color-dim);
+    background: var(--text-2);
     top: 2px; left: 2px;
-    transition: transform var(--t-mid), background var(--t-mid);
+    transition: transform var(--fast), background var(--fast);
   }
-  .toggle input:checked + .toggle-track { background: var(--accent-danger); box-shadow: 0 0 10px var(--accent-danger); border-color: var(--accent-danger); }
-  .toggle input:checked + .toggle-track .toggle-thumb { transform: translateX(20px); background: var(--accent-white); }
+  .toggle input:checked + .toggle-track { background: var(--red); box-shadow: 0 0 10px var(--red); border-color: var(--red); }
+  .toggle input:checked + .toggle-track .toggle-thumb { transform: translateX(20px); background: var(--text-0); }
 
-  .target-row { display: flex; align-items: center; gap: 8px; margin-top: 4px; background: var(--panel-inset); padding: 8px; }
-  .target-label { font-family: var(--font-display); font-size: 0.6rem; font-weight: 600; letter-spacing: 0.1em; color: var(--color-muted); white-space: nowrap; }
+  .target-row { display: flex; align-items: center; gap: 8px; margin-top: 4px; background: var(--bg-2); padding: 8px; }
+  .target-label { font-family: var(--font-hud); font-size: 0.6rem; font-weight: 600; letter-spacing: 0.1em; color: var(--text-2); white-space: nowrap; }
   .target-input {
     flex: 1;
     background: transparent;
-    border: 1px solid var(--border-mid);
-    color: var(--accent-steel);
-    font-family: var(--font-mono);
+    border: 1px solid var(--line);
+    color: var(--cyan);
+    font-family: var(--font-data);
     font-size: 0.72rem;
     padding: 4px 8px;
     outline: none;
     min-width: 0;
   }
-  .target-input:focus { border-color: var(--accent-steel); }
+  .target-input:focus { border-color: var(--cyan); }
 
   .apply-btn {
     background: transparent;
-    border: 1px solid var(--accent-danger);
-    color: var(--accent-danger);
-    font-family: var(--font-display);
+    border: 1px solid var(--red);
+    color: var(--red);
+    font-family: var(--font-hud);
     font-size: 0.6rem;
     font-weight: 700;
     letter-spacing: 0.1em;
     padding: 5px 12px;
     cursor: pointer;
     white-space: nowrap;
-    transition: all var(--t-fast);
+    transition: all var(--fast);
   }
-  .apply-btn:hover { background: hsla(0, 100%, 50%, 0.15); color: var(--accent-white); box-shadow: 0 0 10px hsla(0, 100%, 50%, 0.4); }
+  .apply-btn:hover { background: hsl(0 100% 60% / 0.15); color: var(--text-0); box-shadow: 0 0 10px hsl(0 100% 60% / 0.4); }
 
-  .val-error { font-size: 0.6rem; color: var(--accent-danger); margin: 0; }
-  .target-current { font-size: 0.6rem; color: var(--color-dim); margin: 0; font-family: var(--font-mono); }
+  .val-error { font-size: 0.6rem; color: var(--red); margin: 0; }
+  .target-current { font-size: 0.6rem; color: var(--text-2); margin: 0; font-family: var(--font-data); }
 </style>
 

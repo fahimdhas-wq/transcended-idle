@@ -61,7 +61,7 @@
     </div>
     <div class="header-right">
       <span class="stat-label">FRAGMENTS</span>
-      <span class="stat-value accent-violet">&#9889; {totalFrags}</span>
+      <span class="stat-value violet">&#9889; {totalFrags}</span>
     </div>
   </div>
 
@@ -79,8 +79,8 @@
           <div class="progress-fill" style:width="{fragPct(skill)}%"></div>
         </div>
         <div class="frag-row">
-          <span class="text-xs color-muted">{formatNumber(skill.fragments)} / {formatNumber(skill.fragmentsNeeded)}</span>
-          <span class="text-xs color-muted">&#8594; {nextTier(skill)} &#183; x{formatNumber(Math.pow(2, skill.tierIndex + 1))} boost</span>
+          <span class="frag-count">{formatNumber(skill.fragments)} / {formatNumber(skill.fragmentsNeeded)}</span>
+          <span class="frag-next">&#8594; {nextTier(skill)} &#183; x{formatNumber(Math.pow(2, skill.tierIndex + 1))} boost</span>
         </div>
 
         <div class="skill-btns">
@@ -103,97 +103,147 @@
 </div>
 
 <style>
-  .skill-panel { display: flex; flex-direction: column; height: 100%; }
+.skill-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
 
-  .panel-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px 14px;
-    border-bottom: 1px solid var(--border-subtle);
-    flex-shrink: 0;
-  }
-  .header-left { display: flex; align-items: center; gap: 10px; }
-  .header-icon { font-size: 1rem; color: var(--accent-violet); }
-  .header-text { display: flex; flex-direction: column; gap: 1px; }
-  .header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.header-left { display: flex; align-items: center; gap: 10px; }
+.header-icon { font-size: 1rem; color: var(--purple); }
+.header-text { display: flex; flex-direction: column; gap: 1px; }
+.header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+.stat-label { font-family: var(--font-hud); font-size: 0.5rem; font-weight: 600; letter-spacing: 0.12em; color: var(--text-2); text-transform: uppercase; }
+.stat-value { font-family: var(--font-data); font-size: 0.8rem; font-weight: 700; }
+.violet { color: var(--purple); }
 
-  .stat-label { font-family: var(--font-display); font-size: 0.56rem; font-weight: 600; letter-spacing: 0.14em; color: var(--color-muted); text-transform: uppercase; }
-  .stat-value { font-family: var(--font-mono); font-size: 0.82rem; font-weight: 700; }
-  .accent-violet { color: var(--accent-violet); }
+.skills-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
 
-  .skills-list { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+.skill-card {
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: all var(--fast);
+}
+.skill-card:hover {
+  border-color: var(--cyan-bright);
+  background: hsl(185 100% 55% / 0.04);
+}
 
-  .skill-card {
-    background: transparent;
-    border: 1px solid var(--border-subtle);
-    padding: 10px 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    transition: all var(--t-fast);
-    position: relative;
-  }
-  .skill-card::before, .skill-card::after {
-    content: ''; position: absolute;
-    width: 6px; height: 6px; border: 1px solid var(--accent-danger);
-  }
-  .skill-card::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
-  .skill-card::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+.skill-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.skill-name {
+  font-family: var(--font-hud);
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: var(--text-0);
+  letter-spacing: 0.04em;
+}
+.skill-desc {
+  margin: 0;
+  font-size: 0.65rem;
+  color: var(--text-2);
+  line-height: 1.4;
+}
 
-  .skill-card:hover { border-color: var(--accent-danger); background: hsla(0, 100%, 50%, 0.05); }
+.progress-track {
+  height: 6px;
+  background: hsl(0 0% 0% / 0.4);
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--purple), hsl(270 100% 75%));
+  transition: width var(--fast);
+}
 
-  .skill-top { display: flex; justify-content: space-between; align-items: center; }
-  .skill-name { font-weight: 700; font-size: 0.8rem; color: var(--color-text); letter-spacing: 0.04em; }
-  .skill-desc { margin: 0; font-size: 0.68rem; color: var(--color-muted); line-height: 1.4; }
+.frag-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.6rem;
+}
+.frag-count { color: var(--text-1); font-family: var(--font-data); }
+.frag-next { color: var(--text-2); font-family: var(--font-data); }
 
-  .progress-track { height: 6px; background: var(--panel-inset); border: 1px solid var(--border-mid); overflow: hidden; }
-  .progress-fill { height: 100%; background: var(--accent-danger); transition: width var(--t-mid); box-shadow: 0 0 10px var(--accent-danger); }
+.skill-btns {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  flex-wrap: wrap;
+}
 
-  .frag-row { display: flex; justify-content: space-between; }
+.btn-sm {
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  color: var(--text-1);
+  font-family: var(--font-hud);
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: all var(--fast);
+}
+.btn-sm:hover:not(:disabled) {
+  border-color: var(--cyan);
+  color: var(--cyan);
+}
+.btn-sm:disabled { opacity: 0.3; cursor: not-allowed; }
 
-  .skill-btns { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+.btn-sm.accent-btn {
+  border-color: var(--purple);
+  color: var(--purple);
+}
+.btn-sm.accent-btn:hover:not(:disabled) {
+  background: hsl(270 100% 65% / 0.15);
+  border-color: var(--purple);
+  color: var(--text-0);
+}
 
-  .btn-sm {
-    background: transparent;
-    border: 1px solid var(--border-mid);
-    color: var(--color-muted);
-    font-family: var(--font-display);
-    font-size: 0.62rem;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    padding: 3px 10px;
-    cursor: pointer;
-    transition: all var(--t-fast);
-    position: relative;
-  }
-  .btn-sm::before, .btn-sm::after {
-    content: ''; position: absolute;
-    width: 3px; height: 3px; border: 1px solid var(--accent-danger);
-  }
-  .btn-sm::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
-  .btn-sm::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+.auto-tog {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  font-size: 0.6rem;
+  font-family: var(--font-hud);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--text-2);
+  margin-left: 8px;
+}
+.auto-tog input { accent-color: var(--purple); }
 
-  .btn-sm:hover:not(:disabled) { border-color: var(--accent-danger); color: var(--accent-white); background: hsla(0, 100%, 50%, 0.1); }
-  .btn-sm:disabled { opacity: 0.3; cursor: not-allowed; }
-
-  .btn-sm.accent-btn {
-    border-color: var(--accent-danger);
-    color: var(--accent-danger);
-  }
-  .btn-sm.accent-btn:hover:not(:disabled) { background: hsla(0, 100%, 50%, 0.15); border-color: var(--accent-danger); color: var(--accent-white); }
-
-  .auto-tog { display: flex; align-items: center; gap: 4px; cursor: pointer; font-size: 0.62rem; font-family: var(--font-display); font-weight: 600; letter-spacing: 0.08em; color: var(--color-muted); }
-  .auto-tog input { accent-color: var(--accent-violet); }
-
-  .locked-label {
-    font-family: var(--font-display);
-    font-size: 0.56rem;
-    font-weight: 600;
-    letter-spacing: 0.1em;
-    color: var(--color-dim);
-    border: 1px solid var(--border-subtle);
-    padding: 3px 8px;
-  }
+.locked-label {
+  font-family: var(--font-hud);
+  font-size: 0.55rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--text-2);
+  border: 1px solid var(--line);
+  padding: 4px 8px;
+  margin-left: 8px;
+}
 </style>
-

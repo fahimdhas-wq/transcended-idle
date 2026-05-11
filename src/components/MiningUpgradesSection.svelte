@@ -101,8 +101,8 @@ const UPGRADE_DEFS: Array<{ key: MiningUpgradeType; label: string; cap?: number 
 
 
   .cap-badge {
-    font-size:0.6rem; color:var(--accent-warning); font-family:var(--font-display); font-weight:700; letter-spacing:0.08em;
-    padding:4px 8px; border:1px solid var(--accent-warning);
+    font-size:0.6rem; color:var(--red); font-family:var(--font-hud); font-weight:700; letter-spacing:0.08em;
+    padding:4px 8px; border:1px solid var(--red);
     background:transparent;
   }
 </style>

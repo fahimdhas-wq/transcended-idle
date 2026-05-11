@@ -67,15 +67,18 @@
 </script>
 
 <div class="shell">
-
   <!-- TOP BAR -->
   <header class="top-bar">
     <div class="top-bar-left">
-      <span class="wordmark">TRANSCENDED</span>
-      <span class="version">V2.0</span>
+      <span class="logo">
+        <span class="logo-bracket">[</span>
+        TRANSCENDED
+        <span class="logo-bracket">]</span>
+      </span>
+      <span class="version">v2.0</span>
     </div>
 
-    <div class="tab-nav" role="tablist">
+    <nav class="tab-nav" role="tablist" aria-label="Main navigation">
       {#each tabs as t (t)}
         {#if isTabUnlocked(t)}
           <button
@@ -83,42 +86,38 @@
             aria-selected={t === activeTab}
             class="tab-btn"
             class:active={t === activeTab}
-            class:new-tab={newlyUnlocked.has(t)}
             class:desktop-hide={t === 'COMBAT'}
-            onclick={() => { activeTab = t; newlyUnlocked.delete(t); }}
+            onclick={() => { activeTab = t; }}
           >
-            {t}
-            {#if newlyUnlocked.has(t)}<span class="new-dot" aria-hidden="true"></span>{/if}
+            <span class="tab-text">{t}</span>
+            <span class="tab-line"></span>
           </button>
         {/if}
       {/each}
-    </div>
+    </nav>
 
     <div class="top-bar-right">
-      <span class="status-dot"></span>
-      <span class="status-label">ONLINE</span>
+      <span class="status-indicator"></span>
+      <span class="status-text">SYS.ONLINE</span>
     </div>
   </header>
 
   <!-- BODY -->
   <div class="body-split">
-
-    <!-- LEFT: combat + log (always visible on desktop) -->
     <aside class="left-pane" class:mobile-hidden={activeTab !== 'COMBAT'}>
-      <div class="combat-block">
+      <div class="combat-block panel">
         <CombatArena />
       </div>
-      <div class="log-block">
+      <div class="log-block panel">
         <LogPanel />
       </div>
     </aside>
 
-    <!-- RIGHT: panel area -->
     <main class="right-pane" class:mobile-hidden={activeTab === 'COMBAT'}>
       <div class="panel-area">
         {#each tabs as t}
           {#if isTabUnlocked(t) && t !== 'COMBAT'}
-            <div class="panel-slot" class:active={t === activeTab}>
+            <div class="panel-slot panel" class:active={t === activeTab}>
               {#if componentMap[t]}
                 {@const C = componentMap[t]}
                 <C />
@@ -128,7 +127,6 @@
         {/each}
       </div>
     </main>
-
   </div>
 </div>
 
@@ -136,213 +134,221 @@
 <OfflineModal />
 
 <style>
-/* ── SHELL ──────────────────────────────────── */
-:global(body) {
-  margin: 0; padding: 0;
-  background: var(--bg-dark);
-  overflow: hidden;
-}
-
 .shell {
   display: flex;
   flex-direction: column;
   height: 100vh;
   width: 100vw;
-  background: var(--bg-dark);
+  background: var(--bg-void);
 }
 
-/* ── TOP BAR ────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════
+   TOP BAR — Command Bar
+══════════════════════════════════════════════════════════════════ */
+
 .top-bar {
   display: flex;
   align-items: center;
-  height: 60px;
+  height: 56px;
+  padding: 0 16px;
+  background: linear-gradient(180deg, var(--bg-2) 0%, var(--bg-1) 100%);
+  border-bottom: 1px solid var(--line);
   flex-shrink: 0;
-  padding: 0 20px;
-  background: var(--bg-dark);
-  border-bottom: 2px solid var(--accent-danger);
-  box-shadow: 0 4px 15px hsla(0, 100%, 50%, 0.1), inset 0 -2px 10px hsla(0, 100%, 50%, 0.05);
-  gap: 0;
   position: relative;
-  z-index: 10;
 }
-/* Top decorative hardware lines */
-.top-bar::before {
+
+/* Glowing bottom line */
+.top-bar::after {
   content: '';
   position: absolute;
-  top: 0; left: 0; right: 0; height: 3px;
-  background: repeating-linear-gradient(90deg, transparent, transparent 10px, var(--border-mid) 10px, var(--border-mid) 12px);
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    var(--cyan) 20%,
+    var(--cyan) 80%,
+    transparent 100%
+  );
+  box-shadow: 0 0 10px var(--cyan);
 }
 
+/* LEFT */
 .top-bar-left {
   display: flex;
-  align-items: baseline;
-  gap: 8px;
+  align-items: center;
+  gap: 10px;
   flex: 0 0 auto;
-  padding-right: 20px;
-  border-right: 1px solid var(--border-subtle);
-  margin-right: 0;
+  padding-right: 16px;
+  border-right: 1px solid var(--line);
 }
 
-.wordmark {
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 1.25rem;
-  letter-spacing: 0.25em;
-  text-transform: uppercase;
-  color: var(--accent-white);
-  text-shadow: 0 0 10px rgba(255, 255, 255, 0.4);
-  position: relative;
-}
-.wordmark::after {
-  content: ' ///';
-  color: var(--accent-danger);
-  font-style: italic;
+.logo {
+  font-family: var(--font-hud);
+  font-size: 1rem;
   font-weight: 900;
-  text-shadow: 0 0 8px var(--accent-danger);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-0);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.logo-bracket {
+  color: var(--cyan);
+  text-shadow: 0 0 8px var(--cyan);
 }
 
 .version {
-  font-family: var(--font-mono);
-  font-size: 0.56rem;
-  color: var(--color-muted);
-  letter-spacing: 0.06em;
+  font-family: var(--font-data);
+  font-size: 0.5rem;
+  color: var(--text-2);
+  padding: 2px 6px;
+  background: var(--bg-0);
+  border: 1px solid var(--line);
+  border-radius: 2px;
 }
 
-/* ── TAB NAV ────────────────────────────────── */
+/* TAB NAV */
 .tab-nav {
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
   overflow-x: auto;
   scrollbar-width: none;
   height: 100%;
   padding: 0 16px;
 }
+
 .tab-nav::-webkit-scrollbar { display: none; }
 
 .tab-btn {
-  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
   background: transparent;
-  border: 1px solid transparent;
-  color: var(--color-muted);
-  font-family: var(--font-display);
-  font-size: 0.75rem;
-  font-weight: 800;
-  letter-spacing: 0.2em;
+  border: none;
+  border-radius: 0;
+  color: var(--text-2);
+  font-family: var(--font-hud);
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  padding: 0 24px;
+  padding: 8px 14px;
   cursor: pointer;
-  height: 36px;
-  line-height: 34px;
+  height: 100%;
   white-space: nowrap;
   flex-shrink: 0;
-  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all var(--fast);
+  position: relative;
 }
-.tab-btn::before, .tab-btn::after {
-  content: ''; position: absolute;
-  width: 6px; height: 6px; border: 1px solid var(--border-mid);
-  transition: border-color var(--t-fast);
+
+.tab-text {
+  position: relative;
+  z-index: 1;
 }
-.tab-btn::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
-.tab-btn::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+
+.tab-line {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 2px;
+  background: var(--cyan);
+  box-shadow: 0 0 8px var(--cyan);
+  transition: width var(--fast);
+}
 
 .tab-btn:hover {
-  background: hsla(0, 100%, 50%, 0.15);
-  color: var(--accent-white);
-  border-color: transparent;
+  color: var(--text-0);
 }
-.tab-btn:hover::before, .tab-btn:hover::after { border-color: var(--accent-danger); }
 
 .tab-btn.active {
-  color: #fff;
-  background: hsla(0, 100%, 50%, 0.15);
-  border-color: var(--accent-danger);
-  box-shadow: 0 0 15px hsla(0, 100%, 50%, 0.4);
-}
-.tab-btn.active::before, .tab-btn.active::after { border-color: var(--accent-danger); }
-
-.tab-btn.new-tab {
-  color: var(--accent-danger);
-  border-bottom-color: var(--accent-danger);
-  animation: pulse-glow 2s infinite;
+  color: var(--cyan);
+  background: linear-gradient(180deg, transparent, hsl(185 100% 55% / 0.08));
 }
 
-.new-dot {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 6px;
-  height: 6px;
-  border-radius: 0; /* Square for hardware look */
-  background: var(--accent-danger);
-  box-shadow: 0 0 6px var(--accent-danger);
+.tab-btn.active .tab-line {
+  width: 80%;
 }
 
+/* RIGHT */
 .top-bar-right {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   padding-left: 16px;
-  border-left: 1px solid var(--border-subtle);
-  margin-left: 0;
+  border-left: 1px solid var(--line);
 }
 
-.status-dot {
+.status-indicator {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--accent-green);
-  box-shadow: 0 0 8px var(--accent-green);
-  animation: pulse-glow 3s infinite;
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+  animation: pulse 2s ease-in-out infinite;
 }
 
-.status-label {
-  font-family: var(--font-display);
-  font-size: 0.58rem;
+@keyframes pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 8px var(--green); }
+  50% { opacity: 0.7; box-shadow: 0 0 4px var(--green); }
+}
+
+.status-text {
+  font-family: var(--font-hud);
+  font-size: 0.5rem;
   font-weight: 600;
-  letter-spacing: 0.12em;
-  color: var(--color-muted);
+  letter-spacing: 0.15em;
+  color: var(--text-2);
+  text-transform: uppercase;
 }
 
-/* ── BODY SPLIT ─────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════
+   BODY
+══════════════════════════════════════════════════════════════════ */
+
 .body-split {
   flex: 1;
   display: flex;
   min-height: 0;
 }
 
-/* ── LEFT PANE ──────────────────────────────── */
+/* LEFT PANE */
 .left-pane {
-  flex: 0 0 420px;
+  flex: 0 0 380px;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid var(--border-subtle);
+  padding: 12px;
+  gap: 12px;
   min-height: 0;
 }
 
 .combat-block {
   flex: 1;
   min-height: 0;
-  overflow: hidden;
   display: flex;
   flex-direction: column;
 }
 
 .log-block {
-  flex: 0 0 140px;
-  border-top: 1px solid var(--border-subtle);
-  padding: 8px 12px;
-  overflow: hidden;
+  flex: 0 0 150px;
 }
 
-/* ── RIGHT PANE ─────────────────────────────── */
+/* RIGHT PANE */
 .right-pane {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
+  padding: 12px 12px 12px 0;
 }
 
 .panel-area {
@@ -357,17 +363,19 @@
   display: none;
   flex-direction: column;
   overflow-y: auto;
-  padding: 14px;
 }
 
 .panel-slot.active {
   display: flex;
 }
 
-/* ── MOBILE ─────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════
+   MOBILE
+══════════════════════════════════════════════════════════════════ */
+
 @media (max-width: 900px) {
   .body-split { flex-direction: column; }
-  .left-pane  { flex: 1; border-right: none; border-bottom: 1px solid var(--border-subtle); }
+  .left-pane { flex: 1; border-right: none; border-bottom: 1px solid var(--line); }
   .right-pane { flex: 1; }
   .desktop-hide { display: block !important; }
   .mobile-hidden { display: none !important; }
@@ -377,4 +385,3 @@
   .desktop-hide { display: none !important; }
 }
 </style>
-

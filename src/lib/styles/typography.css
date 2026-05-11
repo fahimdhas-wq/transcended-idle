@@ -1,46 +1,22 @@
-
-/* Typography system */
-
-/* Base typography */
+/* Typography */
 body {
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
   font-size: 13px;
   line-height: 1.5;
-  color: var(--color-text);
+  color: var(--text-0);
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Headings */
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-display);
+  font-family: var(--font-hud);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  color: var(--text-0);
 }
 
-/* Monospace elements */
-code, pre, kbd {
-  font-family: var(--font-mono);
-  font-size: 0.9em;
-}
-
-/* Small text */
-small, .small {
-  font-size: 0.85em;
-}
-
-/* Strong */
-strong, b {
-  font-weight: 700;
-}
-
-/* Links */
-a {
-  color: var(--accent-steel);
-  transition: color var(--t-fast);
-}
-
-a:hover {
-  color: var(--accent-white);
-}
+code, pre { font-family: var(--font-data); font-size: 0.9em; }
+small, .small { font-size: 0.85em; color: var(--text-1); }
+strong, b { font-weight: 700; }
+a { color: var(--cyan); transition: color var(--fast); }
+a:hover { color: var(--text-0); }

@@ -13,7 +13,6 @@ export interface CharacterStats {
   critChance: number;
   skipDamageChance: number;
   quality: number;
-  awakeningPower: number;
 }
 
 export interface OfflineSettings {
@@ -37,7 +36,6 @@ export interface Character {
   xpNeeded: Decimal;
   momentum: number;
   overcharge: number;
-  awakeningStage: number;
   skillFragments: Decimal;
   kills: Decimal;
   seals: number;
@@ -48,6 +46,10 @@ export interface Character {
   quality: number;
   statsUnlocked: boolean;
   offlineSettings: OfflineSettings;
+  firstLoginTime: number;
+  lastLoginTime: number;
+  dailyLogins: number;
+  totalPlayTime: number;
 }
 
 const INITIAL_STATS: CharacterStats = {
@@ -60,8 +62,7 @@ const INITIAL_STATS: CharacterStats = {
   regenDef: new Decimal(10),
   critChance: 0.01,
   skipDamageChance: 0,
-  quality: 0,
-  awakeningPower: 0
+  quality: 0
 };
 
 export const XP_COST_EXP_BASE = 1.15;
@@ -90,7 +91,6 @@ export const character: Character = $state({
   xpNeeded: new Decimal(100),
   momentum: 0,
   overcharge: 0,
-  awakeningStage: 0,
   skillFragments: new Decimal(0),
   kills: new Decimal(0),
   seals: 0,
@@ -104,7 +104,11 @@ export const character: Character = $state({
     efficiency: 1.0,
     maxSeconds: 2592000,
     lastSummary: null
-  }
+  },
+  firstLoginTime: 0,
+  lastLoginTime: 0,
+  dailyLogins: 0,
+  totalPlayTime: 0
 });
 
 export function safeKills(): number {
@@ -151,7 +155,6 @@ export function resetCharacter(): void {
   character.totalXp = new Decimal(0);
   character.momentum = 0;
   character.overcharge = 0;
-  character.awakeningStage = 0;
   character.skillFragments = new Decimal(0);
   character.statsUnlocked = false;
   updateDerivedStats();

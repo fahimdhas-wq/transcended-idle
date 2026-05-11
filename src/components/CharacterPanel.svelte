@@ -26,19 +26,19 @@
 
 <div class="char-panel">
 
-  <div class="premium-header">
-    <div class="header-main">
-      <div class="header-icon">⬡</div>
-      <div class="header-title-box">
+  <div class="panel-header">
+    <div class="header-left">
+      <div class="header-icon">&#11043;</div>
+      <div class="header-text">
         <h2 class="transcended-text">SYS.IDENTITY</h2>
-        <div class="header-subtitle">CORE CHARACTER DATA</div>
+        <span class="transcended-sub">CORE CHARACTER DATA</span>
       </div>
     </div>
     {#if bestiaryState.cachedBoost > 0}
       <div class="header-stats">
-        <div class="header-stat-box">
+        <div class="stat-item">
           <span class="stat-label">COMBAT SYNC</span>
-          <span class="stat-value" style="color: var(--accent-green);">+{(bestiaryState.cachedBoost * 100).toFixed(0)}%</span>
+          <span class="stat-value green">+{(bestiaryState.cachedBoost * 100).toFixed(0)}%</span>
         </div>
       </div>
     {/if}
@@ -131,10 +131,29 @@
   height: 100%;
 }
 
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.header-left { display: flex; align-items: center; gap: 10px; }
+.header-icon { font-size: 1rem; color: var(--cyan); }
+.header-text { display: flex; flex-direction: column; gap: 1px; }
+.header-stats { display: flex; gap: 16px; }
+.stat-item { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+.stat-label { font-family: var(--font-hud); font-size: 0.5rem; font-weight: 600; letter-spacing: 0.12em; color: var(--text-2); text-transform: uppercase; }
+.stat-value { font-family: var(--font-data); font-size: 0.8rem; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text-0); }
+.green { color: var(--green); }
+
 /* ── LEVEL BLOCK ────────────────────────────── */
 .level-block {
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--accent-danger);
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
   background: transparent;
   display: flex;
   flex-direction: column;
@@ -142,20 +161,11 @@
   flex-shrink: 0;
   position: relative;
 }
-.level-block::before, .level-block::after {
-  content: '';
-  position: absolute;
-  width: 15px;
-  height: 15px;
-  border: 2px solid var(--accent-danger);
-}
-.level-block::before { top: 0; left: 0; border-right: none; border-bottom: none; }
-.level-block::after { bottom: 0; right: 0; border-left: none; border-top: none; }
 
 .level-row {
   display: flex;
   align-items: flex-start;
-  gap: 24px;
+  gap: 20px;
 }
 
 .level-info, .tier-info {
@@ -165,30 +175,30 @@
 }
 
 .level-num {
-  font-family: var(--font-mono);
+  font-family: var(--font-data);
   font-size: 1.8rem;
   font-weight: 700;
-  color: var(--accent-white);
-  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+  color: var(--text-0);
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
+
 .level-label {
-  font-family: var(--font-display);
-  font-size: 0.54rem;
+  font-family: var(--font-hud);
+  font-size: 0.5rem;
   font-weight: 600;
-  letter-spacing: 0.14em;
-  color: var(--color-muted);
+  letter-spacing: 0.15em;
+  color: var(--text-2);
   text-transform: uppercase;
 }
 
 .tier-info { justify-content: center; }
 .tier-label {
-  font-family: var(--font-display);
-  font-size: 0.54rem;
+  font-family: var(--font-hud);
+  font-size: 0.5rem;
   font-weight: 600;
-  letter-spacing: 0.14em;
-  color: var(--color-muted);
+  letter-spacing: 0.15em;
+  color: var(--text-2);
   text-transform: uppercase;
   margin-top: 3px;
   text-align: center;
@@ -198,15 +208,14 @@
 .xp-block { display: flex; flex-direction: column; gap: 3px; }
 .xp-bar-wrap {
   height: 6px;
-  background: var(--panel-inset);
-  border: 1px solid var(--border-mid);
+  background: hsl(0 0% 0% / 0.4);
+  border: 1px solid var(--line);
   overflow: hidden;
 }
 .xp-bar-fill {
   height: 100%;
-  background: var(--accent-warning);
-  box-shadow: 0 0 10px var(--accent-warning);
-  transition: width 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  background: linear-gradient(90deg, var(--gold), hsl(45 100% 70%));
+  transition: width 200ms ease;
 }
 .xp-text-row {
   display: flex;
@@ -214,15 +223,15 @@
   gap: 3px;
 }
 .xp-val {
-  font-family: var(--font-mono);
-  font-size: 0.62rem;
-  color: var(--color-text);
+  font-family: var(--font-data);
+  font-size: 0.65rem;
+  color: var(--text-0);
   font-variant-numeric: tabular-nums;
 }
-.xp-val.muted { color: var(--color-muted); }
-.xp-sep { color: var(--color-dim); font-size: 0.62rem; }
+.xp-val.muted { color: var(--text-2); }
+.xp-sep { color: var(--text-2); font-size: 0.65rem; }
 
-/* ── STAT LIST ──────────────────────────────── */
+/* ── STAT LIST ─────────────────────────────── */
 .stat-list {
   flex: 1;
   overflow-y: auto;
@@ -236,42 +245,42 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 16px;
+  padding: 8px 14px;
   border: 1px solid transparent;
-  transition: all var(--t-fast);
+  transition: all var(--fast);
   background: transparent;
 }
 .stat-row:hover {
-  border-color: var(--border-mid);
-  background: hsla(0, 100%, 50%, 0.1);
+  border-color: var(--line);
+  background: hsl(185 100% 55% / 0.04);
 }
 
 .s-label {
-  font-family: var(--font-display);
-  font-size: 0.62rem;
+  font-family: var(--font-hud);
+  font-size: 0.55rem;
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--color-muted);
+  color: var(--text-1);
 }
 
 .s-val {
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
+  font-family: var(--font-data);
+  font-size: 0.7rem;
   font-weight: 500;
-  color: var(--color-text);
+  color: var(--text-0);
   font-variant-numeric: tabular-nums;
 }
-.s-val.danger { color: var(--accent-danger); }
-.s-val.steel  { color: var(--accent-steel); }
-.s-val.violet { color: var(--accent-violet); }
-.s-sep { color: var(--color-dim); margin: 0 2px; }
-.s-max { color: var(--color-muted); }
+.s-val.danger { color: var(--red); }
+.s-val.steel  { color: var(--cyan); }
+.s-val.violet { color: var(--purple); }
+.s-sep { color: var(--text-2); margin: 0 2px; }
+.s-max { color: var(--text-2); }
 
 /* ── FOOTER ───────────────────────── */
 .awakening-block {
-  padding: 10px 14px;
-  border-top: 1px solid var(--border-subtle);
+  padding: 8px 14px;
+  border-top: 1px solid var(--line);
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -279,12 +288,11 @@
 }
 
 .crit-warning {
-  font-family: var(--font-display);
-  font-size: 0.62rem;
+  font-family: var(--font-hud);
+  font-size: 0.6rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--accent-danger);
+  color: var(--red);
 }
 </style>
-

@@ -10,7 +10,10 @@
       "Bash(echo \"EXIT: $?\")",
       "Bash(npm run *)",
       "Bash(npx svelte-check *)",
-      "Bash(npm ls *)"
+      "Bash(npm ls *)",
+      "Bash(git ls-tree *)",
+      "Bash(grep -v \":0$\")",
+      "Bash(grep -rn \"^\\\\s*//.*console\\\\.\\\\|console\\\\.log\\\\|console\\\\.warn\\\\|console\\\\.error\" src/ --include=\"*.ts\" --include=\"*.svelte\")"
     ]
   }
 }

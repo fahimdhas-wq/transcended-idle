@@ -1,19 +1,38 @@
-
 <!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#000000" />
-    <meta name="description" content="TRANSCENDED — a cyberpunk idle RPG. Fight, mine, evolve." />
+    <meta name="theme-color" content="#0a0d14" />
+    <meta name="description" content="TRANSCENDED — a cyberpunk idle RPG. Fight, mine, evolve beyond limits." />
     <meta property="og:title" content="TRANSCENDED" />
     <meta property="og:description" content="A cyberpunk idle RPG. Fight, mine, evolve beyond limits." />
+
+    <!-- Preconnect for fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <!-- Font imports for cyberpunk typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@400;600;700;800;900&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
     <title>TRANSCENDED</title>
+
+    <!-- Inline critical styles for instant visual feedback -->
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        background: #0a0d14;
+        color: #f0f0f0;
+        font-family: 'Inter', system-ui, sans-serif;
+      }
+      /* Prevent flash of unstyled content */
+      #app { min-height: 100vh; }
+    </style>
   </head>
   <body>
     <div id="app"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
-

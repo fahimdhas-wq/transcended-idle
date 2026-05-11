@@ -56,7 +56,7 @@ export const skillsState: SkillsState = $state({
     {
       id: 'emp_strike',
       name: 'EMP Strike',
-      description: 'Unleashes a focused electromagnetic burst dealing 3x ATK bonus damage. Scales multiplicatively with tier.',
+      description: 'Unleashes a focused electromagnetic burst. Deals 3x ATK base damage, scaling by +50% per tier (Tier 1: 3x, Tier 10: 18x, Tier 50: 127.5x).',
       tierIndex: 0,
       fragments: new Decimal(0),
       fragmentsNeeded: new Decimal(30),
@@ -67,7 +67,7 @@ export const skillsState: SkillsState = $state({
     {
       id: 'overclock',
       name: 'Overclock',
-      description: 'Overclocks your neural processor, granting a massive multiplier to all damage output per tier.',
+      description: 'Overclocks your neural processor. Grants +25% damage multiplier per tier to all attacks (Tier 10: 2.5x total, Tier 50: 12.5x total).',
       tierIndex: 0,
       fragments: new Decimal(0),
       fragmentsNeeded: new Decimal(50),
@@ -78,7 +78,7 @@ export const skillsState: SkillsState = $state({
     {
       id: 'nano_repair',
       name: 'Nano Repair',
-      description: 'Deploys nanobots to instantly restore 20% of max HP and Shield. Heals more at higher tiers.',
+      description: 'Deploys nanobots to restore 20% max HP and Shield instantly. Heals an additional +5% per tier (Tier 10: 70% combined, Tier 50: 270% combined).',
       tierIndex: 0,
       fragments: new Decimal(0),
       fragmentsNeeded: new Decimal(60),
@@ -89,7 +89,7 @@ export const skillsState: SkillsState = $state({
     {
       id: 'chain_hack',
       name: 'Chain Hack',
-      description: "Infects the enemy's core code, dealing 2x ATK as poison damage every tick for 3 ticks.",
+      description: "Infects the enemy's core code with poison. Deals 2x ATK base damage per tick, scaling by +30% per tier. Starts at 3 ticks, gains +1 tick every 5 tiers.",
       tierIndex: 0,
       fragments: new Decimal(0),
       fragmentsNeeded: new Decimal(80),
@@ -102,7 +102,7 @@ export const skillsState: SkillsState = $state({
     {
       id: 'shield_surge',
       name: 'Shield Surge',
-      description: 'Surges excess energy into your shield matrix, regenerating 30% max Shield instantly and permanently boosting Skip Damage chance by 1% per tier.',
+      description: 'Surges excess energy into your shield matrix, regenerating 30% max Shield instantly. Gains +3% Skip Damage chance per tier (Tier 10: 60% skip, Tier 50: 180% skip).',
       tierIndex: 0,
       fragments: new Decimal(0),
       fragmentsNeeded: new Decimal(40),
@@ -113,7 +113,7 @@ export const skillsState: SkillsState = $state({
     {
       id: 'data_siphon',
       name: 'Data Siphon',
-      description: 'Siphons data from the enemy. Each activation grants 5x normal Skill Fragments.',
+      description: 'Siphons data from the enemy. Grants 5x base Skill Fragments, with +1x bonus per tier (Tier 10: 15x, Tier 50: 55x fragments).',
       tierIndex: 0,
       fragments: new Decimal(0),
       fragmentsNeeded: new Decimal(100),
@@ -124,7 +124,7 @@ export const skillsState: SkillsState = $state({
     {
       id: 'xp_boost',
       name: 'Neural Learning',
-      description: 'Passively increases XP gained from all sources by 20% per tier.',
+      description: 'Passively increases XP gained from all sources by 20% per tier (Tier 10: 2x XP, Tier 50: 10x XP, Tier 100: 20x XP).',
       tierIndex: 0,
       fragments: new Decimal(0),
       fragmentsNeeded: new Decimal(120),
@@ -135,7 +135,7 @@ export const skillsState: SkillsState = $state({
     {
       id: 'cleave',
       name: 'System Wipe',
-      description: 'Passively grants a chance to instantly kill +1 additional enemy per tier when you get a kill.',
+      description: 'Passively grants a chance to instantly kill +100 additional enemies per tier when you get a kill.',
       tierIndex: 0,
       fragments: new Decimal(0),
       fragmentsNeeded: new Decimal(150),
@@ -146,7 +146,7 @@ export const skillsState: SkillsState = $state({
     {
       id: 'loot_boost',
       name: 'Deep Scan',
-      description: 'Passively increases drop rates and rarity chances of loot by 10% per tier.',
+      description: 'Passively increases drop rates and rarity chances by 10% per tier (Tier 10: 100% bonus, Tier 50: 500% bonus). Higher tiers unlock rare item drops.',
       tierIndex: 0,
       fragments: new Decimal(0),
       fragmentsNeeded: new Decimal(180),
@@ -157,7 +157,7 @@ export const skillsState: SkillsState = $state({
     {
       id: 'crit_surge',
       name: 'Crit Surge',
-      description: 'Permanently increases Critical Damage Multiplier by 0.5x per tier.',
+      description: 'Permanently increases Critical Damage Multiplier by 0.5x per tier (Tier 10: 5x crits, Tier 50: 25x crits, Tier 100: 50x crits). Base crit damage is 2x.',
       tierIndex: 0,
       fragments: new Decimal(0),
       fragmentsNeeded: new Decimal(250),
@@ -168,7 +168,7 @@ export const skillsState: SkillsState = $state({
     {
       id: 'omni_stat',
       name: 'God Mode',
-      description: 'Permanently multiplies ALL stats (HP, ATK, DEF, Regen) by 1.2x per tier. Extremely expensive to upgrade.',
+      description: 'Permanently multiplies ALL stats (HP, ATK, DEF, Regen) by 1.2x per tier. (Tier 10: 6.2x all stats, Tier 50: 9100x all stats, Tier 100: 82M x all stats). Extremely expensive.',
       tierIndex: 0,
       fragments: new Decimal(0),
       fragmentsNeeded: new Decimal(500),

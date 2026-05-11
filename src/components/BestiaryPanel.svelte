@@ -50,17 +50,17 @@
   }
 
   const STAGE_COLORS: Record<string, string> = {
-    omniscient: 'var(--accent-warning)',
-    transcendent: 'var(--accent-violet)',
-    exalted: 'var(--accent-green)',
-    mastered: 'var(--accent-steel)',
+    omniscient: 'var(--gold)',
+    transcendent: 'var(--purple)',
+    exalted: 'var(--green)',
+    mastered: 'var(--cyan)',
   };
 </script>
 
 <div class="bestiary-panel">
   <div class="panel-header">
     <div class="header-left">
-      <div class="header-icon">&#9875;</div>
+      <div class="header-icon">&#9763;</div>
       <div class="header-text">
         <h2 class="transcended-text">DATA.BESTIARY</h2>
         <span class="transcended-sub">COMBAT ARCHIVES</span>
@@ -69,11 +69,11 @@
     <div class="header-stats">
       <div class="stat-item">
         <span class="stat-label">DATA</span>
-        <span class="stat-value accent-steel">{fmt(bestiaryState.dataFragments)}</span>
+        <span class="stat-value">{fmt(bestiaryState.dataFragments)}</span>
       </div>
       <div class="stat-item">
         <span class="stat-label">SOULS</span>
-        <span class="stat-value accent-violet">{fmt(bestiaryState.souls)}</span>
+        <span class="stat-value violet">{fmt(bestiaryState.souls)}</span>
       </div>
     </div>
   </div>
@@ -117,14 +117,14 @@
     {/each}
   </div>
 
-  <div class="section-label" style="border-top: 1px solid var(--border-subtle); margin-top: 8px; padding-top: 10px;">SPECIES ARCHIVE</div>
+  <div class="section-label" style="border-top: 1px solid var(--line); margin-top: 8px; padding-top: 10px;">SPECIES ARCHIVE</div>
 
   <div class="mob-list">
     {#each Object.values(bestiaryState.entries) as entry}
-      <div class="mob-entry" style="border-left-color: {STAGE_COLORS[entry.stage.toLowerCase()] || 'var(--border-mid)'}">
+      <div class="mob-entry" style="border-left-color: {STAGE_COLORS[entry.stage.toLowerCase()] || 'var(--line)'}">
         <div class="mob-header">
           <span class="mob-name">{entry.name}</span>
-          <span class="mob-stage" style="color: {STAGE_COLORS[entry.stage.toLowerCase()] || 'var(--color-muted)'}">[{entry.stage}]</span>
+          <span class="mob-stage" style="color: {STAGE_COLORS[entry.stage.toLowerCase()] || 'var(--text-2)'}">[{entry.stage}]</span>
         </div>
         <div class="mob-stats">
           <span>KILLS: {fmt(entry.kills)}</span>
@@ -136,108 +136,78 @@
 </div>
 
 <style>
-  .bestiary-panel { display: flex; flex-direction: column; height: 100%; overflow-y: auto; }
+.bestiary-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+}
 
-  .panel-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px 14px;
-    border-bottom: 1px solid var(--border-subtle);
-    flex-shrink: 0;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-  .header-left { display: flex; align-items: center; gap: 10px; }
-  .header-icon { font-size: 1rem; color: var(--accent-steel); }
-  .header-text { display: flex; flex-direction: column; gap: 1px; }
-  .header-stats { display: flex; gap: 16px; }
-  .stat-item { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
-  .stat-label { font-family: var(--font-display); font-size: 0.56rem; font-weight: 600; letter-spacing: 0.14em; color: var(--color-muted); }
-  .stat-value { font-family: var(--font-mono); font-size: 0.82rem; font-weight: 700; font-variant-numeric: tabular-nums; }
-  .accent-steel { color: var(--accent-steel); }
-  .accent-violet { color: var(--accent-violet); }
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.header-left { display: flex; align-items: center; gap: 10px; }
+.header-icon { font-size: 1rem; color: var(--cyan); }
+.header-text { display: flex; flex-direction: column; gap: 1px; }
+.header-stats { display: flex; gap: 16px; }
+.stat-item { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+.stat-label { font-family: var(--font-hud); font-size: 0.5rem; font-weight: 600; letter-spacing: 0.12em; color: var(--text-2); text-transform: uppercase; }
+.stat-value { font-family: var(--font-data); font-size: 0.8rem; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text-0); }
+.violet { color: var(--purple); }
 
-  .control-strip {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 14px;
-    border-bottom: 1px solid var(--border-subtle);
-    flex-shrink: 0;
-  }
-  .buy-selector { display: flex; gap: 2px; }
-  .amt-btn {
-    background: transparent;
-    border: 1px solid var(--border-subtle);
-    color: var(--color-muted);
-    font-family: var(--font-display);
-    font-size: 0.6rem;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    padding: 3px 7px;
-    cursor: pointer;
-    transition: all var(--t-fast);
-    position: relative;
-    margin-right: -1px;
-  }
-  .amt-btn.active { border-color: var(--accent-danger); color: #fff; background: var(--accent-danger); box-shadow: 0 0 10px hsla(0, 100%, 50%, 0.4); z-index: 2; }
-  .amt-btn:hover:not(.active) { border-color: var(--accent-danger); color: var(--accent-white); background: hsla(0, 100%, 50%, 0.1); }
+.control-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.buy-selector { display: flex; gap: 2px; }
 
-  .auto-up-btn {
-    background: transparent;
-    border: 1px solid var(--accent-steel);
-    color: var(--accent-steel);
-    font-family: var(--font-display);
-    font-size: 0.66rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    padding: 4px 14px;
-    cursor: pointer;
-    transition: background var(--t-fast), color var(--t-fast);
-  }
-  .auto-up-btn:hover { background: rgba(90, 138, 170, 0.1); color: var(--accent-white); }
+.section-label {
+  font-family: var(--font-hud);
+  font-size: 0.55rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-2);
+  padding: 8px 14px 4px;
+}
 
-  .section-label {
-    font-family: var(--font-display);
-    font-size: 0.6rem;
-    font-weight: 600;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--color-muted);
-    padding: 8px 14px 4px;
-  }
+.upg-list { display: flex; flex-direction: column; padding: 0 14px 8px; gap: 4px; }
+.upg-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--cyan);
+  padding: 8px 10px;
+  transition: all var(--fast);
+}
+.upg-row:hover { border-left-color: var(--text-0); }
+.upg-info { display: flex; flex-direction: column; gap: 1px; min-width: 90px; }
+.upg-name { font-size: 0.7rem; font-weight: 700; color: var(--text-0); font-family: var(--font-hud); letter-spacing: 0.04em; }
+.upg-lv { font-size: 0.55rem; color: var(--cyan); }
+.upg-btns { display: flex; gap: 5px; align-items: center; }
 
-  .upg-list { display: flex; flex-direction: column; padding: 0 14px 8px; gap: 4px; }
-  .upg-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: var(--panel-bg);
-    border: 1px solid var(--border-subtle);
-    border-left: 2px solid var(--accent-steel);
-    padding: 8px 10px;
-    transition: border-color var(--t-fast);
-  }
-  .upg-row:hover { border-left-color: var(--accent-white); }
-
-  .upg-info { display: flex; flex-direction: column; gap: 1px; min-width: 90px; }
-  .upg-name { font-size: 0.7rem; font-weight: 700; color: var(--color-text); font-family: var(--font-display); letter-spacing: 0.04em; }
-  .upg-lv { font-size: 0.6rem; color: var(--accent-steel); }
-
-  .upg-btns { display: flex; gap: 5px; align-items: center; }
-
-
-  .mob-list { display: flex; flex-direction: column; padding: 0 14px 14px; gap: 4px; flex: 1; }
-  .mob-entry {
-    background: var(--panel-bg);
-    border: 1px solid var(--border-subtle);
-    border-left: 3px solid var(--border-mid);
-    padding: 8px 12px;
-  }
-  .mob-header { display: flex; justify-content: space-between; align-items: center; }
-  .mob-name { font-size: 0.75rem; font-weight: 700; color: var(--color-text); }
-  .mob-stage { font-size: 0.62rem; font-weight: 600; letter-spacing: 0.08em; }
-  .mob-stats { display: flex; gap: 12px; color: var(--color-muted); font-size: 0.62rem; margin-top: 3px; font-family: var(--font-display); letter-spacing: 0.06em; }
+.mob-list { display: flex; flex-direction: column; padding: 0 14px 14px; gap: 4px; flex: 1; }
+.mob-entry {
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--line);
+  padding: 8px 12px;
+}
+.mob-header { display: flex; justify-content: space-between; align-items: center; }
+.mob-name { font-size: 0.7rem; font-weight: 700; color: var(--text-0); }
+.mob-stage { font-size: 0.55rem; font-weight: 600; letter-spacing: 0.08em; }
+.mob-stats { display: flex; gap: 12px; color: var(--text-2); font-size: 0.6rem; margin-top: 3px; font-family: var(--font-hud); letter-spacing: 0.05em; }
 </style>
-

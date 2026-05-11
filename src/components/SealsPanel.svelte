@@ -6,11 +6,12 @@
   import { Decimal } from '../systems/decimal.js';
   import ConfirmationModal from './ConfirmationModal.svelte';
 
+  // Rebalanced for maxed skills in ~2 years (max ~60B kills/year)
   const sealRequirements = [
-    '1e4', '5e4', '25e4', '1e6', '5e6', '25e6', '1e8',
-    '1e10', '1e12', '1e15', '1e18', '1e22', '1e26', '1e30',
-    '1e35', '1e40', '1e50', '1e75', '1e100', '1e150', '1e200', '1e300',
-    '1e500', '1e1000', '1e5000'
+    '1e4', '5e4', '25e4', '1e6', '5e6', '25e6', '1e8',          // Seals 1-7: Hours to weeks
+    '5e8', '2.5e9', '1e10', '5e10', '2e11', '1e12',             // Seals 8-13: Weeks to months
+    '5e12', '2e13', '1e14', '5e14', '2e15', '1e16',             // Seals 14-19: Months to ~1 year
+    '5e16', '2e17', '1e18', '5e18', '2e19', '1e20',             // Seals 20-25: ~1-2 years
   ];
 
   let pendingSealIdx = $state<number | null>(null);
@@ -32,7 +33,7 @@
     if (idx === null) return;
     if (character.seals === idx && character.kills.gte(Decimal.from(sealRequirements[idx]))) {
       character.seals++;
-      showToast(`SEAL ${idx + 1} BROKEN — ×${Math.pow(10, character.seals)} MULT`, 'success');
+      showToast(`SEAL ${idx + 1} BROKEN — x${Math.pow(10, character.seals)} MULT`, 'success');
     }
     pendingSealIdx = null;
   }
@@ -44,16 +45,16 @@
 
 <div class="seals-panel">
 
-  <div class="premium-header">
-    <div class="header-main">
-      <div class="header-icon">◉</div>
-      <div class="header-title-box">
+  <div class="panel-header">
+    <div class="header-left">
+      <div class="header-icon">&#10038;</div>
+      <div class="header-text">
         <h2 class="transcended-text">AWAKENING SEALS</h2>
-        <div class="header-subtitle">UNBIND YOUR POWER</div>
+        <span class="transcended-sub">UNBIND YOUR POWER</span>
       </div>
     </div>
     <div class="header-stats">
-      <div class="header-stat-box">
+      <div class="stat-item">
         <span class="stat-label">KILLS</span>
         <span class="stat-value">{formatNumber(character.kills)}</span>
       </div>
@@ -63,7 +64,7 @@
   <!-- God multiplier strip -->
   <div class="god-strip">
     <span class="god-label">GOD MULTIPLIER</span>
-    <span class="god-val">×{formatNumber(Math.pow(10, character.seals))}</span>
+    <span class="god-val">x{formatNumber(Math.pow(10, character.seals))}</span>
     <span class="god-seals">{character.seals} / {sealRequirements.length} SEALS</span>
   </div>
 
@@ -82,6 +83,7 @@
         <div class="seal-left">
           <span class="seal-num">SEAL {idx + 1}</span>
           <span class="seal-req">{formatNumber(req)} kills</span>
+          <span class="seal-reward">Next: x{formatNumber(Math.pow(10, idx + 1))}</span>
         </div>
 
         <div class="seal-mid">
@@ -97,7 +99,7 @@
 
         <div class="seal-right">
           {#if broken}
-            <span class="check">✓</span>
+            <span class="check">&#10003;</span>
           {:else if available}
             <button class="break-btn" onclick={() => requestBreak(idx)}>BREAK</button>
           {:else}
@@ -112,7 +114,7 @@
 
 <ConfirmationModal
   bind:show={showModal}
-  message="Break Seal {(pendingSealIdx ?? 0) + 1}? Grants permanent ×10 multiplier. Cannot be undone."
+  message="Break Seal {(pendingSealIdx ?? 0) + 1}? Grants permanent x10 multiplier. Cannot be undone."
   onConfirm={confirmBreak}
 />
 
@@ -123,41 +125,59 @@
   height: 100%;
 }
 
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.header-left { display: flex; align-items: center; gap: 10px; }
+.header-icon { font-size: 1rem; color: var(--red); }
+.header-text { display: flex; flex-direction: column; gap: 1px; }
+.header-stats { display: flex; gap: 16px; }
+.stat-item { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+.stat-label { font-family: var(--font-hud); font-size: 0.5rem; font-weight: 600; letter-spacing: 0.12em; color: var(--text-2); text-transform: uppercase; }
+.stat-value { font-family: var(--font-data); font-size: 0.8rem; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text-0); }
+
 /* ── GOD STRIP ──────────────────────────────── */
 .god-strip {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 10px 14px;
-  border-bottom: 1px solid var(--border-subtle);
-  background: var(--panel-inset);
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-2);
   flex-shrink: 0;
 }
 
 .god-label {
-  font-family: var(--font-display);
-  font-size: 0.6rem;
+  font-family: var(--font-hud);
+  font-size: 0.55rem;
   font-weight: 600;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--color-muted);
+  color: var(--text-2);
   flex: 1;
 }
 
 .god-val {
-  font-family: var(--font-mono);
+  font-family: var(--font-data);
   font-size: 1.1rem;
   font-weight: 700;
-  color: var(--accent-amber);
+  color: var(--gold);
   font-variant-numeric: tabular-nums;
 }
 
 .god-seals {
-  font-family: var(--font-display);
-  font-size: 0.58rem;
+  font-family: var(--font-hud);
+  font-size: 0.55rem;
   font-weight: 600;
   letter-spacing: 0.1em;
-  color: var(--color-muted);
+  color: var(--text-2);
   text-transform: uppercase;
 }
 
@@ -176,31 +196,19 @@
   grid-template-columns: 1fr 1fr auto;
   align-items: center;
   gap: 10px;
-  padding: 8px 14px;
-  border: 1px solid var(--border-subtle);
+  padding: 10px 14px;
+  border: 1px solid var(--line);
   background: transparent;
-  transition: all var(--t-fast);
-  position: relative;
+  transition: all var(--fast);
 }
-.seal-row::before, .seal-row::after {
-  content: ''; position: absolute;
-  width: 4px; height: 4px; border: 1px solid var(--accent-danger);
-}
-.seal-row::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
-.seal-row::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
-
 .seal-row.broken {
-  border-color: var(--accent-danger);
-  background: hsla(0, 100%, 50%, 0.05);
-  opacity: 0.6;
+  border-color: hsl(0 100% 60% / 0.2);
+  opacity: 0.5;
 }
-
 .seal-row.available {
-  border-color: var(--accent-danger);
-  background: hsla(0, 100%, 50%, 0.15);
-  box-shadow: 0 0 10px hsla(0, 100%, 50%, 0.2);
+  border-color: var(--red);
+  background: hsl(0 100% 60% / 0.08);
 }
-
 .seal-row.locked {
   opacity: 0.3;
 }
@@ -210,20 +218,32 @@
   flex-direction: column;
   gap: 2px;
 }
-
 .seal-num {
-  font-family: var(--font-display);
+  font-family: var(--font-hud);
   font-size: 0.7rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--color-text);
+  color: var(--text-0);
+}
+.seal-req {
+  font-family: var(--font-data);
+  font-size: 0.6rem;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
 }
 
-.seal-req {
-  font-family: var(--font-mono);
-  font-size: 0.6rem;
-  color: var(--color-muted);
+.seal-reward {
+  font-family: var(--font-data);
+  font-size: 0.55rem;
+  color: var(--gold);
+  font-variant-numeric: tabular-nums;
+}
+
+.seal-reward {
+  font-family: var(--font-data);
+  font-size: 0.55rem;
+  color: var(--gold);
   font-variant-numeric: tabular-nums;
 }
 
@@ -231,79 +251,64 @@
 .seal-mid {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
   align-items: flex-start;
 }
-
 .kill-bar-wrap {
   width: 100%;
   height: 6px;
-  background: var(--panel-inset);
-  border: 1px solid var(--border-subtle);
+  background: hsl(0 0% 0% / 0.4);
+  border: 1px solid var(--line);
   overflow: hidden;
 }
-
 .kill-bar-fill {
   height: 100%;
-  background: var(--accent-danger);
-  transition: width 0.4s linear;
-  box-shadow: 0 0 10px var(--accent-danger);
+  background: linear-gradient(90deg, var(--red), hsl(0 100% 70%));
+  transition: width 200ms ease;
 }
-
 .pct-text {
-  font-family: var(--font-mono);
-  font-size: 0.58rem;
-  color: var(--color-muted);
+  font-family: var(--font-data);
+  font-size: 0.55rem;
+  color: var(--text-2);
   font-variant-numeric: tabular-nums;
 }
-
 .broken-text {
-  font-family: var(--font-display);
-  font-size: 0.6rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--accent-steel);
-}
-
-/* ── SEAL RIGHT ─────────────────────────────── */
-.seal-right { display: flex; justify-content: flex-end; }
-
-.check {
-  font-size: 0.8rem;
-  color: var(--accent-steel);
-}
-
-.lock-icon {
-  font-size: 0.7rem;
-  color: var(--color-dim);
-}
-
-.break-btn {
-  font-family: var(--font-display);
-  font-size: 0.62rem;
+  font-family: var(--font-hud);
+  font-size: 0.55rem;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  padding: 5px 12px;
-  background: transparent;
-  border: 1px solid var(--accent-danger);
-  color: var(--accent-white);
-  cursor: pointer;
-  transition: all var(--t-fast);
-  position: relative;
+  color: var(--cyan);
 }
-.break-btn::before, .break-btn::after {
-  content: ''; position: absolute;
-  width: 3px; height: 3px; border: 1px solid var(--accent-white);
-}
-.break-btn::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
-.break-btn::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
 
+/* ── SEAL RIGHT ─────────────────────────────── */
+.seal-right {
+  display: flex;
+  justify-content: flex-end;
+}
+.check {
+  font-size: 0.8rem;
+  color: var(--cyan);
+}
+.lock-icon {
+  font-size: 0.7rem;
+  color: var(--text-2);
+}
+.break-btn {
+  font-family: var(--font-hud);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 6px 12px;
+  background: var(--red);
+  border: none;
+  color: var(--text-0);
+  cursor: pointer;
+  transition: all var(--fast);
+}
 .break-btn:hover {
-  background: var(--accent-danger);
-  color: var(--accent-white);
-  box-shadow: 0 0 10px var(--accent-danger);
+  background: hsl(0 100% 70%);
+  box-shadow: 0 0 12px hsl(0 100% 60% / 0.4);
 }
 </style>
-

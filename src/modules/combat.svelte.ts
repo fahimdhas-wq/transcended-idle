@@ -69,12 +69,11 @@ export function getEffectiveCombatStats(): CombatStats {
   const sealMult = new Decimal(10).pow(character.seals || 0);
   const omniMult = getOmniMult();
   const soulMult = getSoulMult();
-  const awakenMult = new Decimal(1.5).pow(character.awakeningStage || 0);
   const bestiaryBoost = new Decimal(getGlobalStatBoost()).add(1);
   const overclockMult = getOverclockMultiplier();
 
   // Base Multiplier (applied to most stats)
-  const baseMult = sealMult.mul(omniMult).mul(soulMult).mul(awakenMult).mul(bestiaryBoost).mul(overclockMult);
+  const baseMult = sealMult.mul(omniMult).mul(soulMult).mul(bestiaryBoost).mul(overclockMult);
   
   // Specific Stat Multipliers
   const atkMult = baseMult.mul(getAchievementMult('atk')).mul(getDamageMultiplier());

@@ -16,6 +16,7 @@ import { aiSystem } from '../systems/aiSystem.js';
 import { rewardSystem } from '../systems/rewardSystem.js';
 import { Decimal } from '../systems/decimal.js';
 import { showOfflineSummary } from '../stores/uiStore.svelte.js';
+import { addLog } from '../ui/LogPanelState.svelte.js';
 import { gameConfig } from '../data/config.js';
 import { mobs } from '../data/mobs.js';
 
@@ -193,6 +194,9 @@ export function gameTick(now: number): number | void {
 
   accumulatedTime += dt;
 
+  // Track total playtime (convert ms to seconds)
+  character.totalPlayTime += dt / 1000;
+
   let ticksToProcess = Math.floor(accumulatedTime / tickRate);
   const maxTicksPerFrame = 2000;
   
@@ -278,6 +282,35 @@ export function startGameLoop(): void {
     // Cap total offline accumulation to 30 days
     accumulatedTime += Math.min(offlineMs, 30 * 24 * 3600 * 1000);
   }
+
+  // Initialize login tracking
+  const now = Date.now();
+  if (character.firstLoginTime === 0) {
+    character.firstLoginTime = now;
+    character.dailyLogins = 1;
+    addLog('[SYSTEM] Welcome, Player. Your journey begins.', 'system');
+  } else {
+    character.dailyLogins++;
+  }
+  character.lastLoginTime = now;
+
+  // Update total playtime tracking
+  let lastSave = 0;
+  try {
+    const saveData = localStorage.getItem('cyber_idle_save_v3');
+    if (saveData) {
+      const parsed = JSON.parse(saveData);
+      lastSave = parsed.character?.totalPlayTime || 0;
+    }
+  } catch (e) {}
+
+  // Add time since last save to total playtime
+  if (lastSave > 0 && character.totalPlayTime >= lastSave) {
+    // Playtime is tracked correctly
+  } else if (lastSave > character.totalPlayTime) {
+    character.totalPlayTime = lastSave;
+  }
+
   lastTick = performance.now();
 
   // Dev commands — only in development mode

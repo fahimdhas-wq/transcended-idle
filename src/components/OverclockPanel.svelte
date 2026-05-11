@@ -19,22 +19,22 @@
 
 <div class="oc-panel">
 
-  <div class="premium-header">
-    <div class="header-main">
-      <div class="header-icon">◈</div>
-      <div class="header-title-box">
+  <div class="panel-header">
+    <div class="header-left">
+      <div class="header-icon">&#9889;</div>
+      <div class="header-text">
         <h2 class="transcended-text">SYSTEM OVERCLOCK</h2>
-        <div class="header-subtitle">TRANSCEND PHYSICAL LIMITS</div>
+        <span class="transcended-sub">TRANSCEND PHYSICAL LIMITS</span>
       </div>
     </div>
     <div class="header-stats">
-      <div class="header-stat-box">
+      <div class="stat-item">
         <span class="stat-label">THREADS</span>
-        <span class="stat-value" style="color:var(--accent-warning)">{formatValue(overclockState.coreThreads)}</span>
+        <span class="stat-value gold">{formatValue(overclockState.coreThreads)}</span>
       </div>
-      <div class="header-stat-box">
-        <span class="stat-label">MULTIPLIER</span>
-        <span class="stat-value">×{formatValue(overclockState.coreThreads.add(1))}</span>
+      <div class="stat-item">
+        <span class="stat-label">MULT</span>
+        <span class="stat-value">x{formatValue(overclockState.coreThreads.add(1))}</span>
       </div>
     </div>
   </div>
@@ -43,11 +43,11 @@
   <div class="stats-strip">
     <div class="strip-cell">
       <span class="sc-label">TOTAL THREADS</span>
-      <span class="sc-val warning">{formatValue(overclockState.coreThreads)}</span>
+      <span class="sc-val gold">{formatValue(overclockState.coreThreads)}</span>
     </div>
     <div class="strip-cell">
       <span class="sc-label">GLOBAL MULT</span>
-      <span class="sc-val">×{formatValue(overclockState.coreThreads.add(1))}</span>
+      <span class="sc-val">x{formatValue(overclockState.coreThreads.add(1))}</span>
     </div>
     <div class="strip-cell">
       <span class="sc-label">RESETS</span>
@@ -76,7 +76,7 @@
       <div class="state-card optional">
         <div class="state-tag steel">OPTIONAL PRESTIGE</div>
         <p class="state-desc">Reset level for <strong class="warn-text">+{formatValue(pendingThreads)} Core Threads</strong>. Not required — game continues freely until Level {formatValue(LEVEL_WALL)}.</p>
-        <p class="tip-text">Higher level before Overclock = more threads (threads = log₁₀ of level).</p>
+        <p class="tip-text">Higher level before Overclock = more threads (threads = log10 of level).</p>
         <button class="oc-btn optional" onclick={doOverclock}>
           OVERCLOCK — +{formatValue(pendingThreads)} THREADS
         </button>
@@ -105,21 +105,62 @@
 .oc-panel {
   display: flex;
   flex-direction: column;
-  gap: 0;
   height: 100%;
 }
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.header-left { display: flex; align-items: center; gap: 10px; }
+.header-icon { font-size: 1rem; color: var(--cyan); }
+.header-text { display: flex; flex-direction: column; gap: 1px; }
+.header-stats { display: flex; gap: 16px; }
+.stat-item { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+.stat-label { font-family: var(--font-hud); font-size: 0.5rem; font-weight: 600; letter-spacing: 0.12em; color: var(--text-2); text-transform: uppercase; }
+.stat-value { font-family: var(--font-data); font-size: 0.8rem; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text-0); }
+.gold { color: var(--gold); }
+
+
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.header-left { display: flex; align-items: center; gap: 10px; }
+.header-icon { font-size: 1rem; color: var(--cyan); }
+.header-text { display: flex; flex-direction: column; gap: 1px; }
+.header-stats { display: flex; gap: 16px; }
+.stat-item { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+.stat-label { font-family: var(--font-hud); font-size: 0.5rem; font-weight: 600; letter-spacing: 0.12em; color: var(--text-2); text-transform: uppercase; }
+.stat-value { font-family: var(--font-data); font-size: 0.8rem; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text-0); }
+.gold { color: var(--gold); }
+
+
 
 .stats-strip {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 1px;
-  background: var(--border-subtle);
-  border-bottom: 1px solid var(--border-subtle);
+  background: var(--line);
+  border-bottom: 1px solid var(--line);
   flex-shrink: 0;
 }
 
 .strip-cell {
-  background: var(--panel-inset);
+  background: var(--bg-2);
   padding: 10px 8px;
   display: flex;
   flex-direction: column;
@@ -128,23 +169,23 @@
 }
 
 .sc-label {
-  font-family: var(--font-display);
-  font-size: 0.54rem;
+  font-family: var(--font-hud);
+  font-size: 0.5rem;
   font-weight: 600;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--color-muted);
+  color: var(--text-2);
 }
 
 .sc-val {
-  font-family: var(--font-mono);
+  font-family: var(--font-data);
   font-size: 0.9rem;
   font-weight: 700;
-  color: var(--color-text);
+  color: var(--text-0);
   font-variant-numeric: tabular-nums;
 }
-.sc-val.warning { color: var(--accent-warning); }
-.sc-val.green   { color: var(--accent-green); }
+.sc-val.gold { color: var(--gold); }
+.sc-val.green { color: var(--green); }
 
 /* ── STATE BLOCK ────────────────────────────── */
 .state-block {
@@ -154,134 +195,116 @@
 }
 
 .state-card {
-  border: 1px solid var(--border-subtle);
-  background: transparent;
+  border: 1px solid var(--line);
+  background: var(--bg-1);
   padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 12px;
   position: relative;
 }
-.state-card::before, .state-card::after {
-  content: ''; position: absolute;
-  width: 8px; height: 8px; border: 2px solid var(--accent-danger);
-}
-.state-card::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
-.state-card::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
-
-.state-card.optional { border-color: var(--accent-danger); }
-.state-card.required { border-color: var(--accent-danger); box-shadow: 0 0 15px hsla(0, 100%, 50%, 0.2); }
-.state-card.locked   { border-color: var(--border-mid); }
+.state-card.optional { border-color: var(--red); }
+.state-card.required { border-color: var(--red); box-shadow: 0 0 15px hsl(0 100% 60% / 0.15); }
+.state-card.locked { border-color: var(--line); }
 
 .state-tag {
-  font-family: var(--font-display);
+  font-family: var(--font-hud);
   font-size: 0.6rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
-  color: var(--color-muted);
+  color: var(--text-2);
 }
-.state-tag.steel  { color: var(--accent-steel); }
-.state-tag.danger { color: var(--accent-danger); }
+.state-tag.steel { color: var(--cyan); }
+.state-tag.danger { color: var(--red); }
 
 .state-desc {
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  color: var(--color-text);
-  line-height: 1.7;
+  font-family: var(--font-data);
+  font-size: 0.7rem;
+  color: var(--text-0);
+  line-height: 1.6;
   margin: 0;
 }
 
 .tip-text {
-  font-family: var(--font-mono);
+  font-family: var(--font-data);
   font-size: 0.65rem;
-  color: var(--color-muted);
-  line-height: 1.6;
+  color: var(--text-2);
+  line-height: 1.5;
   margin: 0;
   padding: 8px;
-  border-left: 2px solid var(--border-mid);
+  border-left: 2px solid var(--line);
 }
 
 .reward-text {
-  font-family: var(--font-mono);
+  font-family: var(--font-data);
   font-size: 0.7rem;
-  color: var(--color-text);
-  line-height: 1.6;
+  color: var(--text-0);
+  line-height: 1.5;
   margin: 0;
 }
 
-.warn-text   { color: var(--accent-warning); }
-.danger-text { color: var(--accent-danger); }
+.warn-text { color: var(--gold); }
+.danger-text { color: var(--red); }
 
 /* ── PROGRESS BAR ───────────────────────────── */
 .prog-wrap {
   height: 4px;
-  background: var(--panel-bg);
-  border: 1px solid var(--border-subtle);
+  background: hsl(0 0% 0% / 0.4);
+  border: 1px solid var(--line);
   overflow: hidden;
 }
 .prog-fill {
   height: 100%;
-  background: var(--accent-danger);
-  transition: width 0.3s linear;
-  box-shadow: 0 0 10px var(--accent-danger);
+  background: linear-gradient(90deg, var(--red), hsl(0 100% 70%));
+  transition: width 200ms ease;
 }
 .prog-label {
-  font-family: var(--font-mono);
+  font-family: var(--font-data);
   font-size: 0.6rem;
-  color: var(--color-muted);
+  color: var(--text-2);
   font-variant-numeric: tabular-nums;
 }
 
 .oc-btn {
   width: 100%;
   padding: 12px;
-  font-family: var(--font-display);
-  font-size: 0.8rem;
+  font-family: var(--font-hud);
+  font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  border: 1px solid var(--accent-danger);
+  border: 1px solid var(--red);
   cursor: pointer;
   background: transparent;
-  color: var(--accent-danger);
-  transition: all var(--t-fast);
-  position: relative;
+  color: var(--red);
+  transition: all var(--fast);
 }
-.oc-btn::before, .oc-btn::after {
-  content: ''; position: absolute;
-  width: 6px; height: 6px; border: 1px solid var(--accent-danger);
-}
-.oc-btn::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
-.oc-btn::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
-
 .oc-btn.optional {
-  background: hsla(0, 100%, 50%, 0.05);
+  background: hsl(0 100% 60% / 0.08);
 }
 .oc-btn.optional:hover {
-  background: hsla(0, 100%, 50%, 0.2);
-  color: var(--accent-white);
+  background: hsl(0 100% 60% / 0.18);
+  color: var(--text-0);
 }
 
 .oc-btn.required {
-  background: var(--accent-danger);
-  color: #fff;
-  box-shadow: 0 0 15px hsla(0, 100%, 50%, 0.4);
+  background: var(--red);
+  color: var(--text-0);
+  box-shadow: 0 0 15px hsl(0 100% 60% / 0.3);
 }
 .oc-btn.required:hover {
-  background: hsla(0, 100%, 50%, 0.8);
-  color: #fff;
+  background: hsl(0 100% 70%);
 }
 
 /* ── INFO STRIP ─────────────────────────────── */
 .info-strip {
   padding: 10px 14px;
-  border-top: 1px solid var(--border-subtle);
-  font-family: var(--font-mono);
-  font-size: 0.64rem;
-  color: var(--color-muted);
-  line-height: 1.6;
+  border-top: 1px solid var(--line);
+  font-family: var(--font-data);
+  font-size: 0.65rem;
+  color: var(--text-2);
+  line-height: 1.5;
   flex-shrink: 0;
 }
 </style>
-

@@ -6,7 +6,7 @@
 
   let importString = $state('');
   let exportedStr = $state('');
-  let lastSaveTime = $state('&#8212;');
+  let lastSaveTime = $state('—');
   let showWipeModal = $state(false);
 
   function saveGame(): void {
@@ -114,71 +114,132 @@
 />
 
 <style>
-  .system-panel { display: flex; flex-direction: column; height: 100%; overflow: hidden; gap: 10px; }
+.system-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  gap: 12px;
+  padding: 12px;
+}
 
-  .panel-header {
-    display: flex;
-    align-items: center;
-    padding: 10px 14px;
-    border-bottom: 1px solid var(--border-subtle);
-    flex-shrink: 0;
-  }
-  .header-left { display: flex; align-items: center; gap: 10px; }
-  .header-icon { font-size: 1rem; color: var(--accent-steel); }
-  .header-text { display: flex; flex-direction: column; gap: 1px; }
+.panel-header {
+  display: flex;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.header-icon {
+  font-size: 1rem;
+  color: var(--cyan);
+}
+.header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
 
-  .save-info {
-    font-size: 0.65rem;
-    color: var(--color-dim);
-    padding: 0 14px;
-    font-family: var(--font-display);
-    letter-spacing: 0.06em;
-  }
+.transcended-text {
+  font-family: var(--font-hud);
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-0);
+  margin: 0;
+}
 
-  .btn-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; padding: 0 14px; }
+.transcended-sub {
+  font-family: var(--font-hud);
+  font-size: 0.5rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-2);
+  margin: 0;
+}
 
-  .sys-btn {
-    background: transparent;
-    border: 1px solid var(--border-mid);
-    color: var(--color-text);
-    font-family: var(--font-display);
-    font-size: 0.68rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    padding: 10px 5px;
-    cursor: pointer;
-    text-align: center;
-    transition: border-color var(--t-fast), background var(--t-fast);
-  }
-  .sys-btn:hover:not(:disabled) { border-color: var(--accent-white); background: rgba(255,255,255,0.03); }
-  .sys-btn.danger { border-color: var(--accent-danger); color: var(--accent-danger); }
-  .sys-btn.danger:hover { background: rgba(255, 51, 51, 0.08); }
-  .sys-btn:disabled { opacity: 0.35; cursor: default; }
+.save-info {
+  font-size: 0.6rem;
+  color: var(--text-2);
+  font-family: var(--font-hud);
+  letter-spacing: 0.05em;
+}
 
-  .import-section, .export-box { display: flex; flex-direction: column; gap: 6px; padding: 0 14px; flex: 1; min-height: 0; }
+.btn-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
 
-  .import-label {
-    font-family: var(--font-display);
-    font-size: 0.58rem;
-    font-weight: 600;
-    letter-spacing: 0.14em;
-    color: var(--color-muted);
-    text-transform: uppercase;
-  }
+.sys-btn {
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  color: var(--text-0);
+  font-family: var(--font-hud);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 10px 5px;
+  cursor: pointer;
+  text-align: center;
+  transition: all var(--fast);
+}
+.sys-btn:hover:not(:disabled) {
+  border-color: var(--cyan-bright);
+  color: var(--cyan);
+  box-shadow: 0 0 10px hsl(185 100% 55% / 0.25);
+}
+.sys-btn.danger {
+  border-color: hsl(0 100% 60% / 0.35);
+  color: var(--red);
+}
+.sys-btn.danger:hover {
+  background: hsl(0 100% 60% / 0.1);
+  border-color: var(--red);
+}
+.sys-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
 
-  textarea {
-    flex: 1;
-    min-height: 70px;
-    background: var(--panel-inset);
-    border: 1px solid var(--border-subtle);
-    color: var(--accent-steel);
-    font-family: var(--font-mono);
-    font-size: 0.68rem;
-    padding: 8px;
-    resize: none;
-    outline: none;
-    transition: border-color var(--t-fast);
-  }
-  textarea:focus { border-color: var(--accent-steel); }
+.import-section, .export-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-height: 0;
+}
+
+.import-label {
+  font-family: var(--font-hud);
+  font-size: 0.55rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--text-2);
+  text-transform: uppercase;
+}
+
+textarea {
+  flex: 1;
+  min-height: 70px;
+  background: var(--bg-0);
+  border: 1px solid var(--line);
+  color: var(--cyan);
+  font-family: var(--font-data);
+  font-size: 0.65rem;
+  padding: 8px;
+  resize: none;
+  outline: none;
+  transition: border-color var(--fast);
+}
+textarea:focus {
+  border-color: var(--cyan-bright);
+}
 </style>
-

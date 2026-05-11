@@ -5,12 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npm run build:wasm && vite build",
-    "build:wasm": "asc src_wasm/assembly/index.ts -o src_wasm/engine.wasm -t src_wasm/engine.wat --sourceMap --target release && cp src_wasm/engine.wasm public/engine.wasm",
-    "build:worker": "vite build --config vite.worker.config.ts",
+    "build": "vite build",
     "preview": "vite preview",
-    "check": "svelte-check --tsconfig ./tsconfig.json",
-    "as:dev": "asc src_wasm/assembly/index.ts -b src_wasm/engine.wasm -t src_wasm/engine.wat --sourceMap --debug"
+    "check": "svelte-check --tsconfig ./tsconfig.json"
   },
   "dependencies": {
     "svelte": "^5.0.0"
@@ -18,7 +15,6 @@
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^7.1.2",
     "@tsconfig/svelte": "^5.0.8",
-    "assemblyscript": "^0.28.17",
     "svelte-check": "^4.4.8",
     "typescript": "^6.0.3",
     "vite": "^8.0.10"
