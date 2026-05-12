@@ -8,9 +8,9 @@
     getAffordableLevelCount,
     canBuyUpgrade,
     performAscension,
-    isAscensionAvailable,
     canAscend,
-    getAscensionShardCost
+    getProjectedShards,
+    ASCENSION_LEVEL_REQUIREMENT
   } from '../modules/ascension.svelte.js';
   import {
     ascensionUpgrades,
@@ -19,25 +19,33 @@
     TIER_REQUIREMENTS,
     type UpgradeCategory
   } from '../data/ascensionUpgrades.js';
+  import { character } from '../modules/character.svelte.js';
   import { showToast } from '../stores/uiStore.svelte.js';
   import { addLog } from '../ui/LogPanelState.svelte.js';
+  import { formatValue } from '../systems/formatValue.js';
 
   type Category = UpgradeCategory;
   const categories: Category[] = ['power', 'economy', 'multiplier'];
 
   const categoryLabels: Record<Category, string> = {
-    power: '⚔️ POWER',
-    economy: '💰 ECONOMY',
+    power:      '⚔️ POWER',
+    economy:    '💰 ECONOMY',
     multiplier: '📈 MULTIPLIER'
   };
 
   const categoryColors: Record<Category, string> = {
-    power: 'var(--red)',
-    economy: 'var(--gold)',
+    power:      'var(--red)',
+    economy:    'var(--gold)',
     multiplier: 'var(--cyan)'
   };
 
   let selectedCategory = $state<Category>('power');
+
+  const ascendable  = $derived(canAscend());
+  const projShards  = $derived(getProjectedShards());
+  const levelPct    = $derived(
+    Math.min(100, character.level.div(ASCENSION_LEVEL_REQUIREMENT).mul(100).toNumber())
+  );
 
   function getUpgradesForCategory(cat: Category) {
     return getUpgradesByCategory(cat).filter(u => u.tierRequired <= ascensionState.currentTier);
@@ -71,18 +79,12 @@
   }
 
   function handleAscend() {
-    if (!canAscend()) {
-      showToast('Ascension available after first run', 'info');
+    if (!ascendable) {
+      showToast(`Reach Level 1,000,000 to ascend`, 'info');
       return;
     }
-    const cost = getAscensionShardCost();
-    if (ascensionState.shards < cost) {
-      showToast(`Need ${cost} shards to ascend`, 'info');
-      return;
-    }
-    ascensionState.shards -= cost;
     const result = performAscension();
-    addLog(`[ASCENSION] +${result.shardsGained} Shards! Total: ${ascensionState.ascensionCount} ascensions`, 'awakening');
+    addLog(`[ASCENSION] Reset complete. +${result.shardsGained} Shards earned. Total ascensions: ${ascensionState.ascensionCount}`, 'awakening');
     showToast(`Ascended! +${result.shardsGained} Shards`, 'success');
   }
 
@@ -116,18 +118,24 @@
   </div>
 
   <!-- Ascend Button -->
-  <div class="ascend-section">
+  <div class="ascend-section" class:locked={!ascendable}>
     <div class="ascend-info">
       <span class="ascend-label">PERFORM ASCENSION</span>
-      <span class="ascend-cost">Cost: {formatShards(getAscensionShardCost())} shards</span>
+      {#if ascendable}
+        <span class="ascend-cost">You will earn: {formatShards(projShards)} shards</span>
+      {:else}
+        <span class="ascend-cost">
+          Requires Level {formatValue(ASCENSION_LEVEL_REQUIREMENT)}
+          &nbsp;({levelPct.toFixed(1)}%)
+        </span>
+      {/if}
     </div>
-    <button class="ascend-btn" onclick={handleAscend}>
+    <button class="ascend-btn" onclick={handleAscend} disabled={!ascendable}>
       <span class="btn-icon">⟳</span>
       <span>ASCEND</span>
     </button>
     <p class="ascend-desc">
-      Reset your progress to gain more Ascension Shards.
-      Keep all Ascension Upgrades permanently.
+      Resets level, skills, and resources. All Ascension Upgrades are permanent.
     </p>
   </div>
 
@@ -299,6 +307,14 @@
     display: flex;
     align-items: center;
     gap: 12px;
+  }
+  .ascend-section.locked {
+    opacity: 0.5;
+    border-color: var(--line);
+  }
+  .ascend-section.locked {
+    opacity: 0.5;
+    border-color: var(--line);
   }
   .ascend-info {
     flex: 1;

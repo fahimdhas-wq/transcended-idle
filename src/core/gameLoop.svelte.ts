@@ -30,6 +30,7 @@ import {
   claimDailyReward,
   dailyChallengeState
 } from '../modules/dailyChallenge.svelte.js';
+import { trackLevelProgress } from '../modules/ascension.svelte.js';
 
 import { getTotalTicks, incrementTotalTicks, addTotalTicks } from './tickState.js';
 
@@ -206,9 +207,6 @@ export function gameTick(now: number): number | void {
   // Check for daily challenge rotation (every ~60 seconds)
   checkRotationTick(now);
 
-  // Check for daily challenge rotation (every ~60 seconds)
-  checkRotationTick(now);
-
   accumulatedTime += dt;
 
   // Track total playtime (convert ms to seconds)
@@ -248,6 +246,7 @@ export function gameTick(now: number): number | void {
     }
     if (levelsGained > 0) {
       checkChallengeCompletion();
+      trackLevelProgress(character.level);
     }
 
     // Stats synchronization
@@ -283,11 +282,6 @@ export function gameTick(now: number): number | void {
       if (reward) {
         addLog(`[DAILY] Auto-claimed ${reward.shards} Shards!`, 'awakening');
       }
-    } else if (dailyChallengeState.activeChallenge && !dailyChallengeState.claimedReward) {
-      // Debug: show why auto-claim didn't trigger
-      const comp = isChallengeComplete();
-      const completed = dailyChallengeState.completedToday;
-      console.log(`[DAILY DEBUG] active=${dailyChallengeState.activeChallenge} complete=${comp} completedToday=${completed} claimed=${dailyChallengeState.claimedReward}`);
     }
 
     // Mining & Forestry

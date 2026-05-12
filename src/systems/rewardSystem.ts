@@ -20,6 +20,7 @@ import { Decimal, type DecimalSource } from '../systems/decimal.js';
 import { getEffectiveCombatStats } from '../modules/combat.svelte.js';
 import { LEVEL_WALL } from '../modules/overclock.svelte.js';
 import type { Enemy } from './aiSystem.js';
+import { getXpMultiplier, getFragmentMultiplier, getDropRateMultiplier } from '../modules/dailyChallenge.svelte.js';
 
 const XP_REWARD_EXP_BASE = 1.08;
 const MAX_BATCH_LEVELS = 100000;
@@ -119,7 +120,7 @@ export const rewardSystem = {
     const xpGrowth = new Decimal(XP_REWARD_EXP_BASE).pow(enemyLvl.sub(1).max(0));
     const baseExp = new Decimal(10).mul(xpGrowth);
     
-    let xpGain = baseExp.mul(totalKills).mul(xpMult).mul(sealMult).mul(omni);
+    let xpGain = baseExp.mul(totalKills).mul(xpMult).mul(sealMult).mul(omni).mul(getXpMultiplier());
     
     if (!character.totalXp || character.totalXp.m === 0) {
       character.totalXp = character.xp; // Fallback, totalXp is deprecated
@@ -135,7 +136,7 @@ export const rewardSystem = {
 
   _doFragments(totalKills: Decimal): void {
     const baseFrag = new Decimal(character.level.div(200).add(0.1)).mul(1 + (character.seals || 0));
-    let fragGain = baseFrag.mul(totalKills);
+    let fragGain = baseFrag.mul(totalKills).mul(getFragmentMultiplier());
 
     // Data Siphon Skill - 25x bonus per tier
     const siphon = skillsState.skills.find(s => s.id === 'data_siphon');
@@ -154,7 +155,7 @@ export const rewardSystem = {
     // Deep Scan Skill - 15% per tier as described
     const lootSkill = skillsState.skills.find(s => s.id === 'loot_boost');
     const lootBoost = (lootSkill?.tierIndex || 0) * 0.15;
-    const dropChance = Math.min(0.98, 0.7 + ((character.seals || 0) * 0.05) + (character.dropBonus || 0) + lootBoost + bestiaryDropBonus);
+    const dropChance = Math.min(0.98, 0.7 + ((character.seals || 0) * 0.05) + (character.dropBonus || 0) + lootBoost + bestiaryDropBonus) * getDropRateMultiplier();
 
     const killsNum = totalKills.toNumber();
     const safeKillsForLoot = isFinite(killsNum) ? killsNum : 1e9;

@@ -179,6 +179,21 @@ export const skillsState: SkillsState = $state({
   ]
 });
 
+// Base fragment costs per skill — used by ascension reset
+export const SKILL_BASE_COSTS: Record<string, number> = {
+  emp_strike:    30,
+  overclock:     50,
+  nano_repair:   60,
+  chain_hack:    80,
+  shield_surge:  40,
+  data_siphon:   100,
+  xp_boost:      120,
+  cleave:        150,
+  loot_boost:    180,
+  crit_surge:    250,
+  omni_stat:     500
+};
+
 export function getOmniMult(): Decimal {
   const omniSkill = skillsState.skills.find(s => s.id === 'omni_stat');
   if (omniSkill && omniSkill.tierIndex > 0) {

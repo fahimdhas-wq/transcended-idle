@@ -7,6 +7,7 @@ import { Decimal } from '../systems/decimal.js';
 import { formatNumber } from '../systems/scalingSystem.js';
 import { GATHERING_CONSTANTS, makeTools, type GatheringTool } from '../data/gatheringConfig.js';
 import { forestryResources } from './forestryResources.js';
+import { getForestrySpeedMultiplier } from './dailyChallenge.svelte.js';
 
 export type ForestryUpgradeType =
   | 'chainsawFuel'
@@ -126,7 +127,8 @@ export function performForestryTick(ticks: number): void {
     tool.speed *
     (forestryState.chainsawFuel + 1) *
     (forestryState.reforestation + 1) *
-    speedBonus * 2;
+    speedBonus * 2 *
+    getForestrySpeedMultiplier();
 
   if (forestryState.isOverclocked) {
     const ocMult = GATHERING_CONSTANTS.OVERCLOCK_BASE_MULT +

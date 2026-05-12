@@ -8,6 +8,7 @@ import { Decimal } from '../systems/decimal.js';
 import { calculateBulkCost, type CostFormula } from '../utils/bulkCost.js';
 import { formatNumber } from '../systems/scalingSystem.js';
 import { GATHERING_CONSTANTS, makeTools, type GatheringTool } from '../data/gatheringConfig.js';
+import { getMiningSpeedMultiplier } from './dailyChallenge.svelte.js';
 import { maxAffordable } from '../utils/maxAffordable.js';
 import { miningResources } from './miningResources.js';
 
@@ -124,7 +125,8 @@ export function performMiningTick(ticks: number): void {
     tool.speed *
     (miningState.sharpness + 1) *
     (miningState.extraction + 1) *
-    bestiarySpeed * 2;
+    bestiarySpeed * 2 *
+    getMiningSpeedMultiplier();
 
   if (miningState.isOverclocked) {
     const ocMult = GATHERING_CONSTANTS.OVERCLOCK_BASE_MULT +
