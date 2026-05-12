@@ -20,8 +20,10 @@
   import { startGameLoop } from './core/gameLoop.svelte.js';
   import { character }     from './modules/character.svelte.js';
   import { overclockState } from './modules/overclockState.svelte.js';
+  import DailyChallenge    from './components/DailyChallenge.svelte';
+  import AscensionPanel    from './components/AscensionPanel.svelte';
 
-  const tabs = ['COMBAT', 'CHARACTER', 'MINING', 'FORESTRY', 'BESTIARY', 'INVENTORY', 'SKILLS', 'SEALS', 'ACHIEVE', 'OVERCLOCK', 'MATRIX', 'SYSTEM'] as const;
+  const tabs = ['COMBAT', 'CHARACTER', 'MINING', 'FORESTRY', 'BESTIARY', 'INVENTORY', 'SKILLS', 'SEALS', 'ACHIEVE', 'DAILY', 'ASCENSION', 'OVERCLOCK', 'MATRIX', 'SYSTEM'] as const;
   type Tab = typeof tabs[number];
 
   const componentMap: Record<Tab, Component> = {
@@ -34,6 +36,8 @@
     'SKILLS':     SkillPanel,
     'SEALS':      SealsPanel,
     'ACHIEVE':    AchievementsPanel,
+    'DAILY':      DailyChallenge,
+    'ASCENSION':  AscensionPanel,
     'SYSTEM':     SystemPanel,
     'OVERCLOCK':  OverclockPanel,
     'MATRIX':     MatrixPanel
@@ -50,7 +54,7 @@
     return true;
   }
 
-  let prevUnlocked = $state(new Set<Tab>(['COMBAT', 'CHARACTER', 'BESTIARY', 'INVENTORY', 'SKILLS', 'SEALS', 'ACHIEVE', 'SYSTEM']));
+  let prevUnlocked = $state(new Set<Tab>(['COMBAT', 'CHARACTER', 'BESTIARY', 'INVENTORY', 'SKILLS', 'SEALS', 'ACHIEVE', 'DAILY', 'SYSTEM']));
   let newlyUnlocked = $state(new Set<Tab>());
 
   $effect(() => {
@@ -78,7 +82,7 @@
       <span class="version">v2.0</span>
     </div>
 
-    <nav class="tab-nav" role="tablist" aria-label="Main navigation">
+    <nav class="tab-nav" aria-label="Main navigation">
       {#each tabs as t (t)}
         {#if isTabUnlocked(t)}
           <button

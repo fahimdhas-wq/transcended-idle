@@ -11,6 +11,7 @@ interface ImportMeta {
 
 interface Window {
   skipTime: (days?: number) => void;
+  skipDays: (n?: number) => void;
   maxSkills: () => void;
   addFragments: (n?: number) => void;
   addData: (n?: number) => void;

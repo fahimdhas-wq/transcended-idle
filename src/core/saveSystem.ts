@@ -11,6 +11,8 @@ import { matrixState } from '../modules/matrix.svelte.js';
 import { addLog } from '../ui/LogPanelState.svelte.js';
 import { gameConfig } from '../data/config.js';
 import { Decimal } from '../systems/decimal.js';
+import { dailyChallengeState, checkAndRotateChallenge } from '../modules/dailyChallenge.svelte.js';
+import { ascensionState } from '../modules/ascension.svelte.js';
 
 const SAVE_KEY = 'cyber_idle_save_v3';
 let isWiping = false;
@@ -26,6 +28,8 @@ export interface SaveData {
   bestiary?: unknown;
   overclock?: unknown;
   matrix?: unknown;
+  dailyChallenge?: unknown;
+  ascension?: unknown;
   lastSaved?: unknown;
 }
 
@@ -100,6 +104,8 @@ export const saveSystem = {
         bestiary: bestiaryState,
         overclock: overclockState,
         matrix: matrixState,
+        dailyChallenge: dailyChallengeState,
+        ascension: ascensionState,
         lastSaved: Date.now()
       };
       localStorage.setItem(SAVE_KEY, JSON.stringify(data));
@@ -131,6 +137,15 @@ export const saveSystem = {
       safeMerge(bestiaryState as unknown as MutableRecord, data.bestiary);
       safeMerge(overclockState as unknown as MutableRecord, data.overclock);
       safeMerge(matrixState as unknown as MutableRecord, data.matrix);
+
+      if (data.dailyChallenge) {
+        safeMerge(dailyChallengeState as unknown as MutableRecord, data.dailyChallenge);
+      }
+      checkAndRotateChallenge();
+
+      if (data.ascension) {
+        safeMerge(ascensionState as unknown as MutableRecord, data.ascension);
+      }
 
       rebuildInventoryMap();
       updateGlobalBoost();

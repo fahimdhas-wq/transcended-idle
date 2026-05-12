@@ -31,12 +31,16 @@ export interface CombatState {
   enemy: Enemy | null;
   isFighting: boolean;
   combatStartTick: number;
+  kills: number;          // Kill counter for daily challenge
+  lastHitCrit: boolean;   // Flag for crit tracking
 }
 
 export const combatState: CombatState = $state({
   enemy: null,
   isFighting: false,
-  combatStartTick: 0
+  combatStartTick: 0,
+  kills: 0,
+  lastHitCrit: false
 });
 
 export function spawnEnemy(): void {
@@ -159,6 +163,17 @@ export function performCombatTick(ticks: number = 1): void {
 
   const stats = getEffectiveCombatStats();
 
+  // Probabilistic crit tracking for daily challenge
+  const expectedCrits = ticks * stats.critChance;
+  if (expectedCrits >= 1) {
+    const critsToAdd = Math.floor(expectedCrits);
+    for (let i = 0; i < critsToAdd; i++) {
+      combatState.lastHitCrit = true;
+    }
+  } else if (Math.random() < expectedCrits) {
+    combatState.lastHitCrit = true;
+  }
+
   while (ticksRemaining > 0 && safetyLoop < 50) {
     safetyLoop++;
 
@@ -195,7 +210,8 @@ export function performCombatTick(ticks: number = 1): void {
           if (character.stats.defense.gt(stats.def)) character.stats.defense = stats.def;
 
           rewardSystem.grantRewards(enemy, new Decimal(possibleKills));
-          
+          combatState.kills += possibleKills;
+
           // FIXED: carry over remaining ticks instead of discarding
           ticksRemaining -= timeUsed;
           combatState.isFighting = false;
@@ -226,6 +242,7 @@ export function performCombatTick(ticks: number = 1): void {
 
     if (enemy.hp.lte(0)) {
       rewardSystem.grantRewards(enemy);
+      combatState.kills += 1;
       combatState.isFighting = false;
       combatState.enemy = null;
     } else {

@@ -19,6 +19,17 @@ import { showOfflineSummary } from '../stores/uiStore.svelte.js';
 import { addLog } from '../ui/LogPanelState.svelte.js';
 import { gameConfig } from '../data/config.js';
 import { mobs } from '../data/mobs.js';
+import {
+  checkAndRotateChallenge,
+  checkRotationTick,
+  trackKill,
+  trackLevelUp,
+  trackCrit,
+  checkChallengeCompletion,
+  isChallengeComplete,
+  claimDailyReward,
+  dailyChallengeState
+} from '../modules/dailyChallenge.svelte.js';
 
 import { getTotalTicks, incrementTotalTicks, addTotalTicks } from './tickState.js';
 
@@ -192,6 +203,12 @@ export function gameTick(now: number): number | void {
   // Update snapshots before tick processing
   updateSnapshots(now);
 
+  // Check for daily challenge rotation (every ~60 seconds)
+  checkRotationTick(now);
+
+  // Check for daily challenge rotation (every ~60 seconds)
+  checkRotationTick(now);
+
   accumulatedTime += dt;
 
   // Track total playtime (convert ms to seconds)
@@ -225,7 +242,13 @@ export function gameTick(now: number): number | void {
     character.overcharge = applyOverchargeSoftcap(character.overcharge);
 
     // ---- Level processing ----
-    rewardSystem.processLevelUps();
+    const levelsGained = rewardSystem.processLevelUps();
+    for (let i = 0; i < levelsGained; i++) {
+      trackLevelUp();
+    }
+    if (levelsGained > 0) {
+      checkChallengeCompletion();
+    }
 
     // Stats synchronization
     const stats = getEffectiveCombatStats();
@@ -236,6 +259,36 @@ export function gameTick(now: number): number | void {
     // Combat
     performCombatTick(ticksToProcess);
     flushInventoryUpdates();
+
+    // Daily Challenge tracking
+    const combatKills = combatState.kills;
+    if (combatKills > 0) {
+      // Track all kills (batch kills count as multiple)
+      for (let i = 0; i < combatKills; i++) {
+        trackKill();
+      }
+      combatState.kills = 0;
+    }
+    if (combatState.lastHitCrit) {
+      trackCrit();
+      combatState.lastHitCrit = false;
+    }
+
+    // Check if daily challenge is complete (after tracking kills/levels/crits)
+    checkChallengeCompletion();
+
+    // Auto-claim daily challenge reward when complete
+    if (dailyChallengeState.completedToday && !dailyChallengeState.claimedReward) {
+      const reward = claimDailyReward();
+      if (reward) {
+        addLog(`[DAILY] Auto-claimed ${reward.shards} Shards!`, 'awakening');
+      }
+    } else if (dailyChallengeState.activeChallenge && !dailyChallengeState.claimedReward) {
+      // Debug: show why auto-claim didn't trigger
+      const comp = isChallengeComplete();
+      const completed = dailyChallengeState.completedToday;
+      console.log(`[DAILY DEBUG] active=${dailyChallengeState.activeChallenge} complete=${comp} completedToday=${completed} claimed=${dailyChallengeState.claimedReward}`);
+    }
 
     // Mining & Forestry
     performMiningTick(ticksToProcess);
@@ -273,6 +326,26 @@ export function skipTime(days: number = 1): string {
   updateDerivedStats();
   const ms = days * 86400 * 1000;
   processOfflineProgress(ms);
+
+  // Process daily challenge rotation for each day skipped
+  // Need to simulate each day separately by adjusting challengeStartTime
+  for (let i = 0; i < days; i++) {
+    // Rotate challenge by simulating time passage
+    if (dailyChallengeState.activeChallenge) {
+      dailyChallengeState.challengeStartTime -= 24 * 60 * 60 * 1000; // Go back 24 hours
+      checkAndRotateChallenge();
+    }
+
+    // Process completion and auto-claim
+    checkChallengeCompletion();
+    if (isChallengeComplete() && !dailyChallengeState.claimedReward && dailyChallengeState.completedToday) {
+      const reward = claimDailyReward();
+      if (reward) {
+        addLog(`[DAILY] Auto-claimed ${reward.shards} Shards!`, 'awakening');
+      }
+    }
+  }
+
   return `[DEV] Simulated ${days} day(s). Level: ${character.level.toString()} | Kills: ${character.kills.toString()}`;
 }
 
@@ -282,6 +355,9 @@ export function startGameLoop(): void {
     // Cap total offline accumulation to 30 days
     accumulatedTime += Math.min(offlineMs, 30 * 24 * 3600 * 1000);
   }
+
+  // Initialize daily challenge rotation
+  checkAndRotateChallenge();
 
   // Initialize login tracking
   const now = Date.now();
@@ -316,6 +392,23 @@ export function startGameLoop(): void {
   // Dev commands — only in development mode
   if (import.meta.env.DEV) {
     window.skipTime = skipTime;
+
+    // skipDays(n) — skip n days for daily challenge testing
+    window.skipDays = (n: number = 1) => {
+      // Simulate each day
+      for (let i = 0; i < n; i++) {
+        // Move challenge start time back by 24 hours
+        dailyChallengeState.challengeStartTime -= 24 * 60 * 60 * 1000;
+        checkAndRotateChallenge();
+        if (isChallengeComplete() && !dailyChallengeState.claimedReward && dailyChallengeState.completedToday) {
+          const reward = claimDailyReward();
+          if (reward) {
+            addLog(`[DAILY] Auto-claimed ${reward.shards} Shards!`, 'awakening');
+          }
+        }
+      }
+      return `[DEV] Skipped ${n} day(s). Challenge rotated.`;
+    };
 
     // maxSkills() — bypasses fragment cost, directly maxes all skills
     window.maxSkills = () => {

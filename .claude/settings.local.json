@@ -13,7 +13,18 @@
       "Bash(npm ls *)",
       "Bash(git ls-tree *)",
       "Bash(grep -v \":0$\")",
-      "Bash(grep -rn \"^\\\\s*//.*console\\\\.\\\\|console\\\\.log\\\\|console\\\\.warn\\\\|console\\\\.error\" src/ --include=\"*.ts\" --include=\"*.svelte\")"
+      "Bash(grep -rn \"^\\\\s*//.*console\\\\.\\\\|console\\\\.log\\\\|console\\\\.warn\\\\|console\\\\.error\" src/ --include=\"*.ts\" --include=\"*.svelte\")",
+      "Bash(curl -s http://localhost:5173)",
+      "Bash(npx vite *)",
+      "Bash(curl -s http://localhost:5174)",
+      "Bash(sed -i '147s/currentLevel\\)\\)/currentLevel\\)/' src/modules/ascension.svelte.ts)",
+      "Bash(sed -n '145,148p' src/modules/ascension.svelte.ts)",
+      "Bash(sed -i '325s/level\\)\\)/level\\)/' src/data/ascensionUpgrades.ts)",
+      "Bash(sed -n '321,328p' src/data/ascensionUpgrades.ts)",
+      "Bash(awk 'NR==325' src/data/ascensionUpgrades.ts)",
+      "Bash(awk 'NR==147' src/modules/ascension.svelte.ts)",
+      "Bash(python3 -c ' *)",
+      "Bash(node -e ' *)"
     ]
   }
 }

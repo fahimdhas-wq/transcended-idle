@@ -266,7 +266,7 @@ export const rewardSystem = {
     return n;
   },
 
-  processLevelUps(): void {
+  processLevelUps(): number {
     let levelsGainedNum = 0;
     while (character.xp.gte(character.xpNeeded) && levelsGainedNum < 10000) {
       // Hard wall at 1ZZZ — must Overclock to continue
@@ -279,17 +279,18 @@ export const rewardSystem = {
       updateDerivedStats(); // Updates xpNeeded and base stats for next iteration
       levelsGainedNum++;
     }
-    
+
     if (levelsGainedNum > 0) {
       character.momentum *= 0.35;
       character.overcharge = 0;
       character.skillFragments = character.skillFragments.add(levelsGainedNum);
-      
+
       const stats = getEffectiveCombatStats();
       character.stats.hp = stats.hp; // Heal to full on level up
       character.stats.defense = stats.def;
       addLog(`[LVL] Reached Level ${formatNumber(character.level)} (+${formatNumber(levelsGainedNum)})`, 'system');
     }
+    return levelsGainedNum;
   }
 };
 
