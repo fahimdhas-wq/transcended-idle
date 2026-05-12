@@ -194,13 +194,43 @@ export function checkChallengeCompletion(): void {
 // REWARDS
 // ============================================================
 
+function getCurrentProgress(): number {
+  const p = dailyChallengeState.progress;
+  switch (dailyChallengeState.activeChallenge) {
+    case 'crit_storm':      return p.critsLanded;
+    case 'speed_demon':     return p.levelsGained;
+    case 'resource_hunter': return p.resourcesMined;
+    case 'killstreak':     return p.kills;
+    default:                return 0;
+  }
+}
+
+export function calculateOverageBonus(): number {
+  if (!dailyChallengeState.activeChallenge) return 0;
+  if (PASSIVE_CHALLENGES.has(dailyChallengeState.activeChallenge)) return 0;
+  const def = challengeDefinitions[dailyChallengeState.activeChallenge];
+  const progress = getCurrentProgress();
+  if (progress <= def.target) return 0;
+  const overageRatio = progress / def.target;
+  // 2× target → +20% shards, 3× → +40%, 10× → +180%
+  return Math.max(0, Math.floor((overageRatio - 1) * def.reward.shards * 0.2));
+}
+
 export function claimDailyReward(): DailyChallengeReward | null {
   if (!dailyChallengeState.activeChallenge) return null;
   if (!dailyChallengeState.completedToday) return null;
   if (dailyChallengeState.claimedReward) return null;
 
   const def = challengeDefinitions[dailyChallengeState.activeChallenge];
-  const shards = def.reward.shards + dailyChallengeState.consecutiveDays * STREAK_BONUS_SHARDS;
+
+  // Base shard reward
+  let shards = def.reward.shards;
+
+  // Overage bonus: player exceeded the target — earn bonus shards
+  shards += calculateOverageBonus();
+
+  // Streak bonus: +5 per consecutive day
+  shards += dailyChallengeState.consecutiveDays * STREAK_BONUS_SHARDS;
 
   dailyChallengeState.claimedReward = true;
   dailyChallengeState.totalShardsEarned += shards;
@@ -309,10 +339,3 @@ export function getForestrySpeedMultiplier(): number {
 // If today is "Drill Master" → mining speed is 3× all day
 // If today is "Bio Synthesis" → forestry speed is 3× all day
 
-// ─── WALKTHROUGH: multipliers are active ALL DAY, no completion gate ─────────
-
-// If today is "Neural Optimization" → XP gains are 2× all day (already earned or not)
-// If today is "Fragment Harvest" → fragment gains are 2× all day
-// If today is "Data Dump" → drop rate is 2× all day
-// If today is "Drill Master" → mining speed is 3× all day
-// If today is "Bio Synthesis" → forestry speed is 3× all day

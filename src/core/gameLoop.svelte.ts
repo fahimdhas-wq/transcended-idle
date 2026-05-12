@@ -61,6 +61,7 @@ export const gameLoop = $state({});
 let accumulatedTime = 0;
 const tickRate = gameConfig.baseTickRate; // ms per tick (single source of truth)
 let achCheckCounter = 0;
+let challengeCheckCounter = 0;
 
 export { getTotalTicks };
 
@@ -245,7 +246,6 @@ export function gameTick(now: number): number | void {
       trackLevelUp();
     }
     if (levelsGained > 0) {
-      checkChallengeCompletion();
       trackLevelProgress(character.level);
     }
 
@@ -273,17 +273,6 @@ export function gameTick(now: number): number | void {
       combatState.lastHitCrit = false;
     }
 
-    // Check if daily challenge is complete (after tracking kills/levels/crits)
-    checkChallengeCompletion();
-
-    // Auto-claim daily challenge reward when complete
-    if (dailyChallengeState.completedToday && !dailyChallengeState.claimedReward) {
-      const reward = claimDailyReward();
-      if (reward) {
-        addLog(`[DAILY] Auto-claimed ${reward.shards} Shards!`, 'awakening');
-      }
-    }
-
     // Mining & Forestry
     performMiningTick(ticksToProcess);
     performForestryTick(ticksToProcess);
@@ -307,6 +296,19 @@ export function gameTick(now: number): number | void {
     if (achCheckCounter >= 50) {
       achCheckCounter = 0;
       checkAchievements(); // Redundant if Auto-Matrix is on, but necessary if off
+    }
+
+    // Throttled daily challenge check — every ~50 ticks instead of every tick
+    challengeCheckCounter += ticksToProcess;
+    if (challengeCheckCounter >= 50) {
+      challengeCheckCounter = 0;
+      checkChallengeCompletion();
+      if (dailyChallengeState.completedToday && !dailyChallengeState.claimedReward) {
+        const reward = claimDailyReward();
+        if (reward) {
+          addLog(`[DAILY] Auto-claimed ${reward.shards} Shards!`, 'awakening');
+        }
+      }
     }
 
     accumulatedTime -= ticksToProcess * tickRate;
