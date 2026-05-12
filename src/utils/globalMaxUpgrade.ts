@@ -69,41 +69,44 @@ export function autoUpgradeMining(): void {
   // Sort by priority
   priorityUpgrades.sort((a, b) => a.priority - b.priority);
 
-  for (const u of priorityUpgrades) {
-    const currentLv = Number(miningState[u.type] || 0);
-    // Skip if at cap
-    if (u.cap !== undefined && currentLv >= u.cap) continue;
+  // Process upgrades using microtask batching to avoid blocking
+  queueMicrotask(() => {
+    for (const u of priorityUpgrades) {
+      const currentLv = Number(miningState[u.type] || 0);
+      // Skip if at cap
+      if (u.cap !== undefined && currentLv >= u.cap) continue;
 
-    const formula = _getMiningFormula(u.type);
-    const maxBuy = u.cap !== undefined ? u.cap - currentLv : 1000000000000;
-    
-    // Calculate max affordable WITHOUT buying
-    const initialCount = maxAffordable(bestiaryState.dataFragments, currentLv, formula, maxBuy).toNumber();
-    const count = floorToCleanAmount(initialCount);
+      const formula = _getMiningFormula(u.type);
+      const maxBuy = u.cap !== undefined ? u.cap - currentLv : 1000000000000;
 
-    if (count > 0) {
-      buyMiningUpgrade(u.type, count, true);
+      // Calculate max affordable WITHOUT buying
+      const initialCount = maxAffordable(bestiaryState.dataFragments, currentLv, formula, maxBuy).toNumber();
+      const count = floorToCleanAmount(initialCount);
+
+      if (count > 0) {
+        buyMiningUpgrade(u.type, count, true);
+      }
     }
-  }
 
-  // Handle energy upgrade
-  upgradeEnergy('max');
+    // Handle energy upgrade
+    upgradeEnergy('max');
 
-  // Handle drone/automation upgrades
-  upgradeAutomation('drone', 'max');
-  upgradeAutomation('extractor', 'max');
+    // Handle drone/automation upgrades
+    upgradeAutomation('drone', 'max');
+    upgradeAutomation('extractor', 'max');
 
-  // Handle tool upgrade
-  if (miningState.toolTier < tools.length) {
-    const next = tools[miningState.toolTier];
-    if (bestiaryState.dataFragments.gte(next.dataCost)) {
-      bestiaryState.dataFragments = bestiaryState.dataFragments.sub(next.dataCost);
-      miningState.toolTier++;
-      miningState.toolName = next.name;
+    // Handle tool upgrade
+    if (miningState.toolTier < tools.length) {
+      const next = tools[miningState.toolTier];
+      if (bestiaryState.dataFragments.gte(next.dataCost)) {
+        bestiaryState.dataFragments = bestiaryState.dataFragments.sub(next.dataCost);
+        miningState.toolTier++;
+        miningState.toolName = next.name;
+      }
     }
-  }
 
-  invalidateBulkCostCache();
+    invalidateBulkCostCache();
+  });
 }
 
 function autoUpgradeTool(): void {
@@ -137,40 +140,43 @@ export function autoUpgradeForestry(): void {
   // Sort by priority
   priorityUpgrades.sort((a, b) => (a.priority || 99) - (b.priority || 99));
 
-  for (const u of priorityUpgrades) {
-    const currentLv = Number(forestryState[u.type] || 0);
-    // Skip if at cap
-    if (u.cap !== undefined && currentLv >= u.cap) continue;
+  // Process upgrades using microtask batching to avoid blocking
+  queueMicrotask(() => {
+    for (const u of priorityUpgrades) {
+      const currentLv = Number(forestryState[u.type] || 0);
+      // Skip if at cap
+      if (u.cap !== undefined && currentLv >= u.cap) continue;
 
-    const formula = _getForestryFormula(u.type);
-    const maxBuy = u.cap !== undefined ? u.cap - currentLv : 1000000000000;
+      const formula = _getForestryFormula(u.type);
+      const maxBuy = u.cap !== undefined ? u.cap - currentLv : 1000000000000;
 
-    // Calculate max affordable WITHOUT buying
-    const initialCount = maxAffordable(forestryState.dnaFragments, currentLv, formula, maxBuy).toNumber();
-    const count = floorToCleanAmount(initialCount);
+      // Calculate max affordable WITHOUT buying
+      const initialCount = maxAffordable(forestryState.dnaFragments, currentLv, formula, maxBuy).toNumber();
+      const count = floorToCleanAmount(initialCount);
 
-    if (count > 0) {
-      buyForestryUpgrade(u.type, count, true);
+      if (count > 0) {
+        buyForestryUpgrade(u.type, count, true);
+      }
     }
-  }
 
-  // Handle growth chambers
-  addGrowthChamber('max');
+    // Handle growth chambers
+    addGrowthChamber('max');
 
-  // Handle energy upgrade
-  upgradeForestryEnergy('max');
+    // Handle energy upgrade
+    upgradeForestryEnergy('max');
 
-  // Handle bio tool upgrade
-  if (forestryState.toolTier < bioTools.length) {
-    const next = bioTools[forestryState.toolTier];
-    if (forestryState.dnaFragments.gte(next.dataCost)) {
-      forestryState.dnaFragments = forestryState.dnaFragments.sub(next.dataCost);
-      forestryState.toolTier++;
-      forestryState.toolName = next.name;
+    // Handle bio tool upgrade
+    if (forestryState.toolTier < bioTools.length) {
+      const next = bioTools[forestryState.toolTier];
+      if (forestryState.dnaFragments.gte(next.dataCost)) {
+        forestryState.dnaFragments = forestryState.dnaFragments.sub(next.dataCost);
+        forestryState.toolTier++;
+        forestryState.toolName = next.name;
+      }
     }
-  }
 
-  invalidateBulkCostCache();
+    invalidateBulkCostCache();
+  });
 }
 
 function autoUpgradeBioTool(): void {
