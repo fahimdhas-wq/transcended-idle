@@ -10,13 +10,13 @@ import { forestryState } from './forestry.svelte.js';
 import { bestiaryState } from './bestiary.svelte.js';
 import { skillsState, SKILL_BASE_COSTS } from './skills.svelte.js';
 import { flushStatCache } from './combat.svelte.js';
-import { ALL_MINING_IDS, ALL_FORESTRY_IDS } from '../systems/resourceArray.ts';
+import { ALL_MINING_IDS, ALL_FORESTRY_IDS } from '../systems/resourceArray.js';
 import {
   ascensionUpgrades,
   TIER_SHARD_MULTIPLIERS,
   type AscensionTier,
   type AscensionUpgradeDef
-} from '../data/ascensionUpgrades.ts';
+} from '../data/ascensionUpgrades.js';
 
 // ============================================================
 // STATE
