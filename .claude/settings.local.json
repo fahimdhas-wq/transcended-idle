@@ -24,7 +24,8 @@
       "Bash(awk 'NR==325' src/data/ascensionUpgrades.ts)",
       "Bash(awk 'NR==147' src/modules/ascension.svelte.ts)",
       "Bash(python3 -c ' *)",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Skill(update-config)"
     ]
   }
 }
