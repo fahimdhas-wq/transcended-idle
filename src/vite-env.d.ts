@@ -16,6 +16,12 @@ interface Window {
   addFragments: (n?: number) => void;
   addData: (n?: number) => void;
   addDna: (n?: number) => void;
+  engineStats: () => {
+    tickCount: number;
+    tps: number;
+    registeredEvents: string[];
+    eventCounts: Record<string, number>;
+  };
 }
 
 declare module '*.css';

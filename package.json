@@ -1,7 +1,7 @@
 {
-  "name": "new-folder--2-",
-  "private": true,
+  "name": "transcended-idle-rpg",
   "version": "2.0.0",
+  "description": "TRANSCENDED — A cyberpunk idle RPG. Fight, mine, evolve beyond limits.",
   "type": "module",
   "scripts": {
     "dev": "vite",

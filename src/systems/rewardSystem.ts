@@ -157,8 +157,10 @@ export const rewardSystem = {
     const lootBoost = (lootSkill?.tierIndex || 0) * 0.15;
     const dropChance = Math.min(0.98, 0.7 + ((character.seals || 0) * 0.05) + (character.dropBonus || 0) + lootBoost + bestiaryDropBonus) * getDropRateMultiplier();
 
-    const killsNum = totalKills.toNumber();
-    const safeKillsForLoot = isFinite(killsNum) ? killsNum : 1e9;
+    // Cap kills to prevent Number overflow
+    const MAX_KILLS_FOR_LOOT = 1e9;
+    const killsNum = Math.min(totalKills.toNumber(), MAX_KILLS_FOR_LOOT);
+    const safeKillsForLoot = isFinite(killsNum) ? killsNum : MAX_KILLS_FOR_LOOT;
 
     if (quality >= 100) {
       const name = itemNames[Math.floor(Math.random() * itemNames.length)];
@@ -177,9 +179,9 @@ export const rewardSystem = {
         let rIdx = 0;
         const upgradeChance = 0.45 + (quality / 200) + (lootBoost / 2);
         while (Math.random() < upgradeChance && rIdx < itemRarities.length - 1) rIdx++;
-        
+
         const name = itemNames[Math.floor(Math.random() * itemNames.length)];
-        
+
         // When a higher rarity is rolled, drop ALL lower rarities of that same item as well
         for (let i = 0; i <= rIdx; i++) {
           const rarity = itemRarities[i];
