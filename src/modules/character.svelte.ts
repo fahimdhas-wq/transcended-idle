@@ -154,6 +154,7 @@ export function resetCharacter(): void {
   character.level = Decimal.ONE;
   character.xp = Decimal.ZERO;
   character.totalXp = Decimal.ZERO;
+  character.kills = Decimal.ZERO;
   character.momentum = 0;
   character.overcharge = 0;
   character.skillFragments = Decimal.ZERO;

@@ -258,7 +258,7 @@ export const rewardSystem = {
 
   processLevelUps(): number {
     let levelsGainedNum = 0;
-    while (character.xp.gte(character.xpNeeded) && levelsGainedNum < 10000) {
+    while (character.xp.gte(character.xpNeeded) && levelsGainedNum < 50) {
       character.xp = character.xp.sub(character.xpNeeded);
       character.level = character.level.add(1);
       updateDerivedStats(); // Updates xpNeeded and base stats for next iteration
