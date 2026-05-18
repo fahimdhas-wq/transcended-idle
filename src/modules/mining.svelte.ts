@@ -8,7 +8,7 @@ import { Decimal } from '../systems/decimal.js';
 import { calculateBulkCost, type CostFormula } from '../utils/bulkCost.js';
 import { formatNumber } from '../systems/scalingSystem.js';
 import { GATHERING_CONSTANTS, makeTools, type GatheringTool } from '../data/gatheringConfig.js';
-import { getMiningSpeedMultiplier } from './dailyChallenge.svelte.js';
+import { getMiningSpeedMultiplier, trackResources } from './dailyChallenge.svelte.js';
 import { maxAffordable } from '../utils/maxAffordable.js';
 import { miningResources } from './miningResources.js';
 
@@ -221,6 +221,8 @@ function executeMine(amount: number, luck: number, tier: number): void {
       handleRefining(ore.id);
     }
   });
+
+  trackResources(totalAmount);
 
   if (Math.random() < GATHERING_CONSTANTS.FRAG_DROP_CHANCE) {
     const fragGain = new Decimal(Math.pow(tier, GATHERING_CONSTANTS.FRAG_TIER_POWER))

@@ -14,7 +14,7 @@
   import CharacterPanel    from './components/CharacterPanel.svelte';
   import OverclockPanel    from './components/OverclockPanel.svelte';
   import MatrixPanel       from './components/MatrixPanel.svelte';
-  import LogPanel          from './components/LogPanel.svelte';
+  // import LogPanel          from './components/LogPanel.svelte';
   import ToastNotification from './components/ToastNotification.svelte';
   import OfflineModal      from './components/OfflineModal.svelte';
   import { startGameLoop } from './core/gameLoop.svelte.js';
@@ -22,9 +22,10 @@
   import { overclockState } from './modules/overclockState.svelte.js';
   import DailyChallenge    from './components/DailyChallenge.svelte';
   import AscensionPanel    from './components/AscensionPanel.svelte';
+  import { formatValue } from './systems/formatValue.js';
 
-  const tabs = ['COMBAT', 'CHARACTER', 'MINING', 'FORESTRY', 'BESTIARY', 'INVENTORY', 'SKILLS', 'SEALS', 'ACHIEVE', 'DAILY', 'ASCENSION', 'OVERCLOCK', 'MATRIX', 'SYSTEM'] as const;
-  type Tab = typeof tabs[number];
+  const allTabs = ['COMBAT', 'CHARACTER', 'MINING', 'FORESTRY', 'BESTIARY', 'INVENTORY', 'SKILLS', 'SEALS', 'ACHIEVE', 'DAILY', 'ASCENSION', 'OVERCLOCK', 'MATRIX', 'SYSTEM'] as const;
+  type Tab = typeof allTabs[number];
 
   const componentMap: Record<Tab, Component> = {
     'COMBAT':     CombatArena,
@@ -43,7 +44,13 @@
     'MATRIX':     MatrixPanel
   };
 
-  let activeTab = $state<Tab>('CHARACTER');
+  const bottomTabs: Tab[] = ['CHARACTER', 'SKILLS', 'INVENTORY', 'SEALS', 'ALL'];
+
+  let activeView = $state<string>('CHARACTER');
+
+  function isTab(t: string): t is Tab {
+    return allTabs.includes(t as Tab);
+  }
 
   function isTabUnlocked(tab: Tab): boolean {
     const oc = overclockState.timesOverclocked > 0;
@@ -58,7 +65,7 @@
   let newlyUnlocked = $state(new Set<Tab>());
 
   $effect(() => {
-    tabs.forEach(t => {
+    allTabs.forEach(t => {
       if (isTabUnlocked(t) && !prevUnlocked.has(t)) {
         newlyUnlocked.add(t);
         prevUnlocked.add(t);
@@ -68,70 +75,75 @@
   });
 
   onMount(() => { startGameLoop(); });
+
+  function switchTab(t: Tab | 'ALL') {
+    activeView = t;
+  }
 </script>
 
 <div class="shell">
   <!-- TOP BAR -->
   <header class="top-bar">
-    <div class="top-bar-left">
+    <div class="top-left"></div>
+    <div class="top-center">
       <span class="logo">
         <span class="logo-bracket">[</span>
         TRANSCENDED
         <span class="logo-bracket">]</span>
       </span>
-      <span class="version">v2.0</span>
     </div>
-
-    <nav class="tab-nav" aria-label="Main navigation">
-      {#each tabs as t (t)}
-        {#if isTabUnlocked(t)}
-          <button
-            role="tab"
-            aria-selected={t === activeTab}
-            class="tab-btn"
-            class:active={t === activeTab}
-            class:desktop-hide={t === 'COMBAT'}
-            onclick={() => { activeTab = t; }}
-          >
-            <span class="tab-text">{t}</span>
-            <span class="tab-line"></span>
-          </button>
-        {/if}
-      {/each}
-    </nav>
-
-    <div class="top-bar-right">
+    <div class="top-right">
       <span class="status-indicator"></span>
-      <span class="status-text">SYS.ONLINE</span>
     </div>
   </header>
 
-  <!-- BODY -->
-  <div class="body-split">
-    <aside class="left-pane" class:mobile-hidden={activeTab !== 'COMBAT'}>
-      <div class="combat-block panel">
-        <CombatArena />
-      </div>
-      <div class="log-block panel">
-        <LogPanel />
-      </div>
-    </aside>
-
-    <main class="right-pane" class:mobile-hidden={activeTab === 'COMBAT'}>
-      <div class="panel-area">
-        {#each tabs as t}
-          {#if isTabUnlocked(t) && t !== 'COMBAT'}
-            <div class="panel-slot panel" class:active={t === activeTab}>
-              {#if componentMap[t]}
-                {@const C = componentMap[t]}
-                <C />
-              {/if}
-            </div>
-          {/if}
-        {/each}
-      </div>
-    </main>
+  <!-- COMBAT STRIP -->
+  <div class="combat-strip">
+    <div class="combat-inner">
+      <CombatArena compact />
+    </div>
   </div>
+
+  <!-- PANEL CONTENT -->
+  <main class="panel-content">
+    {#if activeView === 'ALL'}
+      <div class="all-grid">
+        <div class="all-grid-inner">
+          {#each allTabs as t}
+            {#if isTabUnlocked(t) && t !== 'COMBAT' && !bottomTabs.includes(t)}
+              <button class="all-btn" onclick={() => { activeView = t; }}>
+                {t}
+              </button>
+            {/if}
+          {/each}
+        </div>
+      </div>
+    {:else}
+      {#each allTabs as t}
+        {#if isTabUnlocked(t) && t !== 'COMBAT' && t === activeView}
+          <div class="panel-slot active">
+            {#if componentMap[t]}
+              {@const C = componentMap[t]}
+              <C />
+            {/if}
+          </div>
+        {/if}
+      {/each}
+    {/if}
+  </main>
+
+  <!-- BOTTOM TAB BAR -->
+  <nav class="bottom-nav">
+    {#each bottomTabs as t (t)}
+      <button
+        class="nav-btn"
+        class:active={(t === 'ALL' && activeView === 'ALL') || (t !== 'ALL' && t === activeView)}
+        onclick={() => switchTab(t)}
+      >
+        <span class="nav-label">{t}</span>
+      </button>
+    {/each}
+  </nav>
 </div>
 
 <ToastNotification />
@@ -146,219 +158,115 @@
   background: var(--bg-void);
 }
 
+@media (min-width: 901px) {
+  .shell {
+    width: min(100vw, 100vh * 9 / 16);
+    aspect-ratio: 9 / 16;
+    height: auto;
+  }
+}
+
 /* ═══════════════════════════════════════════════════════════════════
-   TOP BAR — Command Bar
+   TOP BAR — Compact
 ══════════════════════════════════════════════════════════════════ */
 
 .top-bar {
   display: flex;
   align-items: center;
-  height: 56px;
-  padding: 0 16px;
+  justify-content: space-between;
+  height: 44px;
+  padding: 0 12px;
   background: linear-gradient(180deg, var(--bg-2) 0%, var(--bg-1) 100%);
   border-bottom: 1px solid var(--line);
   flex-shrink: 0;
   position: relative;
 }
 
-/* Glowing bottom line */
 .top-bar::after {
   content: '';
   position: absolute;
-  bottom: -1px;
   left: 0;
   right: 0;
+  bottom: 0;
   height: 1px;
-  background: linear-gradient(90deg,
-    transparent 0%,
-    var(--cyan) 20%,
-    var(--cyan) 80%,
-    transparent 100%
-  );
+  background: linear-gradient(90deg, transparent 0%, var(--cyan) 20%, var(--cyan) 80%, transparent 100%);
   box-shadow: 0 0 10px var(--cyan);
+  pointer-events: none;
 }
 
-/* LEFT */
-.top-bar-left {
+.top-left {
+  flex: 1;
+}
+
+.top-center {
+  flex: 1;
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex: 0 0 auto;
-  padding-right: 16px;
-  border-right: 1px solid var(--line);
+  justify-content: center;
+}
+
+.top-right {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
 }
 
 .logo {
   font-family: var(--font-hud);
-  font-size: 1rem;
+  font-size: 0.75rem;
   font-weight: 900;
-  letter-spacing: 0.15em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--text-0);
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 1px;
 }
 
 .logo-bracket {
   color: var(--cyan);
-  text-shadow: 0 0 8px var(--cyan);
-}
-
-.version {
-  font-family: var(--font-data);
-  font-size: 0.5rem;
-  color: var(--text-2);
-  padding: 2px 6px;
-  background: var(--bg-0);
-  border: 1px solid var(--line);
-  border-radius: 2px;
-}
-
-/* TAB NAV */
-.tab-nav {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  height: 100%;
-  padding: 0 16px;
-}
-
-.tab-nav::-webkit-scrollbar { display: none; }
-
-.tab-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  background: transparent;
-  border: none;
-  border-radius: 0;
-  color: var(--text-2);
-  font-family: var(--font-hud);
-  font-size: 0.55rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  padding: 8px 14px;
-  cursor: pointer;
-  height: 100%;
-  white-space: nowrap;
-  flex-shrink: 0;
-  transition: all var(--fast);
-  position: relative;
-}
-
-.tab-text {
-  position: relative;
-  z-index: 1;
-}
-
-.tab-line {
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 0;
-  height: 2px;
-  background: var(--cyan);
-  box-shadow: 0 0 8px var(--cyan);
-  transition: width var(--fast);
-}
-
-.tab-btn:hover {
-  color: var(--text-0);
-}
-
-.tab-btn.active {
-  color: var(--cyan);
-  background: linear-gradient(180deg, transparent, hsl(185 100% 55% / 0.08));
-}
-
-.tab-btn.active .tab-line {
-  width: 80%;
-}
-
-/* RIGHT */
-.top-bar-right {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding-left: 16px;
-  border-left: 1px solid var(--line);
+  text-shadow: 0 0 6px var(--cyan);
 }
 
 .status-indicator {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: var(--green);
-  box-shadow: 0 0 8px var(--green);
+  box-shadow: 0 0 6px var(--green);
   animation: pulse 2s ease-in-out infinite;
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; box-shadow: 0 0 8px var(--green); }
-  50% { opacity: 0.7; box-shadow: 0 0 4px var(--green); }
-}
-
-.status-text {
-  font-family: var(--font-hud);
-  font-size: 0.5rem;
-  font-weight: 600;
-  letter-spacing: 0.15em;
-  color: var(--text-2);
-  text-transform: uppercase;
+  0%, 100% { opacity: 1; box-shadow: 0 0 6px var(--green); }
+  50% { opacity: 0.6; box-shadow: 0 0 3px var(--green); }
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   BODY
+   COMBAT STRIP — Always visible at top
 ══════════════════════════════════════════════════════════════════ */
 
-.body-split {
-  flex: 1;
-  display: flex;
-  min-height: 0;
+.combat-strip {
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--line);
+  background:
+    radial-gradient(ellipse 60% 60% at 50% 50%, hsl(185 100% 60% / 0.03) 0%, transparent 70%);
 }
 
-/* LEFT PANE */
-.left-pane {
-  flex: 0 0 380px;
-  display: flex;
-  flex-direction: column;
-  padding: 12px;
-  gap: 12px;
-  min-height: 0;
+.combat-inner {
+  padding: 8px 12px;
 }
 
-.combat-block {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
+/* ═══════════════════════════════════════════════════════════════════
+   PANEL CONTENT
+══════════════════════════════════════════════════════════════════ */
 
-.log-block {
-  flex: 0 0 150px;
-}
-
-/* RIGHT PANE */
-.right-pane {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  padding: 12px 12px 12px 0;
-}
-
-.panel-area {
+.panel-content {
   flex: 1;
   position: relative;
   overflow: hidden;
+  min-height: 0;
 }
 
 .panel-slot {
@@ -374,18 +282,138 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   MOBILE
+   BOTTOM NAV
 ══════════════════════════════════════════════════════════════════ */
 
-@media (max-width: 900px) {
-  .body-split { flex-direction: column; }
-  .left-pane { flex: 1; border-right: none; border-bottom: 1px solid var(--line); }
-  .right-pane { flex: 1; }
-  .desktop-hide { display: block !important; }
-  .mobile-hidden { display: none !important; }
+.bottom-nav {
+  display: flex;
+  align-items: stretch;
+  height: 52px;
+  background: linear-gradient(0deg, var(--bg-2) 0%, var(--bg-1) 100%);
+  border-top: 1px solid var(--line);
+  flex-shrink: 0;
+  position: relative;
 }
 
-@media (min-width: 901px) {
-  .desktop-hide { display: none !important; }
+.bottom-nav::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, var(--cyan) 20%, var(--cyan) 80%, transparent 100%);
+  box-shadow: 0 0 8px var(--cyan);
+  pointer-events: none;
 }
+
+.nav-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  background: transparent;
+  border: none;
+  color: var(--text-2);
+  font-family: var(--font-hud);
+  font-size: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  padding: 6px 4px;
+  transition: all var(--fast);
+  position: relative;
+}
+
+.nav-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 2px;
+  background: var(--cyan);
+  box-shadow: 0 0 6px var(--cyan);
+  transition: width var(--fast);
+}
+
+.nav-btn:hover {
+  color: var(--text-1);
+  background: hsl(185 100% 55% / 0.04);
+}
+
+.nav-btn.active {
+  color: var(--cyan);
+  background: linear-gradient(0deg, hsl(185 100% 55% / 0.1), transparent);
+}
+
+.nav-btn.active::before {
+  width: 60%;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   ALL PANEL GRID
+══════════════════════════════════════════════════════════════════ */
+
+.all-grid {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.all-grid-inner {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 16px;
+}
+
+.all-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 12px;
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  color: var(--text-0);
+  font-family: var(--font-hud);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all var(--fast);
+  position: relative;
+  overflow: hidden;
+}
+
+.all-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--cyan), var(--pink));
+  opacity: 0;
+  transition: opacity var(--fast);
+}
+
+.all-btn:hover {
+  border-color: var(--cyan-bright);
+  color: var(--cyan);
+  box-shadow: 0 0 12px hsl(185 100% 55% / 0.2);
+}
+
+.all-btn:hover::before {
+  opacity: 1;
+}
+
 </style>

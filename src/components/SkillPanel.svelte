@@ -14,6 +14,7 @@
   }
   function nextTier(skill: Skill): string { return tiers[skill.tierIndex + 1] || 'MAX'; }
   function fragPct(skill: Skill): number {
+    if (skill.tierIndex >= tiers.length - 1) return 100;
     if (skill.fragmentsNeeded.lte(0)) return 100;
     return Math.min(100, skill.fragments.div(skill.fragmentsNeeded).mul(100).toNumber());
   }
@@ -61,7 +62,7 @@
     </div>
     <div class="header-right">
       <span class="stat-label">FRAGMENTS</span>
-      <span class="stat-value violet">&#9889; {totalFrags}</span>
+      <span class="stat-value violet">◈ {totalFrags}</span>
     </div>
   </div>
 

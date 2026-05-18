@@ -12,6 +12,12 @@ export interface OfflineSummary {
   kills: Decimal;
   levels: Decimal;
   efficiency: number;
+  xpGained: Decimal;
+  fragmentsGained: Decimal;
+  dataFragments: Decimal;
+  dnaFragments: Decimal;
+  miningGained: Decimal;
+  forestryGained: Decimal;
 }
 
 export interface UIStore {

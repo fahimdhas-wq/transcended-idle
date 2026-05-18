@@ -24,15 +24,39 @@
       <div class="stats-grid">
         <div class="stat-cell">
           <span class="sc-label">KILLS</span>
-          <span class="sc-val">{formatValue(uiStore.offlineSummary.kills)}</span>
+          <span class="sc-val red">{formatValue(uiStore.offlineSummary.kills)}</span>
         </div>
         <div class="stat-cell">
           <span class="sc-label">LEVELS</span>
-          <span class="sc-val">{formatValue(uiStore.offlineSummary.levels)}</span>
+          <span class="sc-val gold">{formatValue(uiStore.offlineSummary.levels)}</span>
         </div>
         <div class="stat-cell">
           <span class="sc-label">EFFICIENCY</span>
-          <span class="sc-val">{(uiStore.offlineSummary.efficiency * 100).toFixed(0)}%</span>
+          <span class="sc-val cyan">{(uiStore.offlineSummary.efficiency * 100).toFixed(0)}%</span>
+        </div>
+        <div class="stat-cell">
+          <span class="sc-label">XP EARNED</span>
+          <span class="sc-val">{formatValue(uiStore.offlineSummary.xpGained)}</span>
+        </div>
+        <div class="stat-cell">
+          <span class="sc-label">◇ FRAGMENTS</span>
+          <span class="sc-val purple">{formatValue(uiStore.offlineSummary.fragmentsGained)}</span>
+        </div>
+        <div class="stat-cell">
+          <span class="sc-label">⬟ DATA</span>
+          <span class="sc-val cyan">{formatValue(uiStore.offlineSummary.dataFragments)}</span>
+        </div>
+        <div class="stat-cell">
+          <span class="sc-label">⟡ DNA</span>
+          <span class="sc-val green">{formatValue(uiStore.offlineSummary.dnaFragments)}</span>
+        </div>
+        <div class="stat-cell">
+          <span class="sc-label">⛏ MINING</span>
+          <span class="sc-val">{formatValue(uiStore.offlineSummary.miningGained)}</span>
+        </div>
+        <div class="stat-cell">
+          <span class="sc-label">🌲 FORESTRY</span>
+          <span class="sc-val">{formatValue(uiStore.offlineSummary.forestryGained)}</span>
         </div>
       </div>
 
@@ -56,7 +80,8 @@
   background: var(--bg-1);
   border: 1px solid var(--line);
   padding: 24px;
-  width: 300px;
+  width: 320px;
+  max-width: 90vw;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -97,7 +122,7 @@
 
 .stat-cell {
   background: var(--bg-2);
-  padding: 10px 8px;
+  padding: 10px 6px;
   display: flex;
   flex-direction: column;
   gap: 3px;
@@ -106,20 +131,27 @@
 
 .sc-label {
   font-family: var(--font-hud);
-  font-size: 0.54rem;
+  font-size: 0.48rem;
   font-weight: 600;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--text-2);
+  white-space: nowrap;
 }
 
 .sc-val {
   font-family: var(--font-data);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 700;
   color: var(--text-0);
   font-variant-numeric: tabular-nums;
 }
+
+.sc-val.red { color: var(--red); }
+.sc-val.gold { color: var(--gold); }
+.sc-val.cyan { color: var(--cyan); }
+.sc-val.purple { color: var(--purple); }
+.sc-val.green { color: var(--green); }
 
 .continue-btn {
   font-family: var(--font-hud);
@@ -149,4 +181,3 @@
   box-shadow: 0 0 10px hsl(0 100% 60% / 0.4);
 }
 </style>
-

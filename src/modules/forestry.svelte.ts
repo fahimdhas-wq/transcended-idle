@@ -7,7 +7,7 @@ import { Decimal } from '../systems/decimal.js';
 import { formatNumber } from '../systems/scalingSystem.js';
 import { GATHERING_CONSTANTS, makeTools, type GatheringTool } from '../data/gatheringConfig.js';
 import { forestryResources } from './forestryResources.js';
-import { getForestrySpeedMultiplier } from './dailyChallenge.svelte.js';
+import { getForestrySpeedMultiplier, trackResources } from './dailyChallenge.svelte.js';
 
 export type ForestryUpgradeType =
   | 'chainsawFuel'
@@ -226,6 +226,8 @@ function executeHarvest(tool: GatheringTool, amount: number): void {
       handleBioRefining(id);
     }
   });
+
+  trackResources(totalAmount);
 
   if (Math.random() < GATHERING_CONSTANTS.FRAG_DROP_CHANCE) {
     const fragGain = new Decimal(Math.pow(tool.tier, GATHERING_CONSTANTS.FRAG_TIER_POWER))

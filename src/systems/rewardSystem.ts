@@ -20,7 +20,7 @@ import { Decimal, type DecimalSource } from '../systems/decimal.js';
 import { getEffectiveCombatStats } from '../modules/combat.svelte.js';
 import { LEVEL_WALL } from '../modules/overclock.svelte.js';
 import type { Enemy } from './aiSystem.js';
-import { getXpMultiplier, getFragmentMultiplier, getDropRateMultiplier } from '../modules/dailyChallenge.svelte.js';
+import { getXpMultiplier, getFragmentMultiplier, getDropRateMultiplier, trackFragments } from '../modules/dailyChallenge.svelte.js';
 
 const XP_REWARD_EXP_BASE = 1.08;
 const MAX_BATCH_LEVELS = 100000;
@@ -147,6 +147,7 @@ export const rewardSystem = {
 
     character.skillFragments = character.skillFragments.add(fragGain);
     character.totalFragments = character.totalFragments.add(fragGain);
+    trackFragments(fragGain);
   },
 
   _doLoot(enemy: Enemy, totalKills: Decimal): void {

@@ -133,7 +133,7 @@
         </div>
         <div class="stat-item">
           <span class="stat-label">Shards</span>
-          <span class="stat-value shard">{dailyChallengeState.totalShardsEarned}</span>
+          <span class="stat-value shard">{formatValue(dailyChallengeState.totalShardsEarned)}</span>
         </div>
       </div>
     </div>

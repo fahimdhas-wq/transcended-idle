@@ -4,10 +4,39 @@ import { character } from '../modules/character.svelte.js';
 import { formatValue } from '../systems/formatValue.js';
 import { getPowerTier } from '../systems/powerTier.js';
 import { Decimal } from '../systems/decimal.js';
+import { onMount } from 'svelte';
 import type { MobType } from '../data/mobs.js';
+
+let { compact = false }: { compact?: boolean } = $props();
 
 let showAdvanced = $state(false);
 let stats = $derived(getEffectiveCombatStats());
+
+const combatDialogues = [
+  'SLAYING DEMONS...',
+  'PURGING EVIL...',
+  'DEFENDING REALM...',
+  'BREAKING DIMENSIONS...',
+  'EXECUTING PROTOCOL...',
+  'ANNIHILATING THREAT...',
+  'SACRIFICING ALL...',
+  'OVERCLOCKING SYSTEM...',
+  'RIPPING THROUGH...',
+  'CONSUMING DARKNESS...',
+  'ASCENDING BEYOND...',
+  'TEARING FATE...',
+  'VOID CRAVES MORE...',
+  'TRANSCENDING LIMITS...',
+  'SLAYING LEGENDS...',
+];
+let dialogueIndex = $state(0);
+
+onMount(() => {
+  const interval = setInterval(() => {
+    dialogueIndex = (dialogueIndex + 1) % combatDialogues.length;
+  }, 2500);
+  return () => clearInterval(interval);
+});
 let maxHp = $derived(stats.hp);
 let maxSh = $derived(stats.def);
 let attackVal = $derived(stats.atk);
@@ -55,6 +84,45 @@ function typeLabel(type: MobType): string {
 let hpIsLow = $derived(playerHpPct < 25);
 </script>
 
+{#if compact}
+  <div class="arena-compact">
+    <div class="c-main">
+      <div class="c-level">
+        <span class="c-lbl">LV</span>
+        <span class="c-lv">{formatValue(character.level ?? 0)}</span>
+      </div>
+      <div class="c-player-bars">
+        <div class="c-gauge">
+          <div class="c-g-label hp">HP</div>
+          <div class="c-bar-track">
+            <div class="c-bar-fill" class:hp-critical={hpIsLow} style="width:{playerHpPct}%"></div>
+          </div>
+          <div class="c-g-value">{formatValue(character.stats?.hp ?? 0)}</div>
+        </div>
+        <div class="c-gauge">
+          <div class="c-g-label sh">SH</div>
+          <div class="c-bar-track">
+            <div class="c-bar-fill sh" style="width:{playerShPct}%"></div>
+          </div>
+          <div class="c-g-value">{formatValue(character.stats?.defense ?? 0)}</div>
+        </div>
+      </div>
+      <div class="c-enemy">
+        {#if combatState.enemy}
+          <div class="c-enemy-top">
+            <span class="c-enemy-name">{combatState.enemy.name}</span>
+            <span class="c-enemy-lv">Lv.{formatValue(combatState.enemy.level ?? 0)}</span>
+          </div>
+          <div class="c-bar-track enemy">
+            <div class="c-bar-fill hp" style="width:{enemyHpPct}%"></div>
+          </div>
+        {:else}
+          <span class="c-scan">▸ {combatDialogues[dialogueIndex]}</span>
+        {/if}
+      </div>
+    </div>
+  </div>
+{:else}
 <div class="arena">
   <!-- PLAYER HUD -->
   <div class="player-hud">
@@ -150,11 +218,12 @@ let hpIsLow = $derived(playerHpPct < 25);
     {:else}
       <div class="scanning">
         <span class="scan-icon">▸</span>
-        <span class="scan-text">SCANNING HOSTILE...</span>
+        <span class="scan-text">{combatDialogues[dialogueIndex]}</span>
       </div>
     {/if}
   </div>
 </div>
+{/if}
 
 <style>
 .arena {
@@ -434,5 +503,164 @@ let hpIsLow = $derived(playerHpPct < 25);
   letter-spacing: 0.15em;
   color: var(--text-2);
   text-transform: uppercase;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   COMPACT MODE — Portrait combat strip
+══════════════════════════════════════════════════════════════════ */
+
+.arena-compact {
+  display: flex;
+  flex-direction: column;
+}
+
+.c-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.c-level {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  min-width: 44px;
+}
+
+.c-lbl {
+  font-family: var(--font-hud);
+  font-size: 0.45rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--text-2);
+  text-transform: uppercase;
+}
+
+.c-lv {
+  font-family: var(--font-data);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-0);
+  line-height: 1.2;
+}
+
+.c-player-bars {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.c-gauge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.c-g-label {
+  font-family: var(--font-hud);
+  font-size: 0.45rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  width: 16px;
+  flex-shrink: 0;
+}
+
+.c-g-label.hp { color: var(--red); }
+.c-g-label.sh { color: var(--cyan); }
+
+.c-g-value {
+  font-family: var(--font-data);
+  font-size: 0.55rem;
+  color: var(--text-0);
+  font-variant-numeric: tabular-nums;
+  width: 60px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.c-bar-track {
+  flex: 1;
+  height: 5px;
+  background: hsl(0 0% 0% / 0.5);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.c-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 150ms ease;
+  background: linear-gradient(90deg, var(--red), hsl(0 100% 70%));
+}
+
+.c-bar-fill.sh {
+  background: linear-gradient(90deg, var(--cyan), hsl(185 100% 70%));
+}
+
+.hp-critical {
+  animation: hp-flash 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes hp-flash {
+  from { opacity: 1; }
+  to { opacity: 0.5; }
+}
+
+.c-enemy {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  max-width: 160px;
+}
+
+.c-enemy-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 4px;
+}
+
+.c-enemy-name {
+  font-family: var(--font-hud);
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--text-0);
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.c-enemy-lv {
+  font-family: var(--font-data);
+  font-size: 0.5rem;
+  color: var(--gold);
+  flex-shrink: 0;
+}
+
+.c-bar-track.enemy {
+  height: 5px;
+}
+
+.c-bar-fill.hp {
+  background: linear-gradient(90deg, var(--red), hsl(0 100% 70%));
+}
+
+.c-scan {
+  font-family: var(--font-hud);
+  font-size: 0.5rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--cyan);
+  animation: blink 1s step-end infinite;
 }
 </style>

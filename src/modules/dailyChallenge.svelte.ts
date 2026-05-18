@@ -17,6 +17,7 @@ export interface DailyChallengeState {
   totalCompletions: number;
   lastCompletionDate: string;
   progress: DailyChallengeProgress;
+  lastLoginDate: string;
 }
 
 export interface DailyChallengeProgress {
@@ -48,7 +49,8 @@ export const dailyChallengeState: DailyChallengeState = $state({
     resourcesMined: 0,
     fragmentsEarned: 0,
     critsLanded: 0
-  }
+  },
+  lastLoginDate: ''
 });
 
 const CHALLENGE_DURATION_MS = 24 * 60 * 60 * 1000;
@@ -61,7 +63,7 @@ const PASSIVE_CHALLENGES = new Set<ChallengeType>([
 
 let lastRotationCheck = 0;
 
-function getTodayString(): string {
+export function getTodayString(): string {
   return new Date().toISOString().split('T')[0];
 }
 
@@ -82,7 +84,7 @@ function selectDailyChallenge(): ChallengeType {
   return allChallengeIds[index];
 }
 
-function rotateToNewChallenge(): void {
+export function rotateToNewChallenge(): void {
   dailyChallengeState.activeChallenge = selectDailyChallenge();
   dailyChallengeState.challengeStartTime = Date.now();
   dailyChallengeState.completedToday = false;
@@ -100,6 +102,7 @@ function rotateToNewChallenge(): void {
 
 export function checkAndRotateChallenge(): void {
   const today = getTodayString();
+  const yesterday = getYesterdayString();
   const timeSinceStart = dailyChallengeState.challengeStartTime > 0
     ? Date.now() - dailyChallengeState.challengeStartTime
     : 0;
@@ -108,6 +111,19 @@ export function checkAndRotateChallenge(): void {
     ? new Date(dailyChallengeState.challengeStartTime).toISOString().split('T')[0]
     : '';
   const isNewDay = challengeDateStr !== today;
+
+  // Login streak — updates every new day regardless of challenge completion
+  if (isNewDay && dailyChallengeState.lastLoginDate !== today) {
+    if (dailyChallengeState.lastLoginDate === yesterday) {
+      dailyChallengeState.consecutiveDays++;
+    } else {
+      dailyChallengeState.consecutiveDays = 1;
+    }
+    if (dailyChallengeState.consecutiveDays > dailyChallengeState.bestStreak) {
+      dailyChallengeState.bestStreak = dailyChallengeState.consecutiveDays;
+    }
+    dailyChallengeState.lastLoginDate = today;
+  }
 
   if (!dailyChallengeState.activeChallenge || hasExpired || isNewDay) {
     rotateToNewChallenge();
@@ -173,17 +189,6 @@ export function checkChallengeCompletion(): void {
   if (!isChallengeComplete()) return;
 
   const today = getTodayString();
-  const yesterday = getYesterdayString();
-
-  if (dailyChallengeState.lastCompletionDate === yesterday) {
-    dailyChallengeState.consecutiveDays++;
-  } else if (dailyChallengeState.lastCompletionDate !== today) {
-    dailyChallengeState.consecutiveDays = 1;
-  }
-
-  if (dailyChallengeState.consecutiveDays > dailyChallengeState.bestStreak) {
-    dailyChallengeState.bestStreak = dailyChallengeState.consecutiveDays;
-  }
 
   dailyChallengeState.completedToday = true;
   dailyChallengeState.lastCompletionDate = today;
