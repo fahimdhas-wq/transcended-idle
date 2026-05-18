@@ -7,15 +7,9 @@ import { uiStore, showToast } from '../stores/uiStore.svelte.js';
 import { formatValue } from '../systems/formatValue.js';
 import { Decimal } from '../systems/decimal.js';
 import type { ForestryUpgradeType } from '../modules/forestry.svelte.js';
+import { onMount, untrack } from 'svelte';
 
 const buyAmount = $derived(uiStore.buyAmount);
-const dnaFragments = $derived(forestryState.dnaFragments);
-const chainsawFuel = $derived(forestryState.chainsawFuel);
-const reforestation = $derived(forestryState.reforestation);
-const ancientSaplings = $derived(forestryState.ancientSaplings);
-const mutationPower = $derived(forestryState.mutationPower);
-const overclockPower = $derived(forestryState.overclockPower);
-const efficiency = $derived(forestryState.efficiency);
 
 function resolveCost(formula: CostFormula, currentLevel: number, amount: number | 'max', budget: Decimal): { cost: Decimal, count: number } {
   const count = amount === 'max' ? maxAffordable(budget, currentLevel, formula).toNumber() : amount;
@@ -23,17 +17,41 @@ function resolveCost(formula: CostFormula, currentLevel: number, amount: number 
   return { cost, count };
 }
 
-const costs = $derived({
-  chainsawFuel: resolveCost({ type: 'linear', base: 0, gain: 500 }, chainsawFuel, buyAmount, dnaFragments),
-  reforestation: resolveCost({ type: 'linear', base: 0, gain: 200 }, reforestation, buyAmount, dnaFragments),
-  ancientSaplings: resolveCost({ type: 'geometric', base: 100, multiplier: 10 }, ancientSaplings, buyAmount === 'max' ? Math.min(10 - ancientSaplings, 10) : Math.min(buyAmount as number, 10 - ancientSaplings), dnaFragments),
-  mutationPower: resolveCost({ type: 'linear', base: 1500, gain: 1500 }, mutationPower, buyAmount, dnaFragments),
-  overclockPower: resolveCost({ type: 'linear', base: 2000, gain: 2000 }, overclockPower, buyAmount, dnaFragments),
-  efficiency: resolveCost({ type: 'linear', base: 1000, gain: 1000 }, efficiency, buyAmount, dnaFragments),
+function computeCosts() {
+  return {
+    chainsawFuel: resolveCost({ type: 'linear', base: 0, gain: 500 }, forestryState.chainsawFuel, buyAmount, forestryState.dnaFragments),
+    reforestation: resolveCost({ type: 'linear', base: 0, gain: 200 }, forestryState.reforestation, buyAmount, forestryState.dnaFragments),
+    ancientSaplings: resolveCost({ type: 'geometric', base: 100, multiplier: 10 }, forestryState.ancientSaplings, buyAmount === 'max' ? Math.min(10 - forestryState.ancientSaplings, 10) : Math.min(buyAmount as number, 10 - forestryState.ancientSaplings), forestryState.dnaFragments),
+    mutationPower: resolveCost({ type: 'linear', base: 1500, gain: 1500 }, forestryState.mutationPower, buyAmount, forestryState.dnaFragments),
+    efficiency: resolveCost({ type: 'linear', base: 1000, gain: 1000 }, forestryState.efficiency, buyAmount, forestryState.dnaFragments),
+  };
+}
+
+let costs = $state(computeCosts());
+let _lastCostUpdate = 0;
+function refreshCosts() {
+  const now = performance.now();
+  if (now - _lastCostUpdate > 200) {
+    _lastCostUpdate = now;
+    costs = computeCosts();
+  }
+}
+
+$effect(() => {
+  buyAmount;
+  untrack(() => {
+    costs = computeCosts();
+    _lastCostUpdate = performance.now();
+  });
+});
+
+onMount(() => {
+  const id = setInterval(() => refreshCosts(), 250);
+  return () => clearInterval(id);
 });
 
 function fmt(v: any): string { return formatValue(v); }
-function canAfford(cost: Decimal | number): boolean { return dnaFragments.gte(cost); }
+function canAfford(cost: Decimal | number): boolean { return forestryState.dnaFragments.gte(cost); }
 
 function doBuy(t: ForestryUpgradeType) {
   buyForestryUpgrade(t, buyAmount);
@@ -47,13 +65,13 @@ function doMax(t: ForestryUpgradeType) {
 
 <div class="upg-list">
   <!-- Ancient Saplings: TOP priority, capped at 10 -->
-  <div class="upg-row" class:at-cap={ancientSaplings >= 10}>
+  <div class="upg-row" class:at-cap={forestryState.ancientSaplings >= 10}>
     <div class="upg-info">
       <span class="upg-name">Ancient Saplings</span>
-      <span class="upg-lv">Lv.{fmt(ancientSaplings)}{ancientSaplings >= 10 ? ' MAX' : ''}</span>
+      <span class="upg-lv">Lv.{fmt(forestryState.ancientSaplings)}{forestryState.ancientSaplings >= 10 ? ' MAX' : ''}</span>
     </div>
     <div class="upg-btns">
-      {#if ancientSaplings < 10}
+      {#if forestryState.ancientSaplings < 10}
         <button class="upg-buy-btn" onclick={() => doBuy('ancientSaplings')}
           disabled={!canAfford(costs.ancientSaplings.cost)}>
           +{buyAmount}
@@ -71,7 +89,7 @@ function doMax(t: ForestryUpgradeType) {
   <div class="upg-row">
     <div class="upg-info">
       <span class="upg-name">Chainsaw Fuel</span>
-      <span class="upg-lv">Lv.{fmt(chainsawFuel)}</span>
+      <span class="upg-lv">Lv.{fmt(forestryState.chainsawFuel)}</span>
     </div>
     <div class="upg-btns">
       <button class="upg-buy-btn" onclick={() => doBuy('chainsawFuel')}
@@ -88,7 +106,7 @@ function doMax(t: ForestryUpgradeType) {
   <div class="upg-row">
     <div class="upg-info">
       <span class="upg-name">Reforestation</span>
-      <span class="upg-lv">Lv.{fmt(reforestation)}</span>
+      <span class="upg-lv">Lv.{fmt(forestryState.reforestation)}</span>
     </div>
     <div class="upg-btns">
       <button class="upg-buy-btn" onclick={() => doBuy('reforestation')}
@@ -105,7 +123,7 @@ function doMax(t: ForestryUpgradeType) {
   <div class="upg-row">
     <div class="upg-info">
       <span class="upg-name">Mutation Power</span>
-      <span class="upg-lv">Lv.{fmt(mutationPower)}</span>
+      <span class="upg-lv">Lv.{fmt(forestryState.mutationPower)}</span>
     </div>
     <div class="upg-btns">
       <button class="upg-buy-btn" onclick={() => doBuy('mutationPower')}
@@ -121,25 +139,8 @@ function doMax(t: ForestryUpgradeType) {
 
   <div class="upg-row">
     <div class="upg-info">
-      <span class="upg-name">OC Power</span>
-      <span class="upg-lv">Lv.{fmt(overclockPower)}</span>
-    </div>
-    <div class="upg-btns">
-      <button class="upg-buy-btn" onclick={() => doBuy('overclockPower')}
-        disabled={!canAfford(costs.overclockPower.cost)}>
-        +{buyAmount}
-        <span class="btn-cost">{fmt(costs.overclockPower.cost)}</span>
-      </button>
-      <button class="upg-max-btn" onclick={() => doMax('overclockPower')}>
-        MAX
-      </button>
-    </div>
-  </div>
-
-  <div class="upg-row">
-    <div class="upg-info">
       <span class="upg-name">Efficiency</span>
-      <span class="upg-lv">Lv.{fmt(efficiency)}</span>
+      <span class="upg-lv">Lv.{fmt(forestryState.efficiency)}</span>
     </div>
     <div class="upg-btns">
       <button class="upg-buy-btn" onclick={() => doBuy('efficiency')}

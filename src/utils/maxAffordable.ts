@@ -15,17 +15,17 @@ export function maxAffordable(
   formula: CostFormula,
   maxCount: number = 1000000000000
 ): Decimal {
-  let low = new Decimal(0);
+  let low = Decimal.ZERO;
   let high = new Decimal(maxCount); 
-  let affordable = new Decimal(0);
+  let affordable = Decimal.ZERO;
 
   // If budget is 0, we can afford 0
-  if (budget.m === 0) return new Decimal(0);
+  if (budget.m === 0) return Decimal.ZERO;
 
   while (low.lte(high)) {
     const mid = low.add(high).div(2).floor();
     if (mid.lte(0)) {
-      low = new Decimal(1);
+      low = Decimal.ONE;
       if (low.gt(high)) break;
       continue;
     }

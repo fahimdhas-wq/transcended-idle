@@ -6,13 +6,10 @@ import { miningState } from '../modules/mining.svelte.js';
 import { flushStatCache } from '../modules/combat.svelte.js';
 import { forestryState } from '../modules/forestry.svelte.js';
 import { bestiaryState, updateGlobalBoost } from '../modules/bestiary.svelte.js';
-import { overclockState } from '../modules/overclockState.svelte.js';
-import { matrixState } from '../modules/matrix.svelte.js';
 import { addLog } from '../ui/LogPanelState.svelte.js';
 import { gameConfig } from '../data/config.js';
 import { Decimal } from '../systems/decimal.js';
 import { dailyChallengeState, checkAndRotateChallenge } from '../modules/dailyChallenge.svelte.js';
-import { ascensionState } from '../modules/ascension.svelte.js';
 
 const SAVE_KEY = 'cyber_idle_save_v3';
 let isWiping = false;
@@ -26,10 +23,7 @@ export interface SaveData {
   mining?: unknown;
   forestry?: unknown;
   bestiary?: unknown;
-  overclock?: unknown;
-  matrix?: unknown;
   dailyChallenge?: unknown;
-  ascension?: unknown;
   lastSaved?: unknown;
 }
 
@@ -102,10 +96,7 @@ export const saveSystem = {
         mining: miningState,
         forestry: forestryState,
         bestiary: bestiaryState,
-        overclock: overclockState,
-        matrix: matrixState,
         dailyChallenge: dailyChallengeState,
-        ascension: ascensionState,
         lastSaved: Date.now()
       };
       localStorage.setItem(SAVE_KEY, JSON.stringify(data));
@@ -135,17 +126,11 @@ export const saveSystem = {
       safeMerge(miningState as unknown as MutableRecord, data.mining);
       safeMerge(forestryState as unknown as MutableRecord, data.forestry);
       safeMerge(bestiaryState as unknown as MutableRecord, data.bestiary);
-      safeMerge(overclockState as unknown as MutableRecord, data.overclock);
-      safeMerge(matrixState as unknown as MutableRecord, data.matrix);
 
       if (data.dailyChallenge) {
         safeMerge(dailyChallengeState as unknown as MutableRecord, data.dailyChallenge);
       }
       checkAndRotateChallenge();
-
-      if (data.ascension) {
-        safeMerge(ascensionState as unknown as MutableRecord, data.ascension);
-      }
 
       rebuildInventoryMap();
       updateGlobalBoost();
@@ -164,10 +149,6 @@ export const saveSystem = {
 
       character.offlineSettings.maxSeconds = 2592000;
       character.offlineSettings.efficiency = character.offlineSettings.efficiency || 1.0;
-
-      if (overclockState.coreThreads.lt(2) && overclockState.timesOverclocked === 0) {
-        overclockState.coreThreads = new Decimal(2);
-      }
 
       if (offlineMs > 60000) {
         addLog(`[SYSTEM] Offline for ${Math.floor(offlineMs / 60000)}min - progress calculated.`, 'system');

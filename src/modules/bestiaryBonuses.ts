@@ -3,6 +3,12 @@ import { bestiaryState } from './bestiary.svelte.js';
 import { Decimal } from '../systems/decimal.js';
 import { mobs, type MobType } from '../data/mobs.js';
 
+// Pre-compute mob type lookup for O(1) access
+const mobTypeMap: Record<string, MobType> = {};
+for (const mob of mobs) {
+  mobTypeMap[mob.id] = mob.type;
+}
+
 export function getDamageMultiplier(): number {
   return 1 + bestiaryState.anatomy * 0.1;
 }
@@ -12,7 +18,7 @@ export function getGlobalStatBoost(): number {
 }
 
 export function getSoulMult(): Decimal {
-  return new Decimal(1).add(bestiaryState.souls.mul(bestiaryState.soulExtraction).mul(0.01));
+  return Decimal.ONE.add(bestiaryState.souls.mul(bestiaryState.soulExtraction).mul(0.01));
 }
 
 export function getSpeciesDamageBonus(mobId: string): number {
@@ -43,17 +49,18 @@ function getTypedMilestoneBonus(type: MobType): number {
   let totalBonus = 0;
   let count = 0;
 
-  Object.values(bestiaryState.entries).forEach(entry => {
-    // We need to look up the mob type from the mobs array definition
-    const mobDef = mobs.find(m => m.id === entry.id);
-    if (!mobDef || mobDef.type !== type) return;
+  const entries = Object.values(bestiaryState.entries);
+  for (let i = 0; i < entries.length; i++) {
+    const entry = entries[i];
+    const mobType = mobTypeMap[entry.id];
+    if (!mobType || mobType !== type) continue;
     
     count++;
     let bonus = 0;
     if (entry.kills.gte(100)) bonus += 0.25;
     if (entry.kills.gte(1000)) bonus += 0.75;
     totalBonus += bonus;
-  });
+  }
 
   return count > 0 ? 1 + (totalBonus / count) : 1;
 }

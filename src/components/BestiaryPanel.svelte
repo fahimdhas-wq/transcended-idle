@@ -8,6 +8,7 @@
   import { calculateBulkCost, invalidateBulkCostCache, type CostFormula } from '../utils/bulkCost.js';
   import { maxAffordable } from '../utils/maxAffordable.js';
   import { Decimal } from '../systems/decimal.js';
+  import { onMount, untrack } from 'svelte';
 
   let buyAmount = $derived(uiStore.buyAmount);
 
@@ -25,7 +26,7 @@
     { key: 'soulExtraction',  label: 'Soul Extraction',  formula: { type: 'linear', base: 0,    gain: 2500 } },
   ];
 
-  let upgradeCosts = $derived.by(() => {
+  function computeUpgradeCosts() {
     const a = buyAmount;
     const data = bestiaryState.dataFragments;
     return {
@@ -33,6 +34,29 @@
       huntersGreed:   resolveCost(UPGRADE_DEFS[1].formula, Number(bestiaryState.huntersGreed), a, data),
       soulExtraction: resolveCost(UPGRADE_DEFS[2].formula, Number(bestiaryState.soulExtraction), a, data),
     };
+  }
+
+  let upgradeCosts = $state(computeUpgradeCosts());
+  let _lastCostUpdate = 0;
+  function refreshUpgradeCosts() {
+    const now = performance.now();
+    if (now - _lastCostUpdate > 200) {
+      _lastCostUpdate = now;
+      upgradeCosts = computeUpgradeCosts();
+    }
+  }
+
+  $effect(() => {
+    buyAmount;
+    untrack(() => {
+      upgradeCosts = computeUpgradeCosts();
+      _lastCostUpdate = performance.now();
+    });
+  });
+
+  onMount(() => {
+    const id = setInterval(() => refreshUpgradeCosts(), 250);
+    return () => clearInterval(id);
   });
 
   function doBuy(type: BestiaryUpgradeType) {
@@ -120,7 +144,7 @@
   <div class="section-label" style="border-top: 1px solid var(--line); margin-top: 8px; padding-top: 10px;">SPECIES ARCHIVE</div>
 
   <div class="mob-list">
-    {#each Object.values(bestiaryState.entries) as entry}
+    {#each Object.values(bestiaryState.entries) as entry (entry.id)}
       <div class="mob-entry" style="border-left-color: {STAGE_COLORS[entry.stage.toLowerCase()] || 'var(--line)'}">
         <div class="mob-header">
           <span class="mob-name">{entry.name}</span>

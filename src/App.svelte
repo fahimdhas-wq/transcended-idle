@@ -12,19 +12,13 @@
   import AchievementsPanel from './components/AchievementsPanel.svelte';
   import SystemPanel       from './components/SystemPanel.svelte';
   import CharacterPanel    from './components/CharacterPanel.svelte';
-  import OverclockPanel    from './components/OverclockPanel.svelte';
-  import MatrixPanel       from './components/MatrixPanel.svelte';
-  // import LogPanel          from './components/LogPanel.svelte';
   import ToastNotification from './components/ToastNotification.svelte';
   import OfflineModal      from './components/OfflineModal.svelte';
   import { startGameLoop } from './core/gameLoop.svelte.js';
   import { character }     from './modules/character.svelte.js';
-  import { overclockState } from './modules/overclockState.svelte.js';
   import DailyChallenge    from './components/DailyChallenge.svelte';
-  import AscensionPanel    from './components/AscensionPanel.svelte';
-  import { formatValue } from './systems/formatValue.js';
 
-  const allTabs = ['COMBAT', 'CHARACTER', 'MINING', 'FORESTRY', 'BESTIARY', 'INVENTORY', 'SKILLS', 'SEALS', 'ACHIEVE', 'DAILY', 'ASCENSION', 'OVERCLOCK', 'MATRIX', 'SYSTEM'] as const;
+  const allTabs = ['COMBAT', 'CHARACTER', 'MINING', 'FORESTRY', 'BESTIARY', 'INVENTORY', 'SKILLS', 'SEALS', 'ACHIEVE', 'DAILY', 'SYSTEM'] as const;
   type Tab = typeof allTabs[number];
 
   const componentMap: Record<Tab, Component> = {
@@ -38,41 +32,18 @@
     'SEALS':      SealsPanel,
     'ACHIEVE':    AchievementsPanel,
     'DAILY':      DailyChallenge,
-    'ASCENSION':  AscensionPanel,
-    'SYSTEM':     SystemPanel,
-    'OVERCLOCK':  OverclockPanel,
-    'MATRIX':     MatrixPanel
+    'SYSTEM':     SystemPanel
   };
 
-  const bottomTabs: Tab[] = ['CHARACTER', 'SKILLS', 'INVENTORY', 'SEALS', 'ALL'];
+  const bottomTabs: (Tab | 'ALL')[] = ['CHARACTER', 'SKILLS', 'INVENTORY', 'SEALS', 'ALL'];
 
   let activeView = $state<string>('CHARACTER');
 
-  function isTab(t: string): t is Tab {
-    return allTabs.includes(t as Tab);
-  }
-
   function isTabUnlocked(tab: Tab): boolean {
-    const oc = overclockState.timesOverclocked > 0;
-    if (tab === 'MINING')    return character.level.gte(100) || oc;
-    if (tab === 'FORESTRY')  return character.level.gte(200) || oc;
-    if (tab === 'OVERCLOCK') return character.level.gte(100) || oc;
-    if (tab === 'MATRIX')    return character.level.gte(500) || character.statsUnlocked || oc;
+    if (tab === 'MINING')    return character.level.gte(100);
+    if (tab === 'FORESTRY')  return character.level.gte(200);
     return true;
   }
-
-  let prevUnlocked = $state(new Set<Tab>(['COMBAT', 'CHARACTER', 'BESTIARY', 'INVENTORY', 'SKILLS', 'SEALS', 'ACHIEVE', 'DAILY', 'SYSTEM']));
-  let newlyUnlocked = $state(new Set<Tab>());
-
-  $effect(() => {
-    allTabs.forEach(t => {
-      if (isTabUnlocked(t) && !prevUnlocked.has(t)) {
-        newlyUnlocked.add(t);
-        prevUnlocked.add(t);
-        setTimeout(() => newlyUnlocked.delete(t), 5000);
-      }
-    });
-  });
 
   onMount(() => { startGameLoop(); });
 

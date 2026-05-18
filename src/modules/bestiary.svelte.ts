@@ -42,9 +42,9 @@ const BESTIARY_CONSTANTS = {
 
 export const bestiaryState: BestiaryState = $state({
   entries: {},
-  dataFragments: new Decimal(0),
-  totalKills: new Decimal(0),
-  souls: new Decimal(0),
+  dataFragments: Decimal.ZERO,
+  totalKills: Decimal.ZERO,
+  souls: Decimal.ZERO,
   anatomy: 1,
   huntersGreed: 0,
   soulExtraction: 1,
@@ -64,7 +64,7 @@ function createEntry(mob: MobDefinition): BestiaryEntry {
     id: mob.id,
     name: mob.name,
     type: mob.type,
-    kills: new Decimal(0),
+    kills: Decimal.ZERO,
     stage: 'Unknown'
   };
 }
@@ -110,7 +110,7 @@ export function recordKill(mob: MobDefinition, count: DecimalSource = 1): void {
     updateGlobalBoost();
   }
 
-  const fragMult = new Decimal(1).add(Math.min(killsNum, 1000000000) / 1000);
+  const fragMult = Decimal.ONE.add(Math.min(killsNum, 1000000000) / 1000);
 
   if (Math.random() < BESTIARY_CONSTANTS.FRAGMENT_DROP_CHANCE) {
     const baseGain = countDec.mul(fragMult).mul(0.5);

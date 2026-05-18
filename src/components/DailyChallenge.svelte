@@ -13,6 +13,7 @@
   import { formatValue } from '../systems/formatValue.js';
   import { showToast } from '../stores/uiStore.svelte.js';
   import { addLog } from '../ui/LogPanelState.svelte.js';
+  import Value from './Value.svelte';
 
   let challenge = $derived(getCurrentChallenge());
   let progress = $derived(getChallengeProgress());
@@ -64,11 +65,7 @@
           <div class="progress-header">
             <span class="progress-label">Progress</span>
             <span class="progress-value">
-              {progress.current >= 1e6
-                ? formatValue(progress.current)
-                : progress.current.toLocaleString()} / {progress.target >= 1e6
-                ? formatValue(progress.target)
-                : progress.target.toLocaleString()}
+              <Value n={progress.current} /> / <Value n={progress.target} />
             </span>
           </div>
           <div class="progress-track">
@@ -81,7 +78,7 @@
         {:else}
           <div class="passive-badge">
             <span class="badge-icon">✓</span>
-            <span>Active Bonus: {challenge.multiplier}x</span>
+            <span>Active Bonus: <Value n={challenge.multiplier} />x</span>
           </div>
         {/if}
       </div>
@@ -92,9 +89,9 @@
           <span class="reward-label">Reward</span>
           <div class="reward-value">
             <span class="shard-icon">◆</span>
-            <span class="shard-count">{challenge.reward.shards}</span>
+            <span class="shard-count"><Value n={challenge.reward.shards} /></span>
             {#if streakBonus > 0}
-              <span class="streak-bonus">(+{streakBonus})</span>
+              <span class="streak-bonus">(+<Value n={streakBonus} />)</span>
             {/if}
             <span class="badge-name">{challenge.reward.badge}</span>
           </div>
@@ -121,15 +118,15 @@
       <div class="stats-row">
         <div class="stat-item">
           <span class="stat-label">Streak</span>
-          <span class="stat-value">{dailyChallengeState.consecutiveDays} days</span>
+          <span class="stat-value"><Value n={dailyChallengeState.consecutiveDays} /> days</span>
         </div>
         <div class="stat-item">
           <span class="stat-label">Best</span>
-          <span class="stat-value">{dailyChallengeState.bestStreak} days</span>
+          <span class="stat-value"><Value n={dailyChallengeState.bestStreak} /> days</span>
         </div>
         <div class="stat-item">
           <span class="stat-label">Total</span>
-          <span class="stat-value">{dailyChallengeState.totalCompletions}</span>
+          <span class="stat-value"><Value n={dailyChallengeState.totalCompletions} /></span>
         </div>
         <div class="stat-item">
           <span class="stat-label">Shards</span>

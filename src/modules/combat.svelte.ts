@@ -4,7 +4,6 @@ import { aiSystem } from '../systems/aiSystem.js';
 import { rewardSystem } from '../systems/rewardSystem.js';
 import { addLog } from '../ui/LogPanelState.svelte.js';
 import { skillsState, getOmniMult } from './skills.svelte.js';
-import { getOverclockMultiplier } from './overclockState.svelte.js';
 import { 
   getSpeciesDamageBonus, 
   getGlobalStatBoost, 
@@ -70,14 +69,13 @@ export function getEffectiveCombatStats(): CombatStats {
     return cachedStats;
   }
 
-  const sealMult = new Decimal(10).pow(character.seals || 0);
+  const sealMult = Decimal.TEN.pow(character.seals || 0);
   const omniMult = getOmniMult();
   const soulMult = getSoulMult();
   const bestiaryBoost = new Decimal(getGlobalStatBoost()).add(1);
-  const overclockMult = getOverclockMultiplier();
 
   // Base Multiplier (applied to most stats)
-  const baseMult = sealMult.mul(omniMult).mul(soulMult).mul(bestiaryBoost).mul(overclockMult);
+  const baseMult = sealMult.mul(omniMult).mul(soulMult).mul(bestiaryBoost);
   
   // Specific Stat Multipliers
   const atkMult = baseMult.mul(getAchievementMult('atk')).mul(getDamageMultiplier());
@@ -92,13 +90,13 @@ export function getEffectiveCombatStats(): CombatStats {
   let finalRegDef = character.stats.regenDef.mul(regMult);
 
   let finalCritChance = Math.min(1.0, (character.stats.critChance || 0) + getAchievementCritBonus());
-  let finalCritMult = new Decimal(2); // Base 2x
+  let finalCritMult = Decimal.TWO; // Base 2x
   let finalSkipChance = Math.min(1.0, character.stats.skipDamageChance || 0);
 
   // Skill Stat Conversions (Converting "on-use" to "per-tick")
   skillsState.skills.forEach(skill => {
     if (skill.tierIndex <= 0) return;
-    const tierPower = new Decimal(2).pow(skill.tierIndex);
+    const tierPower = Decimal.TWO.pow(skill.tierIndex - 1); // 1, 2, 4, 8... for tier 1, 2, 3...
 
     if (skill.id === 'emp_strike') {
       // 3x ATK per "activation". Assuming activate every tick if autoCast.
@@ -106,8 +104,6 @@ export function getEffectiveCombatStats(): CombatStats {
     } else if (skill.id === 'chain_hack') {
       // 2x ATK for 3 ticks = 6x ATK total per activation.
       finalAtk = finalAtk.add(character.stats.attack.mul(6).mul(tierPower).mul(atkMult));
-    } else if (skill.id === 'overclock') {
-      finalAtk = finalAtk.mul(tierPower.mul(1.5));
     } else if (skill.id === 'nano_repair') {
       // 20% Max HP/SH per activation.
       finalRegHp = finalRegHp.add(finalMaxHp.mul(0.2).mul(tierPower));
@@ -117,9 +113,15 @@ export function getEffectiveCombatStats(): CombatStats {
       finalRegDef = finalRegDef.add(finalMaxDef.mul(0.3).mul(tierPower));
       finalSkipChance = Math.min(1.0, finalSkipChance + (0.01 * skill.tierIndex));
     } else if (skill.id === 'crit_surge') {
-      finalCritMult = finalCritMult.add(new Decimal(0.5).mul(skill.tierIndex));
+      finalCritMult = finalCritMult.add(Decimal.ZERO_POINT_FIVE.mul(tierPower));
     }
   });
+
+  // Level-based damage multiplier — kills speed up at high levels
+  const levelDmgMult = character.level.pow(0.5).max(1);
+  finalAtk = finalAtk.mul(levelDmgMult);
+  finalRegHp = finalRegHp.mul(levelDmgMult);
+  finalRegDef = finalRegDef.mul(levelDmgMult);
 
   // Limit Break Logic
   if (!character.statsUnlocked && finalCritChance >= 1.0) {
@@ -128,7 +130,8 @@ export function getEffectiveCombatStats(): CombatStats {
   }
 
   // Final average damage per tick (including crit)
-  const avgDmgPerTick = finalAtk.mul(new Decimal(1 - finalCritChance).add(new Decimal(finalCritChance).mul(finalCritMult)));
+  const critAvgMult = 1 - finalCritChance + finalCritChance * finalCritMult.toNumber();
+  const avgDmgPerTick = finalAtk.mul(critAvgMult);
 
   const result: CombatStats = {
     atk: avgDmgPerTick,
@@ -209,7 +212,7 @@ export function performCombatTick(ticks: number = 1): void {
           character.stats.defense = character.stats.defense.add(stats.regenDef.mul(timeUsed));
           if (character.stats.defense.gt(stats.def)) character.stats.defense = stats.def;
 
-          rewardSystem.grantRewards(enemy, new Decimal(possibleKills));
+          rewardSystem.grantRewards(enemy, Decimal.from(possibleKills));
           combatState.kills += possibleKills;
 
           // FIXED: carry over remaining ticks instead of discarding
@@ -218,7 +221,7 @@ export function performCombatTick(ticks: number = 1): void {
           combatState.enemy = null;
           break;
       } else {
-          enemy.hp = new Decimal(0);
+          enemy.hp = Decimal.ZERO;
       }
     }
 
@@ -234,7 +237,7 @@ export function performCombatTick(ticks: number = 1): void {
     // FIXED: avoid floating-point epsilon leaving enemy at ~1e-14 HP
     // When ticksUsed consumes the entire remaining HP, treat it as an exact kill.
     if (ticksUsed >= ticksToKill) {
-      enemy.hp = new Decimal(0);
+      enemy.hp = Decimal.ZERO;
     } else {
       enemy.hp = enemy.hp.sub(currentDmg.mul(ticksUsed));
     }
@@ -247,18 +250,18 @@ export function performCombatTick(ticks: number = 1): void {
       combatState.enemy = null;
     } else {
       const isSkipped = Math.random() < stats.skipChance;
-      const enemyDmg = isSkipped ? new Decimal(0) : enemy.attack.mul(ticksUsed);
+      const enemyDmg = isSkipped ? Decimal.ZERO : enemy.attack.mul(ticksUsed);
 
       if (character.stats.defense.gte(enemyDmg)) {
         character.stats.defense = character.stats.defense.sub(enemyDmg);
       } else {
         const rem = enemyDmg.sub(character.stats.defense);
-        character.stats.defense = new Decimal(0);
+        character.stats.defense = Decimal.ZERO;
         character.stats.hp = character.stats.hp.sub(rem);
       }
       
-      if (character.stats.defense.lt(0)) character.stats.defense = new Decimal(0);
-      if (character.stats.hp.lt(0)) character.stats.hp = new Decimal(0);
+      if (character.stats.defense.lt(0)) character.stats.defense = Decimal.ZERO;
+      if (character.stats.hp.lt(0)) character.stats.hp = Decimal.ZERO;
 
       if (character.stats.hp.lte(0)) {
         character.stats.hp = character.stats.maxHp;
@@ -280,7 +283,7 @@ export function getGlobalStatMult(type: 'atk' | 'hp' | 'regen'): Decimal {
     if (type === 'atk') return s.atk.div(character.stats.attack);
     if (type === 'hp') return s.hp.div(character.stats.maxHp);
     if (type === 'regen') return s.regenHp.div(character.stats.regenHp);
-    return new Decimal(1);
+    return Decimal.ONE;
 }
 export function getGlobalCritChance(): number { return getEffectiveCombatStats().critChance; }
 

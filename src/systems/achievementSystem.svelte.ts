@@ -7,7 +7,6 @@ import { forestryState } from '../modules/forestry.svelte.js';
 import { bestiaryState } from '../modules/bestiary.svelte.js';
 import { Decimal } from '../systems/decimal.js';
 import { skillsState } from '../modules/skills.svelte.js';
-import { overclockState } from '../modules/overclockState.svelte.js';
 
 let lastCheckTime = 0;
 const CHECK_THROTTLE = 1000; // Check achievements max once per second
@@ -90,7 +89,14 @@ export const achievementDefs: AchievementDef[] = [
   { id: 'seal_10',      name: 'Divine',            desc: 'Break 10 Seals',          req: () => character.seals >= 10,      bonus: { all: 10.0 },  bonusDesc: '+1000% All Stats' },
   { id: 'seal_15',      name: 'Transcendent God',  desc: 'Break 15 Seals',          req: () => character.seals >= 15,      bonus: { all: 50.0 },  bonusDesc: '+5000% All Stats' },
   { id: 'seal_20',      name: 'Omniversal Being',  desc: 'Break 20 Seals',          req: () => character.seals >= 20,      bonus: { all: 250.0 }, bonusDesc: '+25,000% All Stats' },
-  { id: 'seal_25',      name: 'Ultimate Entity',   desc: 'Break All 25 Seals',      req: () => character.seals >= 25,      bonus: { all: 1000.0 }, bonusDesc: '+100,000% All Stats' },
+  { id: 'seal_25',      name: 'Ultimate Entity',   desc: 'Break 25 Seals',          req: () => character.seals >= 25,      bonus: { all: 1000.0 }, bonusDesc: '+100,000% All Stats' },
+  { id: 'seal_30',      name: 'Cosmic Lord',       desc: 'Break 30 Seals',          req: () => character.seals >= 30,      bonus: { all: 5000.0 }, bonusDesc: '+500,000% All Stats' },
+  { id: 'seal_40',      name: 'Void Walker',       desc: 'Break 40 Seals',          req: () => character.seals >= 40,      bonus: { all: 25000.0 }, bonusDesc: '+2.5M% All Stats' },
+  { id: 'seal_50',      name: 'Reality Shaper',    desc: 'Break 50 Seals',          req: () => character.seals >= 50,      bonus: { all: 100000.0 }, bonusDesc: '+10M% All Stats' },
+  { id: 'seal_75',      name: 'Dimension Breaker', desc: 'Break 75 Seals',          req: () => character.seals >= 75,      bonus: { all: 1e6 }, bonusDesc: '+100M% All Stats' },
+  { id: 'seal_100',     name: 'Omega Transcendent',desc: 'Break 100 Seals',         req: () => character.seals >= 100,     bonus: { all: 1e7 }, bonusDesc: '+1B% All Stats' },
+  { id: 'seal_148',     name: 'AD Infinity',      desc: 'Break 148 Seals (AD)',     req: () => character.seals >= 148,    bonus: { all: 1e8 }, bonusDesc: '+10B% All Stats' },
+  { id: 'seal_200',     name: 'BF Transcendent',  desc: 'Break All 277 Seals (BF)',  req: () => character.seals >= 277,    bonus: { all: 1e9 }, bonusDesc: '+100B% All Stats' },
 
   // === CRIT ACHIEVEMENTS ===
   { id: 'crit_10',      name: 'Sharp Eye',         desc: '10% Crit Chance',         req: () => (character.stats.critChance || 0) >= 0.10, bonus: { crit: 0.05 }, bonusDesc: '+5% Crit' },
@@ -153,11 +159,6 @@ export const achievementDefs: AchievementDef[] = [
   { id: 'stat_e100',    name: 'Century Power',  desc: 'Attack > 1e100',          req: () => character.stats.attack.e >= 100,  bonus: { all: 500.0 }, bonusDesc: '+50,000% All Stats' },
   { id: 'stat_e200',    name: 'Quasar Strength',desc: 'Attack > 1e200',          req: () => character.stats.attack.e >= 200,  bonus: { all: 2500.0 }, bonusDesc: '+250,000% All Stats' },
   { id: 'stat_e500',    name: 'Universal Constant', desc: 'Attack > 1e500',      req: () => character.stats.attack.e >= 500,  bonus: { all: 10000.0 }, bonusDesc: '+1,000,000% All Stats' },
-
-  // === OVERCLOCK ACHIEVEMENTS ===
-  { id: 'overclock_1',  name: 'First Ascension',  desc: 'Overclock Once',         req: () => overclockState.timesOverclocked >= 1, bonus: { all: 2.0 }, bonusDesc: '+200% All Stats' },
-  { id: 'overclock_10', name: 'Tenth Ascension',  desc: 'Overclock 10 Times',     req: () => overclockState.timesOverclocked >= 10, bonus: { all: 50.0 }, bonusDesc: '+5,000% All Stats' },
-  { id: 'overclock_50', name: 'Half Century',    desc: 'Overclock 50 Times',     req: () => overclockState.timesOverclocked >= 50, bonus: { all: 500.0 }, bonusDesc: '+50,000% All Stats' },
 
   // === RESOURCE ACHIEVEMENTS ===
   { id: 'perfect_hunter', name: 'Flawless Execution', desc: '100% Quality Stat',   req: () => (character.stats.quality || 0) >= 100, bonus: { drop: 0.50 }, bonusDesc: '+50% Drop Bonus' },

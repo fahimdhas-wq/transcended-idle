@@ -1,13 +1,12 @@
 
 <script lang="ts">
-import { forestryState, bioTools, upgradeBioTool, triggerForestryOverclock, upgradeForestryEnergy } from '../modules/forestry.svelte.js';
+import { forestryState, bioTools, upgradeBioTool, upgradeForestryEnergy } from '../modules/forestry.svelte.js';
 import { uiStore } from '../stores/uiStore.svelte.js';
 import { formatValue } from '../systems/formatValue.js';
 import { Decimal } from '../systems/decimal.js';
 
 const toolTier = $derived(forestryState.toolTier);
 const toolName = $derived(forestryState.toolName);
-const isOverclocked = $derived(forestryState.isOverclocked);
 const growthProgress = $derived(forestryState.growthProgress);
 const harvestRate = $derived(forestryState.harvestRate);
 const energy = $derived(forestryState.energy);
@@ -20,13 +19,8 @@ const energyPercent = $derived(Math.max(0, Math.min(100, (energy / Math.max(1, m
 
 function fmt(v: any): string { return formatValue(v); }
 function canAffordTool(): boolean { return dnaFragments.gte(nextToolCost); }
-function canAffordOC(): boolean { return reinforced.gte(25); }
-
 function doTool() {
   upgradeBioTool();
-}
-function doOC() {
-  triggerForestryOverclock();
 }
 function doEnergy() {
   upgradeForestryEnergy(uiStore.buyAmount);
@@ -68,10 +62,6 @@ function doEnergy() {
       disabled={toolTier >= 10 || !canAffordTool()}>
       <span class="act-name">UPGRADE TOOL</span>
       <small>{toolTier >= 10 ? 'MAX' : fmt(nextToolCost) + ' DNA'}</small>
-    </button>
-    <button class="act-btn" onclick={doOC} disabled={isOverclocked || !canAffordOC()}>
-      <span class="act-name">{isOverclocked ? 'SURGE ACTIVE' : 'GROWTH SURGE'}</span>
-      <small>25 Reinf.Fiber</small>
     </button>
     <button class="act-btn" onclick={doEnergy} disabled={!reinforced.gte(1)}>
       <span class="act-name">+NUTRIENT CAP</span>

@@ -5,23 +5,30 @@
   import { Decimal } from '../systems/decimal.js';
   import { bestiaryState } from '../modules/bestiary.svelte.js';
   import { getPowerTier } from '../systems/powerTier.js';
+  import Value from './Value.svelte';
 
-  let xpPercent = $derived.by(() => {
-    const xp  = Decimal.from(character.xp);
-    const xpN = Decimal.from(character.xpNeeded);
-    if (xp.lt(0)) return 0;
-    if (xp.gte(xpN) && xpN.gt(0)) return 100;
-    const pct = xp.div(xpN).mul(100).toNumber();
-    return isNaN(pct) ? 0 : Math.min(100, Math.max(0, pct));
+  let displayData = $derived.by(() => {
+    const xp  = character.xp;
+    const xpN = character.xpNeeded;
+    const xpPercent = (() => {
+      if (xp.lt(0)) return 0;
+      if (xp.gte(xpN) && xpN.gt(0)) return 100;
+      const pct = xp.div(xpN).mul(100).toNumber();
+      return isNaN(pct) ? 0 : Math.min(100, Math.max(0, pct));
+    })();
+
+    const powerTier = getPowerTier(character.stats?.attack ?? 0);
+
+    const isCritical = (character.stats?.hp ?? Decimal.ZERO).lte(
+      (character.stats?.maxHp ?? Decimal.ONE).mul(0.2)
+    );
+
+    const sealMult = Decimal.TEN.pow(character.seals);
+    const hpRegen = character.stats.regenHp.mul(sealMult).mul(10);
+    const shRegen = character.stats.regenDef.mul(sealMult).mul(10);
+
+    return { xpPercent, powerTier, isCritical, hpRegen, shRegen };
   });
-
-  let powerTier = $derived(getPowerTier(character.stats?.attack ?? 0));
-
-  let isCritical = $derived(
-    Decimal.from(character.stats?.hp ?? 0).lte(
-      Decimal.from(character.stats?.maxHp ?? 1).mul(0.2)
-    )
-  );
 </script>
 
 <div class="char-panel">
@@ -52,17 +59,17 @@
         <span class="level-label">LEVEL</span>
       </div>
       <div class="tier-info">
-        <span class="tier-badge {powerTier.class}">{powerTier.name}</span>
+        <span class="tier-badge {displayData.powerTier.class}">{displayData.powerTier.name}</span>
         <span class="tier-label">CLASS</span>
       </div>
     </div>
 
     <div class="xp-block">
       <div class="xp-bar-wrap">
-        <div class="xp-bar-fill" style="width:{xpPercent}%"></div>
+        <div class="xp-bar-fill" style="width:{displayData.xpPercent}%"></div>
       </div>
       <div class="xp-text-row">
-        <span class="xp-val">{formatNumber(Decimal.from(character.xp).lt(0) ? 0 : character.xp)}</span>
+        <span class="xp-val">{formatNumber(character.xp.lt(0) ? 0 : character.xp)}</span>
         <span class="xp-sep">/</span>
         <span class="xp-val muted">{formatNumber(character.xpNeeded)} XP</span>
       </div>
@@ -89,12 +96,12 @@
 
     <div class="stat-row">
       <span class="s-label">HP REGEN/s</span>
-      <span class="s-val">{formatNumber(character.stats.regenHp.mul(new Decimal(10).pow(character.seals)).mul(10))}</span>
+      <span class="s-val">{formatNumber(displayData.hpRegen)}</span>
     </div>
 
     <div class="stat-row">
       <span class="s-label">SH REGEN/s</span>
-      <span class="s-val steel">{formatNumber(character.stats.regenDef.mul(new Decimal(10).pow(character.seals)).mul(10))}</span>
+      <span class="s-val steel">{formatNumber(displayData.shRegen)}</span>
     </div>
 
     <div class="stat-row">
@@ -109,14 +116,14 @@
 
     <div class="stat-row">
       <span class="s-label">SEALS BROKEN</span>
-      <span class="s-val violet">{character.seals}</span>
+      <span class="s-val violet"><Value n={character.seals} /></span>
     </div>
 
   </div>
 
   <!-- Stats footer -->
   <div class="awakening-block">
-    {#if isCritical}
+    {#if displayData.isCritical}
       <div class="crit-warning">CRITICAL — LOW HP</div>
     {/if}
   </div>

@@ -1,6 +1,7 @@
 
 <script lang="ts">
   import { achievementDefs, achievementState } from '../systems/achievementSystem.svelte.js';
+  import Value from './Value.svelte';
 
   let unlockedCount = $derived(Object.keys(achievementState.unlocked).length);
   const total = achievementDefs.length;
@@ -18,7 +19,7 @@
     </div>
     <div class="header-right">
       <span class="stat-label">UNLOCKED</span>
-      <span class="stat-value">{unlockedCount} / {total}</span>
+      <span class="stat-value"><Value n={unlockedCount} /> / <Value n={total} /></span>
     </div>
   </div>
 

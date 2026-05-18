@@ -5,6 +5,16 @@ export class Decimal {
   readonly m: number;
   readonly e: number;
 
+  static ZERO = new Decimal(0);
+  static ONE = new Decimal(1);
+  static TWO = new Decimal(2);
+  static FIVE = new Decimal(5);
+  static TEN = new Decimal(10);
+  static FIFTY = new Decimal(50);
+  static HUNDRED = new Decimal(100);
+  static ZERO_POINT_FIVE = new Decimal(0.5);
+  static GROWTH_BASE = new Decimal(1.15);
+
   constructor(m: DecimalSource = 0, e: number = 0) {
     if (m instanceof Decimal) {
       this.m = m.m;

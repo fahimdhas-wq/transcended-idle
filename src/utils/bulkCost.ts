@@ -30,7 +30,7 @@ export function calculateBulkCost(
   currentLevel: number,
   amount: number
 ): Decimal {
-  if (amount <= 0) return new Decimal(0);
+  if (amount <= 0) return Decimal.ZERO;
 
   // 1. Optimized Formulas
   if (typeof formula !== 'function') {
@@ -70,7 +70,7 @@ export function calculateBulkCost(
   const cached = _cache.get(cacheKey);
   if (cached) return cached;
 
-  let total = new Decimal(0);
+  let total = Decimal.ZERO;
   const cap = Math.min(amount, 100_000); // safety cap
   for (let i = 0; i < cap; i++) {
     const cost = baseCostFn(currentLevel + i);

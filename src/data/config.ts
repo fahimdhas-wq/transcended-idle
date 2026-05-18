@@ -13,7 +13,7 @@ export interface GameConfig {
 export const gameConfig: GameConfig = {
   baseTickRate: 100,
   maxOfflineHours: 24,
-  saveInterval: 15000,
+  saveInterval: 60000,
   baseXpMultiplier: 0.1,
   dropRates: {
     base: 0.3,

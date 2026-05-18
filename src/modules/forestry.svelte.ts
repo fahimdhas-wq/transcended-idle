@@ -14,7 +14,6 @@ export type ForestryUpgradeType =
   | 'reforestation'
   | 'ancientSaplings'
   | 'mutationPower'
-  | 'overclockPower'
   | 'efficiency';
 
 export interface ForestryState {
@@ -31,12 +30,9 @@ export interface ForestryState {
   reforestation: number;
   energy: number;
   maxEnergy: number;
-  isOverclocked: boolean;
-  overclockTicks: number;
   chainsawFuel: number;
   ancientSaplings: number;
   mutationPower: number;
-  overclockPower: number;
   efficiency: number;
   // Legacy accessor - returns Record for compatibility but uses typed array internally
   resources: {
@@ -72,7 +68,7 @@ export const forestryState: ForestryState = $state({
   autoRefine: {},
   toolTier: 1,
   toolName: 'Bio-Harvesting Tool',
-  dnaFragments: new Decimal(0),
+  dnaFragments: Decimal.ZERO,
   growthProgress: 0,
   harvestRate: 0,
   dnaRate: 0,
@@ -82,13 +78,9 @@ export const forestryState: ForestryState = $state({
 
   energy: 100,
   maxEnergy: 100,
-  isOverclocked: false,
-  overclockTicks: 0,
-
   chainsawFuel: 0,
   ancientSaplings: 0,
   mutationPower: 0,
-  overclockPower: 0,
   efficiency: 0,
 
   // Use typed array via wrapper for performance
@@ -98,7 +90,7 @@ export const forestryState: ForestryState = $state({
 let _dnaAccum = 0;
 let _dnaRateTimer = 0;
 const DNA_RATE_WINDOW = 5000;
-const FORESTRY_CONSTANTS = { REFINE_RATIO: 50, OVERCLOCK_DURATION: 600 };
+const FORESTRY_CONSTANTS = { REFINE_RATIO: 50 };
 
 setDnaGainCallback((amount: Decimal) => {
   forestryState.dnaFragments = forestryState.dnaFragments.add(amount);
@@ -130,14 +122,6 @@ export function performForestryTick(ticks: number): void {
     speedBonus * 2 *
     getForestrySpeedMultiplier();
 
-  if (forestryState.isOverclocked) {
-    const ocMult = GATHERING_CONSTANTS.OVERCLOCK_BASE_MULT +
-                   (forestryState.overclockPower + 1) * GATHERING_CONSTANTS.OVERCLOCK_POWER_BONUS;
-    activeSpeed *= ocMult;
-    forestryState.overclockTicks -= ticks;
-    if (forestryState.overclockTicks <= 0) forestryState.isOverclocked = false;
-  }
-
   const effReduction = 1 / (1 + forestryState.efficiency * 0.1);
   const speedLog = Math.max(1, Math.log10(activeSpeed + 1));
   const actualCostPerTick = GATHERING_CONSTANTS.BASE_ENERGY_COST * speedLog * speedLog * effReduction;
@@ -149,18 +133,14 @@ export function performForestryTick(ticks: number): void {
     energyEff;
 
   let yieldMult = 1.0;
-  if (!forestryState.isOverclocked) {
-    const totalCost = actualCostPerTick * ticks;
-    const totalAvail = forestryState.energy + regenPerTick * ticks;
-    if (totalCost > 0) {
-      if (totalAvail < totalCost) {
-        yieldMult = Math.max(0, totalAvail / totalCost);
-        forestryState.energy = 0;
-      } else {
-        forestryState.energy = Math.max(0, Math.min(forestryState.maxEnergy, totalAvail - totalCost));
-      }
+  const totalCost = actualCostPerTick * ticks;
+  const totalAvail = forestryState.energy + regenPerTick * ticks;
+  if (totalCost > 0) {
+    if (totalAvail < totalCost) {
+      yieldMult = Math.max(0, totalAvail / totalCost);
+      forestryState.energy = 0;
     } else {
-      forestryState.energy = Math.max(0, Math.min(forestryState.maxEnergy, forestryState.energy + regenPerTick * ticks));
+      forestryState.energy = Math.max(0, Math.min(forestryState.maxEnergy, totalAvail - totalCost));
     }
   } else {
     forestryState.energy = Math.max(0, Math.min(forestryState.maxEnergy, forestryState.energy + regenPerTick * ticks));
@@ -305,7 +285,6 @@ export function buyForestryUpgrade(type: ForestryUpgradeType, amount: number | '
   else if (type === 'reforestation')   formula = { type: 'linear', base: 0, gain: 200 };
   else if (type === 'ancientSaplings') formula = { type: 'geometric', base: 100, multiplier: 10 };
   else if (type === 'mutationPower')   formula = { type: 'linear', base: 1500, gain: 1500 };
-  else if (type === 'overclockPower')  formula = { type: 'linear', base: 2000, gain: 2000 };
   else if (type === 'efficiency')      formula = { type: 'linear', base: 1000, gain: 1000 };
   else return 0;
 
@@ -409,16 +388,6 @@ export function upgradeForestryEnergy(amount: number | 'max' = 1): void {
     forestryState.maxEnergy += (100 * count);
     forestryState.energy = forestryState.maxEnergy;
     addLog(`[FORESTRY] Nutrient capacity expanded.`, 'system');
-  }
-}
-
-export function triggerForestryOverclock(): void {
-  const cost = 25;
-  if (forestryState.resources.gte('reinforcedFiber', cost) && !forestryState.isOverclocked) {
-    forestryState.resources.sub('reinforcedFiber', cost);
-    forestryState.isOverclocked = true;
-    forestryState.overclockTicks = FORESTRY_CONSTANTS.OVERCLOCK_DURATION;
-    addLog(`[FORESTRY] Growth Surge active!`, 'system');
   }
 }
 

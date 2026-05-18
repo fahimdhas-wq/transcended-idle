@@ -1,9 +1,8 @@
 
 import { character, safeKills, applyMomentumSoftcap, applyOverchargeSoftcap, updateDerivedStats } from '../modules/character.svelte.js';
 import { performCombatTick, combatState, getEffectiveCombatStats, flushStatCache } from '../modules/combat.svelte.js';
+import { getSpeciesDamageBonus } from '../modules/bestiaryBonuses.js';
 import { getOmniMult, upgradeAllSkills } from '../modules/skills.svelte.js';
-import { matrixState } from '../modules/matrix.svelte.js';
-import { doOverclock, LEVEL_REQ } from '../modules/overclock.svelte.js';
 import { saveSystem } from './saveSystem.js';
 import { checkAchievements } from '../systems/achievementSystem.svelte.js';
 import { performMiningTick } from '../modules/mining.svelte.js';
@@ -12,6 +11,8 @@ import { flushInventoryUpdates } from '../modules/inventory.svelte.js';
 import { autoUpgradeMining, autoUpgradeForestry, autoUpgradeBestiary } from '../utils/globalMaxUpgrade.js';
 import { bestiaryState } from '../modules/bestiary.svelte.js';
 import { forestryState } from '../modules/forestry.svelte.js';
+import { miningResources } from '../modules/miningResources.js';
+import { forestryResources } from '../modules/forestryResources.js';
 import { aiSystem } from '../systems/aiSystem.js';
 import { rewardSystem } from '../systems/rewardSystem.js';
 import { Decimal } from '../systems/decimal.js';
@@ -28,20 +29,11 @@ import {
   checkChallengeCompletion,
   isChallengeComplete,
   claimDailyReward,
-  dailyChallengeState
+  dailyChallengeState,
+  rotateToNewChallenge,
+  getTodayString
 } from '../modules/dailyChallenge.svelte.js';
-import { trackLevelProgress } from '../modules/ascension.svelte.js';
-
 import { getTotalTicks, incrementTotalTicks, addTotalTicks } from './tickState.js';
-
-// ============================================================
-// ENGINE INTEGRATION — Phase 3 of Architecture Refactor
-// Replaces direct RAF loop with TickScheduler + SnapshotManager
-// ============================================================
-
-import { scheduler, snapshotManager } from '../engine/index.js';
-import { eventBus } from '../engine/events/EventBus.js';
-import type { GameEvent } from '../engine/events/EventBus.js';
 
 // ============================================================
 // FORESTRY UI SNAPSHOT — Decouples simulation from rendering
@@ -49,7 +41,7 @@ import type { GameEvent } from '../engine/events/EventBus.js';
 // ============================================================
 let forestrySnapshot = $state({
   harvestRate: 0,
-  dnaFragments: new Decimal(0),
+  dnaFragments: Decimal.ZERO,
   growthProgress: 0,
   energy: 0,
   maxEnergy: 100,
@@ -60,16 +52,215 @@ export function getForestrySnapshot() {
   return forestrySnapshot;
 }
 
-// Kept for backward compatibility: avoid removing export entirely.
-export const gameLoop = $state({});
-
+let lastTick = performance.now();
 let lastForestryUIUpdate = 0;
 const FORESTRY_UI_THROTTLE = 100; // 10 FPS for Forestry panel
 
+// Kept for backward compatibility: avoid removing export entirely.
+export const gameLoop = $state({});
+
+let accumulatedTime = 0;
+const tickRate = gameConfig.baseTickRate; // ms per tick (single source of truth)
+let achCheckCounter = 0;
+let challengeCheckCounter = 0;
+let tickIntervalId: ReturnType<typeof setInterval> | null = null;
+
 export { getTotalTicks };
 
+/**
+ * Core Offline Projection Engine
+ * Calculates progress using pure math instead of loops.
+ */
+function processOfflineCombat(ticks: number): void {
+  let stats = getEffectiveCombatStats();
+  let remaining = ticks;
+
+  // Baseline regen for the full duration
+  character.stats.hp = character.stats.hp.add(stats.regenHp.mul(remaining));
+  character.stats.defense = character.stats.defense.add(stats.regenDef.mul(remaining));
+  if (character.stats.hp.gt(stats.hp)) character.stats.hp = stats.hp;
+  if (character.stats.defense.gt(stats.def)) character.stats.defense = stats.def;
+
+  // Crit tracking for daily challenges (expected over full duration)
+  const expectedCrits = remaining * stats.critChance;
+  if (expectedCrits >= 1) {
+    for (let i = 0; i < Math.floor(expectedCrits); i++) {
+      combatState.lastHitCrit = true;
+    }
+  }
+
+  // Combat loop — cycles through random enemies like live combat
+  let safety = 0;
+  while (remaining > 0.5 && safety < 10000) {
+    safety++;
+
+    const enemyLvl = character.level.add(Math.floor(Math.random() * 3) - 1).max(1);
+    const mobData = mobs[Math.floor(Math.random() * mobs.length)];
+    const speciesBonus = getSpeciesDamageBonus(mobData.id);
+    const dmg = stats.atk.mul(speciesBonus);
+
+    if (dmg.lte(0)) break;
+
+    const growth = Decimal.GROWTH_BASE.pow(enemyLvl.sub(1).max(0));
+    const enemyHp = Decimal.FIFTY.mul(growth);
+    const enemyAtk = Decimal.FIVE.mul(growth);
+
+    const ticksToKill = Math.max(1, enemyHp.div(dmg).toNumber());
+    const killsHere = Math.floor(remaining / ticksToKill);
+    if (killsHere <= 0) break;
+
+    const timeSpent = killsHere * ticksToKill;
+
+    rewardSystem.grantRewards({
+      id: mobData.id, name: mobData.name, type: mobData.type,
+      level: enemyLvl, maxHp: enemyHp, hp: enemyHp,
+      attack: enemyAtk
+    }, new Decimal(killsHere));
+
+    combatState.kills += killsHere;
+    remaining -= timeSpent;
+
+    // Refresh stats if levels were gained so combat scales correctly mid-session
+    stats = getEffectiveCombatStats();
+  }
+
+  // Final regen catch-up
+  if (remaining > 0) {
+    character.stats.hp = character.stats.hp.add(stats.regenHp.mul(remaining));
+    character.stats.defense = character.stats.defense.add(stats.regenDef.mul(remaining));
+    if (character.stats.hp.gt(stats.hp)) character.stats.hp = stats.hp;
+    if (character.stats.defense.gt(stats.def)) character.stats.defense = stats.def;
+  }
+}
+
+export function processOfflineProgress(ms: number): void {
+  if (ms < 1000) return;
+
+  flushStatCache();
+  updateDerivedStats();
+
+  const MONTH_IN_SECONDS = 30 * 24 * 3600;
+  const tickRateVal = tickRate / 1000;
+  const totalSeconds = Math.min(ms / 1000, MONTH_IN_SECONDS);
+  const efficiency = character.offlineSettings.efficiency;
+  const effectiveTime = totalSeconds * efficiency;
+  const ticks = effectiveTime / tickRateVal;
+
+  const preLevel = new Decimal(character.level);
+  const preKills = new Decimal(character.kills);
+  const preXp = new Decimal(character.totalXp);
+  const preFrags = new Decimal(character.skillFragments);
+  const preData = new Decimal(bestiaryState.dataFragments);
+  const preDna = new Decimal(forestryState.dnaFragments);
+
+  const preMiningBuf = Float64Array.from(miningResources.array.getBuffer());
+  const preForestryBuf = Float64Array.from(forestryResources.array.getBuffer());
+
+  // Combat — uses full live logic: species bonus, enemy cycling, regen, god mode
+  processOfflineCombat(ticks);
+  flushInventoryUpdates();
+
+  // Process daily challenge kills from combatState
+  const combatKills = combatState.kills;
+  if (combatKills > 0) {
+    for (let i = 0; i < combatKills; i++) {
+      trackKill();
+    }
+    combatState.kills = 0;
+  }
+  if (combatState.lastHitCrit) {
+    trackCrit();
+    combatState.lastHitCrit = false;
+  }
+
+  // Mining & Forestry (same as live)
+  performMiningTick(ticks);
+  performForestryTick(ticks);
+
+  const killsNum = character.kills.sub(preKills).toNumber();
+  character.momentum = applyMomentumSoftcap(character.momentum + (0.01 + (killsNum * 0.0001)) * ticks);
+
+  if (character.xp.gte(character.xpNeeded)) {
+    character.overcharge = applyOverchargeSoftcap(character.overcharge + (0.05 * ticks));
+  }
+
+  // Level ups — no cap (process all pending)
+  let batchPasses = 0;
+  while (character.xp.gte(character.xpNeeded) && batchPasses++ < 200) {
+    rewardSystem.batchLevelUps();
+  }
+
+  updateDerivedStats();
+
+  character.offlineSettings.lastSummary = {
+    seconds: totalSeconds,
+    levels: character.level.sub(preLevel),
+    kills: character.kills.sub(preKills),
+    efficiency: efficiency * 100
+  };
+
+  if (totalSeconds > 60) {
+    const postMiningBuf = miningResources.array.getBuffer();
+    const postForestryBuf = forestryResources.array.getBuffer();
+    let miningSum = 0;
+    for (let i = 0; i < postMiningBuf.length; i++) miningSum += postMiningBuf[i] - preMiningBuf[i];
+    let forestrySum = 0;
+    for (let i = 0; i < postForestryBuf.length; i++) forestrySum += postForestryBuf[i] - preForestryBuf[i];
+
+    showOfflineSummary({
+      seconds: totalSeconds,
+      kills: character.kills.sub(preKills),
+      levels: character.level.sub(preLevel),
+      efficiency: efficiency,
+      xpGained: character.totalXp.sub(preXp),
+      fragmentsGained: character.skillFragments.sub(preFrags),
+      dataFragments: bestiaryState.dataFragments.sub(preData),
+      dnaFragments: forestryState.dnaFragments.sub(preDna),
+      miningGained: new Decimal(miningSum),
+      forestryGained: new Decimal(forestrySum)
+    });
+  }
+
+  console.log(`[OFFLINE] Processed ${totalSeconds.toFixed(1)}s — Level: ${character.level.toString()}, Kills: ${character.kills.toString()}`);
+}
+
+/**
+ * Tab Visibility Handler
+ */
+if (typeof document !== 'undefined') {
+  let hiddenTime = 0;
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      hiddenTime = performance.now();
+      if (tickIntervalId !== null) {
+        clearInterval(tickIntervalId);
+        tickIntervalId = null;
+      }
+    } else {
+      const elapsed = performance.now() - hiddenTime;
+      const doProcess = () => {
+        processOfflineProgress(elapsed);
+        lastTick = performance.now();
+        accumulatedTime = 0;
+        if (tickIntervalId === null) {
+          tickIntervalId = setInterval(tickLoop, tickRate);
+        }
+      };
+      if (typeof requestIdleCallback !== 'undefined') {
+        requestIdleCallback(doProcess, { timeout: 1000 });
+      } else {
+        setTimeout(doProcess, 16);
+      }
+    }
+  });
+}
+
+function tickLoop(): void {
+  gameTick();
+}
+
 // ============================================================
-// SNAPSHOT UPDATE — Updated at 10 FPS
+// SNAPSHOT UPDATE — Called at 10 FPS to decouple UI from ticks
 // ============================================================
 function updateSnapshots(now: number): void {
   // Forestry snapshot at 10 FPS
@@ -84,280 +275,124 @@ function updateSnapshots(now: number): void {
   }
 }
 
-// ============================================================
-// CORE SIMULATION TICK — The hot path
-// This is called by the scheduler at 20 TPS
-// ============================================================
-function processSimulationTick(ticks: number): void {
-  const dNum = ticks;
+export function gameTick(): void {
+  const now = performance.now();
+  const dt = Math.min(now - lastTick, tickRate * 2);
+  lastTick = now;
 
-  // ---- Momentum (float) ----
-  character.momentum += 0.01 * dNum;
-
-  if (character.kills.gt(0)) {
-    const k = safeKills();
-    character.momentum += k * 0.0001 * dNum;
-  }
-  character.momentum = applyMomentumSoftcap(character.momentum);
-
-  // ---- Overcharge (float) ----
-  if (character.xp.gte(character.xpNeeded)) {
-    character.overcharge += 0.05 * dNum;
-  }
-  character.overcharge = applyOverchargeSoftcap(character.overcharge);
-
-  // ---- Level processing ----
-  const levelsGained = rewardSystem.processLevelUps();
-  for (let i = 0; i < levelsGained; i++) {
-    trackLevelUp();
-  }
-  if (levelsGained > 0) {
-    trackLevelProgress(character.level);
-    // Emit event for listeners
-    eventBus.emit({ type: 'LEVEL_UP', level: character.level, levelsGained } as GameEvent);
-  }
-
-  // Stats synchronization
-  const stats = getEffectiveCombatStats();
-  if (character.stats.defense.gt(stats.def)) character.stats.defense = stats.def;
-  if (character.stats.defense.lt(0)) character.stats.defense = new Decimal(0);
-  if (character.stats.hp.lt(0)) character.stats.hp = new Decimal(0);
-
-  // ---- Combat ----
-  performCombatTick(ticks);
-  flushInventoryUpdates();
-
-  // ---- Daily Challenge tracking ----
-  const combatKills = combatState.kills;
-  if (combatKills > 0) {
-    for (let i = 0; i < combatKills; i++) {
-      trackKill();
-    }
-    combatState.kills = 0;
-  }
-  if (combatState.lastHitCrit) {
-    trackCrit();
-    combatState.lastHitCrit = false;
-  }
-
-  // ---- Mining & Forestry ----
-  performMiningTick(ticks);
-  performForestryTick(ticks);
-}
-
-// ============================================================
-// THROTTLED OPERATIONS — Run every N ticks
-// ============================================================
-function processThrottledOperations(): void {
-  // Achievement check
-  if (matrixState.autoAchieve) {
-    checkAchievements();
-  } else {
-    // Still check periodically if auto-achieve is off
-    const tickCount = scheduler.getTickCount();
-    if (tickCount % 50 === 0) {
-      checkAchievements();
-    }
-  }
-
-  // Automation (runs every throttled check)
-  if (matrixState.autoSkill) upgradeAllSkills();
-  if (matrixState.autoMining) autoUpgradeMining();
-  if (matrixState.autoForestry) autoUpgradeForestry();
-  if (matrixState.autoBestiary) autoUpgradeBestiary();
-
-  if (matrixState.autoOverclock) {
-    const target = new Decimal(matrixState.targetOverclockLevel);
-    if (target.gte(LEVEL_REQ) && character.level.gte(target)) {
-      doOverclock();
-    }
-  }
-
-  // Daily challenge check
-  checkChallengeCompletion();
-  if (dailyChallengeState.completedToday && !dailyChallengeState.claimedReward) {
-    const reward = claimDailyReward();
-    if (reward) {
-      addLog(`[DAILY] Auto-claimed ${reward.shards} Shards!`, 'awakening');
-    }
-  }
-}
-
-// ============================================================
-// OFFLINE PROCESSING — Fast-forward simulation
-// ============================================================
-export function processOfflineProgress(ms: number): void {
-  if (ms < 1000) return;
-
-  flushStatCache();
-  updateDerivedStats();
-
-  const MONTH_IN_SECONDS = 30 * 24 * 3600;
-
-  // FIXED: Use actual tick rate from config
-  const tickRateVal = gameConfig.baseTickRate / 1000; // Convert ms to seconds (match gameTick)
-  const totalSeconds = Math.min(ms / 1000, MONTH_IN_SECONDS);
-  const efficiency = character.offlineSettings.efficiency;
-  const effectiveTime = totalSeconds * efficiency;
-  const ticks = effectiveTime / tickRateVal; // ticks to apply across combat/mining/forestry
-
-  const preLevel = new Decimal(character.level);
-  const preKills = new Decimal(character.kills);
-
-  const stats = getEffectiveCombatStats();
-
-  // FIXED: Calculate scaled enemy stats based on player level progression during offline
-  // Since enemy level scales with player level and enemies are killed in batches,
-  // we need to account for the fact that player level increases over time during offline.
-  // Use current player level as base (simplified - enemy level ~ player level)
-  const playerLevelDec = new Decimal(character.level);
-  const enemyLvl = playerLevelDec.add(Math.floor(Math.random() * 3) - 1).max(1);
-  const mobData = mobs[Math.floor(Math.random() * mobs.length)];
-
-  const enemyGrowth = new Decimal(1.15).pow(enemyLvl.sub(1).max(0));
-  const enemyMaxHp = new Decimal(50).mul(enemyGrowth);
-  const enemyAttack = new Decimal(5).mul(enemyGrowth);
-
-  // FIXED: Calculate kills based purely on player attack vs enemy HP
-  // Skills work based on rank only, always active, no cooldowns
-  const ticksPerKill = Math.max(1, enemyMaxHp.div(stats.atk).toNumber());
-
-  const totalKills = new Decimal(Math.floor(ticks / ticksPerKill));
-
-  if (totalKills.gt(0)) {
-    rewardSystem.grantRewards({ id: mobData.id, name: mobData.name, type: mobData.type, level: enemyLvl, maxHp: enemyMaxHp, hp: enemyMaxHp, attack: enemyAttack }, totalKills);
-  }
-  flushInventoryUpdates();
-
-  performMiningTick(ticks);
-  performForestryTick(ticks);
-
-  const killsNum = totalKills.toNumber();
-  character.momentum = applyMomentumSoftcap(character.momentum + (0.01 + (killsNum * 0.0001)) * ticks);
-
-  if (character.xp.gte(character.xpNeeded)) {
-    character.overcharge = applyOverchargeSoftcap(character.overcharge + (0.05 * ticks));
-  }
-
-  let batchPasses = 0;
-  while (character.xp.gte(character.xpNeeded) && batchPasses++ < 20) {
-    rewardSystem.batchLevelUps();
-  }
-
-  if (matrixState.autoSkill) upgradeAllSkills();
-  if (matrixState.autoMining) autoUpgradeMining();
-  if (matrixState.autoForestry) autoUpgradeForestry();
-  if (matrixState.autoBestiary) autoUpgradeBestiary();
-
-  updateDerivedStats();
-
-  character.offlineSettings.lastSummary = {
-    seconds: totalSeconds,
-    levels: character.level.sub(preLevel),
-    kills: character.kills.sub(preKills),
-    efficiency: efficiency * 100
-  };
-
-  if (totalSeconds > 60) {
-    showOfflineSummary({
-      seconds: totalSeconds,
-      kills: character.kills.sub(preKills),
-      levels: character.level.sub(preLevel),
-      efficiency: efficiency
-    });
-  }
-
-  console.log(`[OFFLINE] Processed ${totalSeconds.toFixed(1)}s — Level: ${character.level.toString()}, Kills: ${character.kills.toString()}`);
-}
-
-// ============================================================
-// LEGACY GAME TICK — Kept for dev commands and manual control
-// New code should use scheduler.start() instead
-// ============================================================
-let legacyLastTick = performance.now();
-let legacyAccumulatedTime = 0;
-let challengeCheckCounter = 0;
-
-export function gameTick(now: number): number | void {
-  const dt = now - legacyLastTick;
-  legacyLastTick = now;
-
-  if (dt > 5000) {
-    processOfflineProgress(dt);
-    return requestAnimationFrame(gameTick);
-  }
-
-  // Update snapshots at 10 FPS
+  // Update snapshots before tick processing
   updateSnapshots(now);
 
   // Check for daily challenge rotation (every ~60 seconds)
   checkRotationTick(now);
 
+  accumulatedTime += dt;
+
   // Track total playtime (convert ms to seconds)
   character.totalPlayTime += dt / 1000;
 
-  legacyAccumulatedTime += dt;
-
-  let ticksToProcess = Math.floor(legacyAccumulatedTime / gameConfig.baseTickRate);
+  let ticksToProcess = Math.floor(accumulatedTime / tickRate);
   const maxTicksPerFrame = 2000;
-
+  
   if (ticksToProcess > maxTicksPerFrame) {
     ticksToProcess = maxTicksPerFrame;
   }
 
   if (ticksToProcess > 0) {
     addTotalTicks(ticksToProcess);
-    processSimulationTick(ticksToProcess);
-    legacyAccumulatedTime -= ticksToProcess * gameConfig.baseTickRate;
-  }
+    
+    const dNum = ticksToProcess;
+    
+    // ---- Momentum (float) ----
+    character.momentum += 0.01 * dNum;
+    
+    if (character.kills.gt(0)) {
+      const k = safeKills();
+      character.momentum += k * 0.0001 * dNum;
+    }
+    character.momentum = applyMomentumSoftcap(character.momentum);
 
-  // Throttled operations every 50 ticks
-  challengeCheckCounter += ticksToProcess;
-  if (challengeCheckCounter >= 50) {
-    challengeCheckCounter = 0;
-    processThrottledOperations();
-  }
+    // ---- Overcharge (float) ----
+    if (character.xp.gte(character.xpNeeded)) {
+      character.overcharge += 0.05 * dNum;
+    }
+    character.overcharge = applyOverchargeSoftcap(character.overcharge);
 
-  requestAnimationFrame(gameTick);
+    // ---- Level processing ----
+    const levelsGained = rewardSystem.processLevelUps();
+    for (let i = 0; i < levelsGained; i++) {
+      trackLevelUp();
+    }
+
+    // Stats synchronization
+    const stats = getEffectiveCombatStats();
+    if (character.stats.defense.gt(stats.def)) character.stats.defense = stats.def;
+    if (character.stats.defense.lt(0)) character.stats.defense = Decimal.ZERO;
+    if (character.stats.hp.lt(0)) character.stats.hp = Decimal.ZERO;
+    
+    // Combat
+    performCombatTick(ticksToProcess);
+    flushInventoryUpdates();
+
+    // Daily Challenge tracking
+    const combatKills = combatState.kills;
+    if (combatKills > 0) {
+      for (let i = 0; i < combatKills; i++) {
+        trackKill();
+      }
+      combatState.kills = 0;
+    }
+    if (combatState.lastHitCrit) {
+      trackCrit();
+      combatState.lastHitCrit = false;
+    }
+
+    // Mining & Forestry
+    performMiningTick(ticksToProcess);
+    performForestryTick(ticksToProcess);
+
+    if (achCheckCounter >= 50) {
+      achCheckCounter = 0;
+      checkAchievements();
+    }
+
+    challengeCheckCounter += ticksToProcess;
+    if (challengeCheckCounter >= 50) {
+      challengeCheckCounter = 0;
+      checkChallengeCompletion();
+      if (dailyChallengeState.completedToday && !dailyChallengeState.claimedReward) {
+        const reward = claimDailyReward();
+        if (reward) {
+          addLog(`[DAILY] Auto-claimed ${reward.shards} Shards!`, 'awakening');
+        }
+      }
+    }
+
+    accumulatedTime -= ticksToProcess * tickRate;
+  }
 }
 
 export function skipTime(days: number = 1): string {
-  flushStatCache(); // Ensure latest skills/threads are used
+  flushStatCache();
   updateDerivedStats();
-  const ms = days * 86400 * 1000;
-  processOfflineProgress(ms);
 
-  // Process daily challenge rotation for each day skipped
-  // Need to simulate each day separately by adjusting challengeStartTime
-  for (let i = 0; i < days; i++) {
-    // Rotate challenge by simulating time passage
-    if (dailyChallengeState.activeChallenge) {
-      dailyChallengeState.challengeStartTime -= 24 * 60 * 60 * 1000; // Go back 24 hours
-      checkAndRotateChallenge();
-    }
+  const BATCH_MS = Math.min(days, 30) * 24 * 3600 * 1000;
 
-    // Process completion and auto-claim
-    checkChallengeCompletion();
-    if (isChallengeComplete() && !dailyChallengeState.claimedReward && dailyChallengeState.completedToday) {
-      const reward = claimDailyReward();
-      if (reward) {
-        addLog(`[DAILY] Auto-claimed ${reward.shards} Shards!`, 'awakening');
-      }
-    }
+  processOfflineProgress(BATCH_MS);
+
+  dailyChallengeState.consecutiveDays = Math.min(dailyChallengeState.consecutiveDays + Math.min(days, 10000), 9999);
+  if (dailyChallengeState.consecutiveDays > dailyChallengeState.bestStreak) {
+    dailyChallengeState.bestStreak = dailyChallengeState.consecutiveDays;
   }
 
-  return `[DEV] Simulated ${days} day(s). Level: ${character.level.toString()} | Kills: ${character.kills.toString()}`;
+  return `[DEV] ${days}d. Lv:${character.level} Kills:${character.kills}`;
 }
 
-// ============================================================
-// START GAME LOOP — Legacy entry point (kept for compatibility)
-// New code should use: scheduler.start()
-// ============================================================
 export function startGameLoop(): void {
   const offlineMs = saveSystem.load();
   if (offlineMs > 0) {
     // Cap total offline accumulation to 30 days
-    legacyAccumulatedTime += Math.min(offlineMs, 30 * 24 * 3600 * 1000);
+    accumulatedTime += Math.min(offlineMs, 30 * 24 * 3600 * 1000);
   }
 
   // Initialize daily challenge rotation
@@ -391,35 +426,7 @@ export function startGameLoop(): void {
     character.totalPlayTime = lastSave;
   }
 
-  legacyLastTick = performance.now();
-
-  // ============================================================
-  // REGISTER ENGINE SUBSYSTEMS — Phase 3 Integration
-  // ============================================================
-
-  // Register tick callback for simulation
-  scheduler.onTick((ticks) => {
-    addTotalTicks(ticks);
-    processSimulationTick(ticks);
-  });
-
-  // Register throttled operations (every 50 ticks)
-  scheduler.onTick(() => {
-    const tickCount = scheduler.getTickCount();
-    if (tickCount % 50 === 0) {
-      processThrottledOperations();
-    }
-  });
-
-  // Register frame callback for snapshots
-  scheduler.onFrame((now) => {
-    updateSnapshots(now);
-  });
-
-  // Register offline processing
-  scheduler.onOffline((ms) => {
-    processOfflineProgress(ms);
-  });
+  lastTick = performance.now();
 
   // Dev commands — only in development mode
   if (import.meta.env.DEV) {
@@ -469,47 +476,28 @@ export function startGameLoop(): void {
       return `[DEV] Added ${n} DNA Fragments. Total: ${forestryState.dnaFragments.toString()}`;
     };
 
-    // engineStats — debug engine state
-    window.engineStats = () => {
-      const stats = {
-        tickCount: scheduler.getTickCount(),
-        tps: scheduler.getTPS(),
-        registeredEvents: eventBus.getRegisteredEvents(),
-        eventCounts: {} as Record<string, number>
-      };
-      for (const eventType of stats.registeredEvents) {
-        stats.eventCounts[eventType] = eventBus.listenerCount(eventType);
-      }
-      console.table(stats);
-      return stats;
+    // level — prints current character level
+    (window as any).level = () => {
+      return `[DEV] Level: ${character.level}`;
+    };
+
+    // simulate(days) — process N days of offline rewards (applied)
+    (window as any).simulate = (days = 30) => {
+      flushStatCache();
+      updateDerivedStats();
+
+      const ms = Math.min(days, 30) * 24 * 3600 * 1000;
+      processOfflineProgress(ms);
+
+      return `[DEV] Simulated ${days}d. Level: ${character.level} Kills: ${character.kills} Fragments: ${character.skillFragments}`;
     };
 
     console.log(
-      '%c[DEV] Commands: skipTime(days) | maxSkills() | addFragments(n) | addData(n) | addDna(n) | engineStats()',
+      '%c[DEV] Commands: level() | skipTime(days) | skipDays(n) | maxSkills() | addFragments(n) | addData(n) | addDna(n) | simulate(days)',
       'color: #00ff00; font-weight: bold;'
     );
   }
 
-  // Start the scheduler
-  scheduler.start();
-
-  console.log('[GameLoop] Started with engine integration');
+  tickIntervalId = setInterval(tickLoop, tickRate);
 }
 
-// ============================================================
-// EVENT BUS INTEGRATION — Systems can now subscribe to events
-// ============================================================
-
-// Example: Log all kills for debugging
-eventBus.on('ENEMY_KILLED', (e) => {
-  if (import.meta.env.DEV && e.isInstakill) {
-    console.log(`[DEBUG] Instakill: ${e.kills} kills`);
-  }
-});
-
-// Example: Track level ups
-eventBus.on('LEVEL_UP', (e) => {
-  if (import.meta.env.DEV) {
-    console.log(`[DEBUG] Level up: ${e.level} (+${e.levelsGained})`);
-  }
-});

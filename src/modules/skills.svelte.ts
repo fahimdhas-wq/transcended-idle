@@ -56,7 +56,7 @@ export const skillsState: SkillsState = $state({
     {
       id: 'emp_strike',
       name: 'EMP Strike',
-      description: 'Unleashes a focused electromagnetic burst. Deals 3x ATK base damage, scaling by +50% per tier (Tier 1: 3x, Tier 10: 18x, Tier 50: 127.5x).',
+      description: 'Unleashes a focused electromagnetic burst. Adds 3x ATK at tier 1, doubling each tier (Tier 1: 3x, Tier 10: 1,536x, Tier 50: 1.7e15x).',
       tierIndex: 0,
       fragments: new Decimal(0),
       fragmentsNeeded: new Decimal(30),
@@ -65,20 +65,9 @@ export const skillsState: SkillsState = $state({
       autoCast: true
     },
     {
-      id: 'overclock',
-      name: 'Overclock',
-      description: 'Overclocks your neural processor. Grants +25% damage multiplier per tier to all attacks (Tier 10: 2.5x total, Tier 50: 12.5x total).',
-      tierIndex: 0,
-      fragments: new Decimal(0),
-      fragmentsNeeded: new Decimal(50),
-      cooldown: 0,
-      lastUsed: 0,
-      autoCast: true
-    },
-    {
       id: 'nano_repair',
       name: 'Nano Repair',
-      description: 'Deploys nanobots to restore 20% max HP and Shield instantly. Heals an additional +5% per tier (Tier 10: 70% combined, Tier 50: 270% combined).',
+      description: 'Deploys nanobots restoring 20% max HP+Shield at tier 1, doubling each tier (Tier 1: 20%, Tier 10: 10,240%, Tier 50: 1.1e16%).',
       tierIndex: 0,
       fragments: new Decimal(0),
       fragmentsNeeded: new Decimal(60),
@@ -89,7 +78,7 @@ export const skillsState: SkillsState = $state({
     {
       id: 'chain_hack',
       name: 'Chain Hack',
-      description: "Infects the enemy's core code with poison. Deals 2x ATK base damage per tick, scaling by +30% per tier. Starts at 3 ticks, gains +1 tick every 5 tiers.",
+      description: 'Infects enemy code with poison. Adds 6x ATK at tier 1, doubling each tier (Tier 1: 6x, Tier 10: 3,072x, Tier 50: 3.4e15x).',
       tierIndex: 0,
       fragments: new Decimal(0),
       fragmentsNeeded: new Decimal(80),
@@ -102,7 +91,7 @@ export const skillsState: SkillsState = $state({
     {
       id: 'shield_surge',
       name: 'Shield Surge',
-      description: 'Surges excess energy into your shield matrix, regenerating 30% max Shield instantly. Gains +3% Skip Damage chance per tier (Tier 10: 60% skip, Tier 50: 180% skip).',
+      description: 'Surges energy into shields, restoring 30% max Shield at tier 1, doubling each tier (Tier 1: 30%, Tier 10: 15,360%). Also grants +1% Skip Damage per tier.',
       tierIndex: 0,
       fragments: new Decimal(0),
       fragmentsNeeded: new Decimal(40),
@@ -113,7 +102,7 @@ export const skillsState: SkillsState = $state({
     {
       id: 'data_siphon',
       name: 'Data Siphon',
-      description: 'Siphons data from the enemy. Grants 5x base Skill Fragments, with +1x bonus per tier (Tier 10: 15x, Tier 50: 55x fragments).',
+      description: 'Siphons data from enemies. Grants 25 base fragments at tier 1, doubling each tier (Tier 1: 25, Tier 10: 12,800, Tier 50: 1.4e16).',
       tierIndex: 0,
       fragments: new Decimal(0),
       fragmentsNeeded: new Decimal(100),
@@ -124,7 +113,7 @@ export const skillsState: SkillsState = $state({
     {
       id: 'xp_boost',
       name: 'Neural Learning',
-      description: 'Passively increases XP gained from all sources by 20% per tier (Tier 10: 2x XP, Tier 50: 10x XP, Tier 100: 20x XP).',
+      description: 'Passively multiplies all XP earned. +50% bonus at tier 1 (1.5x), doubling bonus each tier (Tier 1: 1.5x, Tier 10: 257x, Tier 50: 2.8e14x).',
       tierIndex: 0,
       fragments: new Decimal(0),
       fragmentsNeeded: new Decimal(120),
@@ -135,7 +124,7 @@ export const skillsState: SkillsState = $state({
     {
       id: 'cleave',
       name: 'System Wipe',
-      description: 'Passively grants a chance to instantly kill +100 additional enemies per tier when you get a kill.',
+      description: 'Chance to instantly kill +100 extra enemies per kill at tier 1, doubling each tier (Tier 1: 100, Tier 10: 51,200, Tier 50: 5.6e16).',
       tierIndex: 0,
       fragments: new Decimal(0),
       fragmentsNeeded: new Decimal(150),
@@ -146,7 +135,7 @@ export const skillsState: SkillsState = $state({
     {
       id: 'loot_boost',
       name: 'Deep Scan',
-      description: 'Passively increases drop rates and rarity chances by 10% per tier (Tier 10: 100% bonus, Tier 50: 500% bonus). Higher tiers unlock rare item drops.',
+      description: 'Passively increases drop rates. +15% at tier 1, doubling each tier (Tier 1: +15%, Tier 10: +7,680%, Tier 50: +8.4e15%).',
       tierIndex: 0,
       fragments: new Decimal(0),
       fragmentsNeeded: new Decimal(180),
@@ -157,7 +146,7 @@ export const skillsState: SkillsState = $state({
     {
       id: 'crit_surge',
       name: 'Crit Surge',
-      description: 'Permanently increases Critical Damage Multiplier by 0.5x per tier (Tier 10: 5x crits, Tier 50: 25x crits, Tier 100: 50x crits). Base crit damage is 2x.',
+      description: 'Permanently increases Critical Damage. +0.5x at tier 1 (2.5x total), doubling each tier (Tier 1: +0.5x, Tier 10: +256x, Tier 50: +2.8e14x). Base crit is 2x.',
       tierIndex: 0,
       fragments: new Decimal(0),
       fragmentsNeeded: new Decimal(250),
@@ -168,7 +157,7 @@ export const skillsState: SkillsState = $state({
     {
       id: 'omni_stat',
       name: 'God Mode',
-      description: 'Permanently multiplies ALL stats (HP, ATK, DEF, Regen) by 1.2x per tier. (Tier 10: 6.2x all stats, Tier 50: 9100x all stats, Tier 100: 82M x all stats). Extremely expensive.',
+      description: 'Permanently multiplies ALL stats (HP, ATK, DEF, Regen, Skills). 1.2x at tier 1, doubling each tier (Tier 1: 1.2x, Tier 10: 614x, Tier 50: 6.8e14x). Extremely expensive.',
       tierIndex: 0,
       fragments: new Decimal(0),
       fragmentsNeeded: new Decimal(500),
@@ -197,9 +186,9 @@ export const SKILL_BASE_COSTS: Record<string, number> = {
 export function getOmniMult(): Decimal {
   const omniSkill = skillsState.skills.find(s => s.id === 'omni_stat');
   if (omniSkill && omniSkill.tierIndex > 0) {
-    return new Decimal(1.2).pow(omniSkill.tierIndex);
+    return new Decimal(1.2).mul(Decimal.TWO.pow(omniSkill.tierIndex - 1));
   }
-  return new Decimal(1);
+  return Decimal.ONE;
 }
 
 export function upgradeAllSkills(): string {

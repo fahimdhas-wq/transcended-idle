@@ -31,7 +31,6 @@ function _getForestryFormula(type: string): CostFormula {
     case 'reforestation':   return { type: 'linear', base: 0, gain: 200 };
     case 'ancientSaplings': return { type: 'geometric', base: 100, multiplier: 10 };
     case 'mutationPower':   return { type: 'linear', base: 1500, gain: 1500 };
-    case 'overclockPower':  return { type: 'linear', base: 2000, gain: 2000 };
     case 'efficiency':      return { type: 'linear', base: 1000, gain: 1000 };
     default:                return { type: 'linear', base: 0, gain: 500 };
   }
@@ -43,7 +42,6 @@ function _getMiningFormula(type: string): CostFormula {
     case 'extraction':     return { type: 'linear', base: 0, gain: 200 };
     case 'discovery':      return { type: 'geometric', base: 500, multiplier: 10 };
     case 'sensors':        return { type: 'linear', base: 2000, gain: 2000 };
-    case 'overclockPower': return { type: 'linear', base: 2500, gain: 2500 };
     case 'efficiency':     return { type: 'linear', base: 1500, gain: 1500 };
     default:               return { type: 'linear', base: 0, gain: 1000 };
   }
@@ -57,13 +55,12 @@ export function autoUpgradeMining(): void {
   _lastMiningAuto = now;
 
   // Priority: cap-limited Discovery FIRST, then everything else
-  const priorityUpgrades: Array<{ type: 'sharpness' | 'extraction' | 'discovery' | 'sensors' | 'overclockPower' | 'efficiency'; cap?: number; priority: number }> = [
+  const priorityUpgrades: Array<{ type: 'sharpness' | 'extraction' | 'discovery' | 'sensors' | 'efficiency'; cap?: number; priority: number }> = [
     { type: 'discovery',       cap: 10, priority: 1 },
     { type: 'sharpness',       priority: 2 },
     { type: 'extraction',      priority: 3 },
     { type: 'sensors',         priority: 4 },
-    { type: 'overclockPower',  priority: 5 },
-    { type: 'efficiency',       priority: 6 },
+    { type: 'efficiency',       priority: 5 },
   ];
 
   // Sort by priority
@@ -128,13 +125,12 @@ export function autoUpgradeForestry(): void {
 
   // Priority 1: Cap-limited upgrades FIRST (Ancient Saplings, Discovery)
   // These only go to 10 max, so we skip gracefully when at cap
-  const priorityUpgrades: Array<{ type: 'chainsawFuel' | 'reforestation' | 'ancientSaplings' | 'mutationPower' | 'overclockPower' | 'efficiency'; cap?: number; priority?: number }> = [
+  const priorityUpgrades: Array<{ type: 'chainsawFuel' | 'reforestation' | 'ancientSaplings' | 'mutationPower' | 'efficiency'; cap?: number; priority?: number }> = [
     { type: 'ancientSaplings', cap: 10, priority: 1 },
     { type: 'chainsawFuel',    priority: 2 },
     { type: 'reforestation',   priority: 3 },
     { type: 'mutationPower',   priority: 4 },
-    { type: 'overclockPower',  priority: 5 },
-    { type: 'efficiency',      priority: 6 },
+    { type: 'efficiency',      priority: 5 },
   ];
 
   // Sort by priority

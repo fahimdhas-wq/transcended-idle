@@ -12,7 +12,7 @@ import { getMiningSpeedMultiplier, trackResources } from './dailyChallenge.svelt
 import { maxAffordable } from '../utils/maxAffordable.js';
 import { miningResources } from './miningResources.js';
 
-export type MiningUpgradeType = 'sharpness' | 'discovery' | 'sensors' | 'overclockPower' | 'efficiency' | 'extraction';
+export type MiningUpgradeType = 'sharpness' | 'discovery' | 'sensors' | 'efficiency' | 'extraction';
 export type MiningAutomationType = 'drone' | 'extractor';
 
 export interface MiningState {
@@ -24,15 +24,12 @@ export interface MiningState {
   maxEnergy: number;
   drones: number;
   autoExtractors: number;
-  isOverclocked: boolean;
-  overclockTicks: number;
   miningProgress: number;
   minesPerSecond: number;
   dataRate: number;
   sharpness: number;
   discovery: number;
   sensors: number;
-  overclockPower: number;
   efficiency: number;
   extraction: number;
   // Legacy accessor - returns Record for compatibility but uses typed array internally
@@ -73,8 +70,6 @@ export const miningState: MiningState = $state({
   maxEnergy: 100,
   drones: 0,
   autoExtractors: 0,
-  isOverclocked: false,
-  overclockTicks: 0,
   miningProgress: 0,
   minesPerSecond: 0,
   dataRate: 0,
@@ -82,7 +77,6 @@ export const miningState: MiningState = $state({
   sharpness: 0,
   discovery: 0,
   sensors: 0,
-  overclockPower: 0,
   efficiency: 0,
   extraction: 0,
 
@@ -93,7 +87,7 @@ export const miningState: MiningState = $state({
 let _dataAccum = 0;
 let _dataRateTimer = 0;
 const DATA_RATE_WINDOW = 5000;
-const MINING_CONSTANTS = { REFINE_RATIO: 50, OVERCLOCK_DURATION: 600 };
+const MINING_CONSTANTS = { REFINE_RATIO: 50 };
 
 const oreTiers: Array<{ id: string; tier: number }> = [
   { id: 'ferrite', tier: 1 }, { id: 'carbite', tier: 2 }, { id: 'cuprite', tier: 3 },
@@ -128,14 +122,6 @@ export function performMiningTick(ticks: number): void {
     bestiarySpeed * 2 *
     getMiningSpeedMultiplier();
 
-  if (miningState.isOverclocked) {
-    const ocMult = GATHERING_CONSTANTS.OVERCLOCK_BASE_MULT +
-                   (miningState.overclockPower + 1) * GATHERING_CONSTANTS.OVERCLOCK_POWER_BONUS;
-    activeSpeed *= ocMult;
-    miningState.overclockTicks -= ticks;
-    if (miningState.overclockTicks <= 0) miningState.isOverclocked = false;
-  }
-
   const effReduction = 1 / (1 + miningState.efficiency * 0.1);
   const speedLog = Math.max(1, Math.log10(activeSpeed + 1));
   const actualCostPerTick = GATHERING_CONSTANTS.BASE_ENERGY_COST * speedLog * speedLog * effReduction;
@@ -147,18 +133,14 @@ export function performMiningTick(ticks: number): void {
     energyEff;
 
   let yieldMult = 1.0;
-  if (!miningState.isOverclocked) {
-    const totalCost = actualCostPerTick * ticks;
-    const totalAvail = miningState.energy + regenPerTick * ticks;
-    if (totalCost > 0) {
-      if (totalAvail < totalCost) {
-        yieldMult = Math.max(0, totalAvail / totalCost);
-        miningState.energy = 0;
-      } else {
-        miningState.energy = Math.max(0, Math.min(miningState.maxEnergy, totalAvail - totalCost));
-      }
+  const totalCost = actualCostPerTick * ticks;
+  const totalAvail = miningState.energy + regenPerTick * ticks;
+  if (totalCost > 0) {
+    if (totalAvail < totalCost) {
+      yieldMult = Math.max(0, totalAvail / totalCost);
+      miningState.energy = 0;
     } else {
-      miningState.energy = Math.max(0, Math.min(miningState.maxEnergy, miningState.energy + regenPerTick * ticks));
+      miningState.energy = Math.max(0, Math.min(miningState.maxEnergy, totalAvail - totalCost));
     }
   } else {
     miningState.energy = Math.max(0, Math.min(miningState.maxEnergy, miningState.energy + regenPerTick * ticks));
@@ -284,7 +266,6 @@ export function buyMiningUpgrade(type: MiningUpgradeType, amount: number | 'max'
   else if (type === 'extraction') formula = { type: 'linear', base: 0, gain: 200 };
   else if (type === 'discovery')  formula = { type: 'geometric', base: 500, multiplier: 10 };
   else if (type === 'sensors')    formula = { type: 'linear', base: 2000, gain: 2000 };
-  else if (type === 'overclockPower') formula = { type: 'linear', base: 2500, gain: 2500 };
   else if (type === 'efficiency') formula = { type: 'linear', base: 1500, gain: 1500 };
   else return 0;
 
@@ -368,16 +349,6 @@ export function upgradeAutomation(type: MiningAutomationType, amount: number | '
     if (isDrone) miningState.drones += count;
     else miningState.autoExtractors += count;
     addLog(`[MINING] Purchased ${count} ${type}(s).`, 'system');
-  }
-}
-
-export function triggerOverclock(): void {
-  const cost = 25;
-  if (miningState.resources.gte('fuelX', cost) && !miningState.isOverclocked) {
-    miningState.resources.sub('fuelX', cost);
-    miningState.isOverclocked = true;
-    miningState.overclockTicks = MINING_CONSTANTS.OVERCLOCK_DURATION;
-    addLog(`[MINING] Overclock active!`, 'system');
   }
 }
 

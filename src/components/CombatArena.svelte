@@ -6,11 +6,11 @@ import { getPowerTier } from '../systems/powerTier.js';
 import { Decimal } from '../systems/decimal.js';
 import { onMount } from 'svelte';
 import type { MobType } from '../data/mobs.js';
+import Value from './Value.svelte';
 
 let { compact = false }: { compact?: boolean } = $props();
 
 let showAdvanced = $state(false);
-let stats = $derived(getEffectiveCombatStats());
 
 const combatDialogues = [
   'SLAYING DEMONS...',
@@ -37,51 +37,63 @@ onMount(() => {
   }, 2500);
   return () => clearInterval(interval);
 });
-let maxHp = $derived(stats.hp);
-let maxSh = $derived(stats.def);
-let attackVal = $derived(stats.atk);
-let regenHpVal = $derived(stats.regenHp.mul(10));
-let regenDefVal = $derived(stats.regenDef.mul(10));
-let powerTier = $derived(getPowerTier(attackVal));
 
-let playerHpPct = $derived.by(() => {
-  const hp = Decimal.from(character.stats?.hp ?? 0);
-  const mHp = Decimal.from(maxHp);
-  if (hp.gte(mHp) && mHp.gt(0)) return 100;
-  const pct = hp.div(mHp).mul(100).toNumber();
-  return isNaN(pct) ? 100 : Math.max(0, Math.min(100, pct));
-});
+// Single derived block for all combat display data — reduces reactive overhead
+let combatDisplay = $derived.by(() => {
+  const stats = getEffectiveCombatStats();
+  const hp = character.stats?.hp ?? Decimal.ZERO;
+  const mHp = stats.hp;
+  const sh = character.stats?.defense ?? Decimal.ZERO;
+  const mSh = stats.def;
+  const xp = character.xp ?? Decimal.ZERO;
+  const xpN = character.xpNeeded ?? Decimal.ONE;
 
-let playerShPct = $derived.by(() => {
-  const sh = Decimal.from(character.stats?.defense ?? 0);
-  const mSh = Decimal.from(maxSh);
-  if (sh.gte(mSh) && mSh.gt(0)) return 100;
-  const pct = sh.div(mSh).mul(100).toNumber();
-  return isNaN(pct) ? 100 : Math.max(0, Math.min(100, pct));
-});
+  const playerHpPct = (() => {
+    if (hp.gte(mHp) && mHp.gt(0)) return 100;
+    const pct = hp.div(mHp).mul(100).toNumber();
+    return isNaN(pct) ? 100 : Math.max(0, Math.min(100, pct));
+  })();
 
-let xpPct = $derived.by(() => {
-  const xp = Decimal.from(character.xp ?? 0);
-  const xpN = Decimal.from(character.xpNeeded ?? 1);
-  if (xp.gte(xpN) && xpN.gt(0)) return 100;
-  const pct = xp.div(xpN).mul(100).toNumber();
-  return isNaN(pct) ? 0 : Math.min(100, pct);
-});
+  const playerShPct = (() => {
+    if (sh.gte(mSh) && mSh.gt(0)) return 100;
+    const pct = sh.div(mSh).mul(100).toNumber();
+    return isNaN(pct) ? 100 : Math.max(0, Math.min(100, pct));
+  })();
 
-let enemyHpPct = $derived.by(() => {
-  if (!combatState.enemy?.maxHp) return 0;
-  const eHp = Decimal.from(combatState.enemy.hp ?? 0);
-  const eMax = Decimal.from(combatState.enemy.maxHp);
-  if (eHp.gte(eMax)) return 100;
-  const pct = eHp.div(eMax).mul(100).toNumber();
-  return isNaN(pct) ? 0 : Math.min(100, pct);
+  const xpPct = (() => {
+    if (xp.gte(xpN) && xpN.gt(0)) return 100;
+    const pct = xp.div(xpN).mul(100).toNumber();
+    return isNaN(pct) ? 0 : Math.min(100, pct);
+  })();
+
+  const enemyHpPct = (() => {
+    if (!combatState.enemy?.maxHp) return 0;
+    const eHp = combatState.enemy.hp ?? Decimal.ZERO;
+    const eMax = combatState.enemy.maxHp;
+    if (eHp.gte(eMax)) return 100;
+    const pct = eHp.div(eMax).mul(100).toNumber();
+    return isNaN(pct) ? 0 : Math.min(100, pct);
+  })();
+
+  return {
+    stats,
+    maxHp: stats.hp,
+    maxSh: stats.def,
+    attackVal: stats.atk,
+    regenHpVal: stats.regenHp.mul(10),
+    regenDefVal: stats.regenDef.mul(10),
+    powerTier: getPowerTier(stats.atk),
+    playerHpPct,
+    playerShPct,
+    xpPct,
+    enemyHpPct,
+    hpIsLow: playerHpPct < 25,
+  };
 });
 
 function typeLabel(type: MobType): string {
   return (type || 'UNKNOWN').toUpperCase();
 }
-
-let hpIsLow = $derived(playerHpPct < 25);
 </script>
 
 {#if compact}
@@ -95,14 +107,14 @@ let hpIsLow = $derived(playerHpPct < 25);
         <div class="c-gauge">
           <div class="c-g-label hp">HP</div>
           <div class="c-bar-track">
-            <div class="c-bar-fill" class:hp-critical={hpIsLow} style="width:{playerHpPct}%"></div>
+            <div class="c-bar-fill" class:hp-critical={combatDisplay.hpIsLow} style="width:{combatDisplay.playerHpPct}%"></div>
           </div>
           <div class="c-g-value">{formatValue(character.stats?.hp ?? 0)}</div>
         </div>
         <div class="c-gauge">
           <div class="c-g-label sh">SH</div>
           <div class="c-bar-track">
-            <div class="c-bar-fill sh" style="width:{playerShPct}%"></div>
+            <div class="c-bar-fill sh" style="width:{combatDisplay.playerShPct}%"></div>
           </div>
           <div class="c-g-value">{formatValue(character.stats?.defense ?? 0)}</div>
         </div>
@@ -114,7 +126,7 @@ let hpIsLow = $derived(playerHpPct < 25);
             <span class="c-enemy-lv">Lv.{formatValue(combatState.enemy.level ?? 0)}</span>
           </div>
           <div class="c-bar-track enemy">
-            <div class="c-bar-fill hp" style="width:{enemyHpPct}%"></div>
+            <div class="c-bar-fill hp" style="width:{combatDisplay.enemyHpPct}%"></div>
           </div>
         {:else}
           <span class="c-scan">▸ {combatDialogues[dialogueIndex]}</span>
@@ -134,7 +146,7 @@ let hpIsLow = $derived(playerHpPct < 25);
       </div>
       <div class="identity-divider"></div>
       <div class="identity-class">
-        <span class="tier-badge {powerTier.class}">{powerTier.name}</span>
+        <span class="tier-badge {combatDisplay.powerTier.class}">{combatDisplay.powerTier.name}</span>
       </div>
       <button class="expand-btn" onclick={() => showAdvanced = !showAdvanced}>
         {showAdvanced ? '[-]' : '[+]'}
@@ -147,9 +159,9 @@ let hpIsLow = $derived(playerHpPct < 25);
         <div class="adv-item"><span class="a-lbl">CRIT</span><span class="a-val">{character.stats.critChance * 100 > 0 ? (character.stats.critChance * 100).toFixed(1) + '%' : '—'}</span></div>
         <div class="adv-item"><span class="a-lbl">KILLS</span><span class="a-val">{formatValue(character.kills ?? 0)}</span></div>
         <div class="adv-item"><span class="a-lbl">SKIP</span><span class="a-val">{character.stats.skipDamageChance * 100 > 0 ? (character.stats.skipDamageChance * 100).toFixed(1) + '%' : '—'}</span></div>
-        <div class="adv-item"><span class="a-lbl">HP/s</span><span class="a-val val-green">{formatValue(regenHpVal)}</span></div>
-        <div class="adv-item"><span class="a-lbl">SH/s</span><span class="a-val val-cyan">{formatValue(regenDefVal)}</span></div>
-        <div class="adv-item"><span class="a-lbl">SEALS</span><span class="a-val val-gold">{character.seals}</span></div>
+        <div class="adv-item"><span class="a-lbl">HP/s</span><span class="a-val val-green">{formatValue(combatDisplay.regenHpVal)}</span></div>
+        <div class="adv-item"><span class="a-lbl">SH/s</span><span class="a-val val-cyan">{formatValue(combatDisplay.regenDefVal)}</span></div>
+        <div class="adv-item"><span class="a-lbl">SEALS</span><span class="a-val val-gold"><Value n={character.seals} /></span></div>
       </div>
     {/if}
 
@@ -162,7 +174,7 @@ let hpIsLow = $derived(playerHpPct < 25);
           <span class="gauge-value">{formatValue(character.stats?.hp ?? 0)}</span>
         </div>
         <div class="bar-track">
-          <div class="bar-fill hp" class:hp-critical={hpIsLow} style="width:{playerHpPct}%"></div>
+          <div class="bar-fill hp" class:hp-critical={combatDisplay.hpIsLow} style="width:{combatDisplay.playerHpPct}%"></div>
         </div>
       </div>
 
@@ -173,7 +185,7 @@ let hpIsLow = $derived(playerHpPct < 25);
           <span class="gauge-value">{formatValue(character.stats?.defense ?? 0)}</span>
         </div>
         <div class="bar-track">
-          <div class="bar-fill sh" style="width:{playerShPct}%"></div>
+          <div class="bar-fill sh" style="width:{combatDisplay.playerShPct}%"></div>
         </div>
       </div>
 
@@ -184,7 +196,7 @@ let hpIsLow = $derived(playerHpPct < 25);
           <span class="gauge-value">{formatValue(character.xp ?? 0)}</span>
         </div>
         <div class="bar-track">
-          <div class="bar-fill xp" style="width:{xpPct}%"></div>
+          <div class="bar-fill xp" style="width:{combatDisplay.xpPct}%"></div>
         </div>
       </div>
     </div>
@@ -206,7 +218,7 @@ let hpIsLow = $derived(playerHpPct < 25);
         </div>
         <div class="target-health">
           <div class="bar-track">
-            <div class="bar-fill hp" style="width:{enemyHpPct}%"></div>
+            <div class="bar-fill hp" style="width:{combatDisplay.enemyHpPct}%"></div>
           </div>
           <div class="health-numbers">
             <span class="current">{formatValue(combatState.enemy.hp ?? 0)}</span>

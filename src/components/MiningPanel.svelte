@@ -1,7 +1,7 @@
 
 <script lang="ts">
 import {
-  miningState, tools, upgradeTool, triggerOverclock,
+  miningState, tools, upgradeTool,
   upgradeEnergy, buyMiningUpgrade, refineSingle
 } from '../modules/mining.svelte.js';
 import { autoUpgradeMining } from '../utils/globalMaxUpgrade.js';

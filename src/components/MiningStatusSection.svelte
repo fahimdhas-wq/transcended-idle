@@ -1,5 +1,5 @@
 <script lang="ts">
-import { miningState, tools, upgradeTool, triggerOverclock, upgradeEnergy } from '../modules/mining.svelte.js';
+import { miningState, tools, upgradeTool, upgradeEnergy } from '../modules/mining.svelte.js';
 import { bestiaryState } from '../modules/bestiary.svelte.js';
 import { uiStore, showToast } from '../stores/uiStore.svelte.js';
 import { formatValue } from '../systems/formatValue.js';
@@ -8,7 +8,6 @@ import { invalidateBulkCostCache } from '../utils/bulkCost.js';
 
 const toolTier = $derived(miningState.toolTier);
 const toolName = $derived(miningState.toolName);
-const isOverclocked = $derived(miningState.isOverclocked);
 const miningProgress = $derived(miningState.miningProgress);
 const minesPerSecond = $derived(miningState.minesPerSecond);
 const energy = $derived(miningState.energy);
@@ -32,10 +31,6 @@ function doUpgradeTool() {
   upgradeTool();
   invalidateBulkCostCache();
   showToast('Drill upgraded!', 'success');
-}
-function doOverclock() {
-  triggerOverclock();
-  showToast('Overclock active!', 'warn');
 }
 function doEnergy() {
   upgradeEnergy(uiStore.buyAmount);
@@ -75,10 +70,6 @@ function doEnergy() {
       disabled={toolTier >= 10 || !canAffordTool()}>
       <span class="act-name">UPGRADE DRILL</span>
       <small>{toolTier >= 10 ? 'MAX' : fmt(nextToolCost) + ' DATA'}</small>
-    </button>
-    <button class="act-btn" onclick={doOverclock} disabled={isOverclocked}>
-      <span class="act-name">{isOverclocked ? 'OC ACTIVE' : 'OVERCLOCK'}</span>
-      <small>25 Fuel-X</small>
     </button>
     <button class="act-btn" onclick={doEnergy}
       disabled={!canAffordEnergy()}>

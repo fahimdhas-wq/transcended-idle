@@ -1,6 +1,5 @@
 
 import { Decimal, type DecimalSource } from '../systems/decimal.js';
-import { getOverclockMultiplier } from './overclockState.svelte.js';
 
 export interface CharacterStats {
   hp: Decimal;
@@ -53,23 +52,25 @@ export interface Character {
 }
 
 const INITIAL_STATS: CharacterStats = {
-  hp: new Decimal(100),
-  maxHp: new Decimal(100),
-  defense: new Decimal(50),
-  maxDefense: new Decimal(50),
-  attack: new Decimal(10),
-  regenHp: new Decimal(10),
-  regenDef: new Decimal(10),
+  hp: Decimal.HUNDRED,
+  maxHp: Decimal.HUNDRED,
+  defense: Decimal.FIFTY,
+  maxDefense: Decimal.FIFTY,
+  attack: Decimal.TEN,
+  regenHp: Decimal.TEN,
+  regenDef: Decimal.TEN,
   critChance: 0.01,
   skipDamageChance: 0,
   quality: 0
 };
 
-export const XP_COST_EXP_BASE = 1.15;
-export const XP_COST_POLY_POWER = 0.8;
+export const XP_COST_EXP_BASE = 1.001;
+export const XP_COST_POLY_POWER = 2;
+export const XP_REWARD_POLY_POWER = 1.5;
+export const STAT_GROWTH_BASE = 1.15;
 
-const XP_COST_BASE = new Decimal(100);
-const MAX_SAFE_LEVEL_NUM = 1e9;
+const XP_COST_BASE = Decimal.TEN;
+const MAX_SAFE_LEVEL_NUM = 1e15;
 
 export function getXpNeededForLevel(level: DecimalSource): Decimal {
   const levelDec = level instanceof Decimal ? level : new Decimal(level || 1);
@@ -85,18 +86,18 @@ export function getXpNeededForLevel(level: DecimalSource): Decimal {
 
 export const character: Character = $state({
   stats: { ...INITIAL_STATS },
-  level: new Decimal(1),
-  xp: new Decimal(0),
-  totalXp: new Decimal(0),
-  xpNeeded: new Decimal(100),
+  level: Decimal.ONE,
+  xp: Decimal.ZERO,
+  totalXp: Decimal.ZERO,
+  xpNeeded: Decimal.HUNDRED,
   momentum: 0,
   overcharge: 0,
-  skillFragments: new Decimal(0),
-  kills: new Decimal(0),
+  skillFragments: Decimal.ZERO,
+  kills: Decimal.ZERO,
   seals: 0,
   vergeCount: 0,
   totalDrops: 0,
-  totalFragments: new Decimal(0),
+  totalFragments: Decimal.ZERO,
   dropBonus: 0,
   quality: 0,
   statsUnlocked: false,
@@ -128,14 +129,14 @@ export function updateDerivedStats(): void {
   const l = character.level;
   const lNum = isFinite(l.toNumber()) ? l.toNumber() : MAX_SAFE_LEVEL_NUM;
 
-  const growth = new Decimal(XP_COST_EXP_BASE).pow(l.sub(1).max(0));
+  const growth = Decimal.GROWTH_BASE.pow(l.sub(1).max(0));
 
   character.xpNeeded = getXpNeededForLevel(l);
-  character.stats.maxHp = new Decimal(100).mul(growth);
-  character.stats.maxDefense = new Decimal(50).mul(growth);
-  character.stats.attack = new Decimal(10).mul(growth);
-  character.stats.regenHp = new Decimal(10).mul(growth);
-  character.stats.regenDef = new Decimal(10).mul(growth);
+  character.stats.maxHp = Decimal.HUNDRED.mul(growth);
+  character.stats.maxDefense = Decimal.FIFTY.mul(growth);
+  character.stats.attack = Decimal.TEN.mul(growth);
+  character.stats.regenHp = Decimal.TEN.mul(growth);
+  character.stats.regenDef = Decimal.TEN.mul(growth);
 
   character.stats.critChance = Math.min(1.0, 0.01 + lNum * 0.005);
   character.stats.skipDamageChance = character.statsUnlocked
@@ -145,17 +146,17 @@ export function updateDerivedStats(): void {
 
 export function getEffectiveXP(): Decimal {
   const baseMulti = (character.momentum + 1) * (character.overcharge + 1);
-  return character.xp.mul(baseMulti).mul(getOverclockMultiplier());
+  return character.xp.mul(baseMulti);
 }
 
 export function resetCharacter(): void {
   character.stats = { ...INITIAL_STATS };
-  character.level = new Decimal(1);
-  character.xp = new Decimal(0);
-  character.totalXp = new Decimal(0);
+  character.level = Decimal.ONE;
+  character.xp = Decimal.ZERO;
+  character.totalXp = Decimal.ZERO;
   character.momentum = 0;
   character.overcharge = 0;
-  character.skillFragments = new Decimal(0);
+  character.skillFragments = Decimal.ZERO;
   character.statsUnlocked = false;
   updateDerivedStats();
 }

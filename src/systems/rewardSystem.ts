@@ -7,7 +7,7 @@ import {
   safeKills,
   getXpNeededForLevel,
   XP_COST_EXP_BASE,
-  XP_COST_POLY_POWER
+  XP_COST_POLY_POWER,
 } from '../modules/character.svelte.js';
 import { addLog, incrementKills } from '../ui/LogPanelState.svelte.js';
 import { addItem } from '../modules/inventory.svelte.js';
@@ -18,11 +18,9 @@ import { getSpeciesDropBonus, getQuality } from '../modules/bestiaryBonuses.js';
 import { formatNumber } from '../systems/scalingSystem.js';
 import { Decimal, type DecimalSource } from '../systems/decimal.js';
 import { getEffectiveCombatStats } from '../modules/combat.svelte.js';
-import { LEVEL_WALL } from '../modules/overclock.svelte.js';
 import type { Enemy } from './aiSystem.js';
 import { getXpMultiplier, getFragmentMultiplier, getDropRateMultiplier, trackFragments } from '../modules/dailyChallenge.svelte.js';
 
-const XP_REWARD_EXP_BASE = 1.08;
 const MAX_BATCH_LEVELS = 100000;
 const EXACT_BATCH_SUM_LIMIT = 256;
 const MAX_SAFE_LEVEL_NUM = 1e9;
@@ -50,7 +48,7 @@ function getGeometricWeightedIndex(count: number): number {
 }
 
 function exactCostForLevels(startLevel: Decimal, count: number): Decimal {
-  let total = new Decimal(0);
+    let total = Decimal.ZERO;
   for (let i = 0; i < count; i++) {
     total = total.add(getXpNeededForLevel(startLevel.add(i)));
   }
@@ -58,7 +56,7 @@ function exactCostForLevels(startLevel: Decimal, count: number): Decimal {
 }
 
 function estimatedCostForLevels(startLevel: Decimal, count: number): Decimal {
-  if (count <= 0) return new Decimal(0);
+  if (count <= 0) return Decimal.ZERO;
   if (count <= EXACT_BATCH_SUM_LIMIT) return exactCostForLevels(startLevel, count);
 
   const startCost = getXpNeededForLevel(startLevel);
@@ -80,22 +78,21 @@ export const rewardSystem = {
     if (!enemy) return;
     
     // --- KILLS ---
-    let killsInThisEvent = new Decimal(1);
+    let killsInThisEvent = Decimal.ONE;
 
     const cleaveSkill = skillsState.skills.find(s => s.id === 'cleave');
     if (cleaveSkill && cleaveSkill.tierIndex > 0) {
-      // 100% chance if upgraded beyond S+ rank (tierIndex >= 21), otherwise 40% chance
+      const sealMult = Decimal.TEN.pow(character.seals || 0);
       const activateChance = cleaveSkill.tierIndex >= 21 ? 1.0 : 0.4;
       if (Math.random() < activateChance) {
-        // Base amounts for tier 1-7, then ×2 for each tier beyond 7
         const baseCleaveAmounts = [0, 2, 5, 12, 25, 50, 100, 250];
         let extraKills: Decimal;
         if (cleaveSkill.tierIndex < baseCleaveAmounts.length) {
           extraKills = new Decimal(baseCleaveAmounts[cleaveSkill.tierIndex]);
         } else {
-          // Tier 8+: geometric progression ×2 each tier
-          extraKills = new Decimal(250).mul(new Decimal(2).pow(cleaveSkill.tierIndex - 7));
+          extraKills = new Decimal(250).mul(Decimal.TWO.pow(cleaveSkill.tierIndex - 7));
         }
+        extraKills = extraKills.mul(sealMult);
         killsInThisEvent = killsInThisEvent.add(extraKills);
       }
     }
@@ -107,18 +104,18 @@ export const rewardSystem = {
     incrementKills(totalKills.toNumber());
 
     // --- XP CALCULATION ---
-    let xpMult = new Decimal(1);
+    let xpMult = Decimal.ONE;
     const xpSkill = skillsState.skills.find(s => s.id === 'xp_boost');
-    if (xpSkill && xpSkill.tierIndex > 0) xpMult = xpMult.add(0.5 * xpSkill.tierIndex);
+    if (xpSkill && xpSkill.tierIndex > 0) {
+      xpMult = xpMult.add(0.5 * Math.pow(2, xpSkill.tierIndex - 1));
+    }
 
     const enemyLvl = enemy.level instanceof Decimal ? enemy.level : new Decimal(enemy.level || 1);
 
-    const sealMult = new Decimal(10).pow(character.seals || 0);
+    const sealMult = Decimal.TEN.pow(character.seals || 0);
     const omni = getOmniMult();
     
-    // Combat XP grows slower than level costs so progression systems matter.
-    const xpGrowth = new Decimal(XP_REWARD_EXP_BASE).pow(enemyLvl.sub(1).max(0));
-    const baseExp = new Decimal(10).mul(xpGrowth);
+    const baseExp = Decimal.TEN.mul(enemyLvl.pow(1.5));
     
     let xpGain = baseExp.mul(totalKills).mul(xpMult).mul(sealMult).mul(omni).mul(getXpMultiplier());
     
@@ -135,13 +132,14 @@ export const rewardSystem = {
   },
 
   _doFragments(totalKills: Decimal): void {
-    const baseFrag = new Decimal(character.level.div(200).add(0.1)).mul(1 + (character.seals || 0));
+    const baseFrag = character.level.div(200).add(0.1).mul(1 + (character.seals || 0));
     let fragGain = baseFrag.mul(totalKills).mul(getFragmentMultiplier());
 
-    // Data Siphon Skill - 25x bonus per tier
+    // Data Siphon Skill — doubles each tier × sealMult
     const siphon = skillsState.skills.find(s => s.id === 'data_siphon');
     if (siphon && siphon.tierIndex > 0) {
-      const siphonMult = 25 * siphon.tierIndex * totalKills.toNumber();
+      const sealMult = Decimal.TEN.pow(character.seals || 0);
+      const siphonMult = new Decimal(25).mul(Decimal.TWO.pow(siphon.tierIndex - 1)).mul(totalKills).mul(sealMult);
       fragGain = fragGain.add(siphonMult);
     }
 
@@ -153,9 +151,9 @@ export const rewardSystem = {
   _doLoot(enemy: Enemy, totalKills: Decimal): void {
     const bestiaryDropBonus = getSpeciesDropBonus(enemy.id);
     const quality = getQuality();
-    // Deep Scan Skill - 15% per tier as described
+    // Deep Scan Skill — doubles each tier
     const lootSkill = skillsState.skills.find(s => s.id === 'loot_boost');
-    const lootBoost = (lootSkill?.tierIndex || 0) * 0.15;
+    const lootBoost = lootSkill && lootSkill.tierIndex > 0 ? 0.15 * Math.pow(2, lootSkill.tierIndex - 1) : 0;
     const dropChance = Math.min(0.98, 0.7 + ((character.seals || 0) * 0.05) + (character.dropBonus || 0) + lootBoost + bestiaryDropBonus) * getDropRateMultiplier();
 
     // Cap kills to prevent Number overflow
@@ -170,7 +168,8 @@ export const rewardSystem = {
         character.totalDrops = (character.totalDrops || 0) + safeKillsForLoot;
       });
     } else {
-      let dropCount = Math.floor(safeKillsForLoot * dropChance);
+      let baseDrops = Math.floor(safeKillsForLoot * dropChance);
+      let dropCount = baseDrops;
 
       // FIXED: death paths that grant fractional "kills" (e.g. grantRewards(enemy, 0.1))
       // would otherwise always truncate to 0 drops.
@@ -205,12 +204,8 @@ export const rewardSystem = {
    */
   batchLevelUps(): number {
     if (!character.xp.gte(character.xpNeeded)) return 0;
-    if (character.level.gte(LEVEL_WALL)) {
-      character.xp = new Decimal(0);
-      return 0;
-    }
 
-    const availableXP = new Decimal(character.xp);
+    const availableXP = character.xp;
     // Current level cost gives the geometric estimate a practical upper bound.
     const C = character.xpNeeded;
     const g = XP_COST_EXP_BASE;
@@ -232,16 +227,7 @@ export const rewardSystem = {
     if (n < 1) n = 1;
     if (n > MAX_BATCH_LEVELS) n = MAX_BATCH_LEVELS;
 
-    // Clamp to the level wall
-    const roomToWall = LEVEL_WALL.sub(character.level).toNumber();
-    if (isFinite(roomToWall) && n > roomToWall) n = Math.max(0, Math.floor(roomToWall));
-
-    if (n <= 0) {
-      character.xp = new Decimal(0); // Drain XP at wall
-      return 0;
-    }
-
-    const startLevel = new Decimal(character.level);
+    const startLevel = character.level;
     let lo = 0;
     let hi = n;
 
@@ -273,11 +259,6 @@ export const rewardSystem = {
   processLevelUps(): number {
     let levelsGainedNum = 0;
     while (character.xp.gte(character.xpNeeded) && levelsGainedNum < 10000) {
-      // Hard wall at 1ZZZ — must Overclock to continue
-      if (character.level.gte(LEVEL_WALL)) {
-        character.xp = new Decimal(0); // Drain excess XP so it doesn't pile up
-        break;
-      }
       character.xp = character.xp.sub(character.xpNeeded);
       character.level = character.level.add(1);
       updateDerivedStats(); // Updates xpNeeded and base stats for next iteration
@@ -285,7 +266,6 @@ export const rewardSystem = {
     }
 
     if (levelsGainedNum > 0) {
-      character.momentum *= 0.35;
       character.overcharge = 0;
       character.skillFragments = character.skillFragments.add(levelsGainedNum);
 

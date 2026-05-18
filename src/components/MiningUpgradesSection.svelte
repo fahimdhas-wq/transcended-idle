@@ -7,32 +7,52 @@ import { Decimal } from '../systems/decimal.js';
 import { invalidateBulkCostCache, calculateBulkCost, type CostFormula } from '../utils/bulkCost.js';
 import { maxAffordable } from '../utils/maxAffordable.js';
 import type { MiningUpgradeType } from '../modules/mining.svelte.js';
+import { onMount, untrack } from 'svelte';
 
 const buyAmount = $derived(uiStore.buyAmount);
-const dataFragments = $derived(bestiaryState.dataFragments);
 
-// Derived upgrade levels
-const sharpness = $derived(miningState.sharpness);
-const extraction = $derived(miningState.extraction);
-const discovery = $derived(miningState.discovery);
-const sensors = $derived(miningState.sensors);
-const overclockPower = $derived(miningState.overclockPower);
-const efficiency = $derived(miningState.efficiency);
-
-// Upgrade costs with derived calculations
-const costs = $derived.by(() => {
+// Upgrade costs — throttled to avoid recalculating on every tick
+function computeCosts() {
   const a = buyAmount;
-  const data = dataFragments;
+  const data = bestiaryState.dataFragments;
+  const s = miningState.sharpness;
+  const e = miningState.extraction;
+  const d = miningState.discovery;
+  const se = miningState.sensors;
+  const ef = miningState.efficiency;
 
   return {
-    sharpness:      getCost({ type: 'linear', base: 0, gain: 1000 }, sharpness, a, data),
-    extraction:     getCost({ type: 'linear', base: 0, gain: 200 }, extraction, a, data),
-    discovery:     getCost({ type: 'geometric', base: 500, multiplier: 10 }, discovery,
-                          a === 'max' ? Math.min(10 - discovery, 10) : Math.min(a as number, 10 - discovery), data),
-    sensors:        getCost({ type: 'linear', base: 2000, gain: 2000 }, sensors, a, data),
-    overclockPower: getCost({ type: 'linear', base: 2500, gain: 2500 }, overclockPower, a, data),
-    efficiency:    getCost({ type: 'linear', base: 1500, gain: 1500 }, efficiency, a, data),
+    sharpness:      getCost({ type: 'linear', base: 0, gain: 1000 }, s, a, data),
+    extraction:     getCost({ type: 'linear', base: 0, gain: 200 }, e, a, data),
+    discovery:     getCost({ type: 'geometric', base: 500, multiplier: 10 }, d,
+                          a === 'max' ? Math.min(10 - d, 10) : Math.min(a as number, 10 - d), data),
+    sensors:        getCost({ type: 'linear', base: 2000, gain: 2000 }, se, a, data),
+    efficiency:    getCost({ type: 'linear', base: 1500, gain: 1500 }, ef, a, data),
   };
+}
+
+let costs = $state(computeCosts());
+let _lastCostUpdate = 0;
+
+function refreshCosts() {
+  const now = performance.now();
+  if (now - _lastCostUpdate > 200) {
+    _lastCostUpdate = now;
+    costs = computeCosts();
+  }
+}
+
+$effect(() => {
+  buyAmount;
+  untrack(() => {
+    costs = computeCosts();
+    _lastCostUpdate = performance.now();
+  });
+});
+
+onMount(() => {
+  const id = setInterval(() => refreshCosts(), 250);
+  return () => clearInterval(id);
 });
 
 function getCost(formula: CostFormula, level: number, amount: number | 'max', budget: Decimal): { cost: Decimal, count: number } {
@@ -42,7 +62,7 @@ function getCost(formula: CostFormula, level: number, amount: number | 'max', bu
 }
 
 function fmt(v: any): string { return formatValue(v); }
-function canAfford(cost: Decimal | number): boolean { return dataFragments.gte(cost); }
+function canAfford(cost: Decimal | number): boolean { return bestiaryState.dataFragments.gte(cost); }
 
 function doBuy(type: MiningUpgradeType) {
   buyMiningUpgrade(type, buyAmount);
@@ -59,7 +79,6 @@ const UPGRADE_DEFS: Array<{ key: MiningUpgradeType; label: string; cap?: number 
   { key: 'sharpness',     label: 'Sharpness'       },
   { key: 'extraction',    label: 'Extraction'      },
   { key: 'sensors',       label: 'Sensors'         },
-  { key: 'overclockPower',label: 'OC Power'        },
   { key: 'efficiency',    label: 'Efficiency'      },
 ];
 </script>

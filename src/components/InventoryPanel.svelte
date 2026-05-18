@@ -3,6 +3,7 @@
   import { inventory } from '../modules/inventory.svelte.js';
   import { formatNumber } from '../systems/scalingSystem.js';
   import type { ItemRarity } from '../data/items.js';
+  import { onMount, untrack } from 'svelte';
 
   type SortKey = 'name' | 'rarity' | 'count';
 
@@ -38,11 +39,10 @@
       sortKey = key;
       sortAsc = (key === 'name');
     }
+    sortedItems = doSort();
   }
 
-  let totalItems = $derived(inventory.items.reduce((s, i) => s + i.count, 0));
-
-  let sortedItems = $derived.by(() => {
+  function doSort() {
     const arr = [...inventory.items];
     arr.sort((a, b) => {
       let cmp = 0;
@@ -52,6 +52,25 @@
       return sortAsc ? cmp : -cmp;
     });
     return arr;
+  }
+
+  let totalItems = $derived(inventory.items.reduce((s, i) => s + i.count, 0));
+
+  let sortedItems = $state(doSort());
+
+  // Throttled re-sort when inventory changes (not on every item update)
+  let _lastSortTime = 0;
+  function refreshSort() {
+    const now = performance.now();
+    if (now - _lastSortTime > 250) {
+      _lastSortTime = now;
+      sortedItems = doSort();
+    }
+  }
+
+  onMount(() => {
+    const id = setInterval(() => refreshSort(), 300);
+    return () => clearInterval(id);
   });
 </script>
 
