@@ -19,7 +19,6 @@ import { skillsState, upgradeAllSkills } from '../../modules/skills.svelte.js';
 import { miningState } from '../../modules/mining.svelte.js';
 import { forestryState } from '../../modules/forestry.svelte.js';
 import { bestiaryState, recordKill, updateGlobalBoost } from '../../modules/bestiary.svelte.js';
-import { matrixState } from '../../modules/matrix.svelte.js';
 import { rewardSystem } from '../../systems/rewardSystem.js';
 import { eventBus } from '../events/EventBus.js';
 import { addLog } from '../../ui/LogPanelState.svelte.js';
@@ -72,13 +71,7 @@ export type GameCommand =
   | { type: 'TOGGLE_MINING_AUTO_REFINE'; resourceId: string; enabled: boolean }
   | { type: 'TOGGLE_FORESTRY_AUTO_REFINE'; resourceId: string; enabled: boolean }
 
-  // Overclock commands
-  | { type: 'TRIGGER_MINING_OVERCLOCK' }
-  | { type: 'TRIGGER_FORESTRY_OVERCLOCK' }
-  | { type: 'DO_OVERCLOCK' }
 
-  // Matrix commands
-  | { type: 'TOGGLE_MATRIX_AUTO'; autoType: string; enabled: boolean }
 
   // Bestiary commands
   | { type: 'RECORD_KILL'; mobId: string; kills: DecimalSource }
@@ -219,24 +212,6 @@ function handleUpgradeMiningTool(): CommandResult {
   return { success: true };
 }
 
-function handleTriggerMiningOverclock(): CommandResult {
-  const cost = 25;
-  if (!miningState.resources.gte('fuelX', cost)) {
-    return { success: false, reason: 'Not enough fuelX' };
-  }
-  if (miningState.isOverclocked) {
-    return { success: false, reason: 'Already overclocked' };
-  }
-
-  miningState.resources.sub('fuelX', cost);
-  miningState.isOverclocked = true;
-  miningState.overclockTicks = 600;
-
-  eventBus.emit({ type: 'OVERCLOCK_TRIGGERED', system: 'mining' });
-  addLog('[MINING] Overclock active!', 'system');
-  return { success: true };
-}
-
 function handleAddMiningResource(resourceId: string, amount: number): CommandResult {
   if (amount <= 0) return { success: false, reason: 'Invalid amount' };
   miningState.resources.add(resourceId, amount);
@@ -372,9 +347,6 @@ class CommandDispatcher {
       case 'UPGRADE_MINING_TOOL':
         return handleUpgradeMiningTool();
 
-      case 'TRIGGER_MINING_OVERCLOCK':
-        return handleTriggerMiningOverclock();
-
       case 'TOGGLE_MINING_AUTO_REFINE':
         miningState.autoRefine[command.resourceId] = command.enabled;
         return { success: true };
@@ -387,9 +359,6 @@ class CommandDispatcher {
         return { success: true }; // TODO: implement
 
       case 'UPGRADE_FORESTRY_TOOL':
-        return { success: true }; // TODO: implement
-
-      case 'TRIGGER_FORESTRY_OVERCLOCK':
         return { success: true }; // TODO: implement
 
       case 'TOGGLE_FORESTRY_AUTO_REFINE':
@@ -426,11 +395,6 @@ class CommandDispatcher {
 
       case 'UPGRADE_MINING_ENERGY':
         // TODO: implement upgradeEnergy
-        return { success: true };
-
-      // Matrix
-      case 'TOGGLE_MATRIX_AUTO':
-        (matrixState as any)[command.autoType] = command.enabled;
         return { success: true };
 
       // Bestiary
@@ -480,8 +444,6 @@ function getMiningUpgradeFormula(type: string): CostFormula | null {
       return { type: 'geometric', base: 500, multiplier: 10 };
     case 'sensors':
       return { type: 'linear', base: 2000, gain: 2000 };
-    case 'overclockPower':
-      return { type: 'linear', base: 2500, gain: 2500 };
     case 'efficiency':
       return { type: 'linear', base: 1500, gain: 1500 };
     default:

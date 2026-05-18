@@ -1,7 +1,6 @@
 
 import { character } from './character.svelte.js';
 import { Decimal } from '../systems/decimal.js';
-import { flushStatCache } from './combat.svelte.js';
 
 export interface Skill {
   id: string;
@@ -183,6 +182,11 @@ export const SKILL_BASE_COSTS: Record<string, number> = {
   omni_stat:     500
 };
 
+let _flushCache: (() => void) | null = null;
+export function setFlushCacheCallback(cb: () => void): void {
+  _flushCache = cb;
+}
+
 export function getOmniMult(): Decimal {
   const omniSkill = skillsState.skills.find(s => s.id === 'omni_stat');
   if (omniSkill && omniSkill.tierIndex > 0) {
@@ -204,7 +208,7 @@ export function upgradeAllSkills(): string {
   });
   // Only flush cache and trigger UI update once at the end
   if (totalUpgrades > 0) {
-    flushStatCache();
+    if (_flushCache) _flushCache();
   }
   return `System Overhaul: ${totalUpgrades} skill tiers purchased using available fragments.`;
 }

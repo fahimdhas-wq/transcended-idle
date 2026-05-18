@@ -25,12 +25,15 @@ export function getSpeciesDamageBonus(mobId: string): number {
   const entry = bestiaryState.entries[mobId];
   if (!entry) return 1;
 
+  const kills = typeof entry.kills === 'number' ? new Decimal(entry.kills) : entry.kills;
+  if (!(kills instanceof Decimal)) return 1;
+
   let bonus = 1;
-  if (entry.kills.gte(10)) bonus += 0.1;
-  if (entry.kills.gte(100)) bonus += 0.2;
-  if (entry.kills.gte(500)) bonus += 0.5;
-  if (entry.kills.gte(1000)) bonus += 1.0;
-  if (entry.kills.gte(5000)) bonus += 2.0;
+  if (kills.gte(10)) bonus += 0.1;
+  if (kills.gte(100)) bonus += 0.2;
+  if (kills.gte(500)) bonus += 0.5;
+  if (kills.gte(1000)) bonus += 1.0;
+  if (kills.gte(5000)) bonus += 2.0;
   return bonus;
 }
 
@@ -55,10 +58,13 @@ function getTypedMilestoneBonus(type: MobType): number {
     const mobType = mobTypeMap[entry.id];
     if (!mobType || mobType !== type) continue;
     
+    const kills = typeof entry.kills === 'number' ? new Decimal(entry.kills) : entry.kills;
+    if (!(kills instanceof Decimal)) continue;
+    
     count++;
     let bonus = 0;
-    if (entry.kills.gte(100)) bonus += 0.25;
-    if (entry.kills.gte(1000)) bonus += 0.75;
+    if (kills.gte(100)) bonus += 0.25;
+    if (kills.gte(1000)) bonus += 0.75;
     totalBonus += bonus;
   }
 

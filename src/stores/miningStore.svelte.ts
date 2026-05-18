@@ -30,15 +30,12 @@ interface MiningSnapshot {
   miningProgress: number;
   minesPerSecond: number;
   dataRate: number;
-  isOverclocked: boolean;
-  overclockTicks: number;
 
   // Upgrade levels
   sharpness: number;
   extraction: number;
   discovery: number;
   sensors: number;
-  overclockPower: number;
   efficiency: number;
 
   // Automation
@@ -55,13 +52,10 @@ let miningSnapshot = $state<MiningSnapshot>({
   miningProgress: 0,
   minesPerSecond: 0,
   dataRate: 0,
-  isOverclocked: false,
-  overclockTicks: 0,
   sharpness: 0,
   extraction: 0,
   discovery: 0,
   sensors: 0,
-  overclockPower: 0,
   efficiency: 0,
   drones: 0,
   autoExtractors: 0,
@@ -83,13 +77,10 @@ snapshotManager.register({
     miningProgress: miningState.miningProgress,
     minesPerSecond: miningState.minesPerSecond,
     dataRate: miningState.dataRate,
-    isOverclocked: miningState.isOverclocked,
-    overclockTicks: miningState.overclockTicks,
     sharpness: miningState.sharpness,
     extraction: miningState.extraction,
     discovery: miningState.discovery,
     sensors: miningState.sensors,
-    overclockPower: miningState.overclockPower,
     efficiency: miningState.efficiency,
     drones: miningState.drones,
     autoExtractors: miningState.autoExtractors,
@@ -128,10 +119,6 @@ export const miningStore = {
 
   upgradeTool(): void {
     dispatch({ type: 'UPGRADE_MINING_TOOL' } as GameCommand);
-  },
-
-  triggerOverclock(): void {
-    dispatch({ type: 'TRIGGER_MINING_OVERCLOCK' } as GameCommand);
   },
 
   upgradeEnergy(amount: number | 'max' = 1): void {

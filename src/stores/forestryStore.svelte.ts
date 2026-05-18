@@ -24,15 +24,12 @@ interface ForestrySnapshot {
   growthProgress: number;
   harvestRate: number;
   dnaRate: number;
-  isOverclocked: boolean;
-  overclockTicks: number;
 
   // Upgrade levels
   chainsawFuel: number;
   reforestation: number;
   ancientSaplings: number;
   mutationPower: number;
-  overclockPower: number;
   efficiency: number;
 
   // Automation
@@ -49,13 +46,10 @@ let forestrySnapshot = $state<ForestrySnapshot>({
   growthProgress: 0,
   harvestRate: 0,
   dnaRate: 0,
-  isOverclocked: false,
-  overclockTicks: 0,
   chainsawFuel: 0,
   reforestation: 0,
   ancientSaplings: 0,
   mutationPower: 0,
-  overclockPower: 0,
   efficiency: 0,
   growthChambers: 1,
   mutationChance: 0.05,
@@ -77,13 +71,10 @@ snapshotManager.register({
     growthProgress: forestryState.growthProgress,
     harvestRate: forestryState.harvestRate,
     dnaRate: forestryState.dnaRate,
-    isOverclocked: forestryState.isOverclocked,
-    overclockTicks: forestryState.overclockTicks,
     chainsawFuel: forestryState.chainsawFuel,
     reforestation: forestryState.reforestation,
     ancientSaplings: forestryState.ancientSaplings,
     mutationPower: forestryState.mutationPower,
-    overclockPower: forestryState.overclockPower,
     efficiency: forestryState.efficiency,
     growthChambers: forestryState.growthChambers,
     mutationChance: forestryState.mutationChance,
@@ -120,10 +111,6 @@ export const forestryStore = {
 
   upgradeTool(): void {
     dispatch({ type: 'UPGRADE_FORESTRY_TOOL' } as GameCommand);
-  },
-
-  triggerOverclock(): void {
-    dispatch({ type: 'TRIGGER_FORESTRY_OVERCLOCK' } as GameCommand);
   },
 
   upgradeEnergy(amount: number | 'max' = 1): void {

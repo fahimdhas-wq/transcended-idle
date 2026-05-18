@@ -50,7 +50,6 @@ export type GameEvent =
   | { type: 'MINING_UPGRADED'; upgradeType: string; count: number }
   | { type: 'FORESTRY_UPGRADED'; upgradeType: string; count: number }
   | { type: 'TOOL_UPGRADED'; system: 'mining' | 'forestry'; newTier: number }
-  | { type: 'OVERCLOCK_TRIGGERED'; system: 'mining' | 'forestry' }
   | { type: 'OVERCLOCK_ENDED'; system: 'mining' | 'forestry' }
   // Combat automation events
   | { type: 'BESTIARY_ENTRY_KILLED'; mobId: string; kills: DecimalSource }

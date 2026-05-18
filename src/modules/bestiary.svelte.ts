@@ -84,6 +84,9 @@ export function recordKill(mob: MobDefinition, count: DecimalSource = 1): void {
   }
 
   const entry = bestiaryState.entries[mob.id];
+  if (!(entry.kills instanceof Decimal)) {
+    entry.kills = new Decimal(entry.kills || 0);
+  }
   const countDec = new Decimal(count);
   const oldTotal = bestiaryState.totalKills;
 
@@ -170,8 +173,10 @@ export function buyBestiaryUpgrade(type: BestiaryUpgradeType, amount: number | '
 export function updateGlobalBoost(): void {
   let boost = 0;
   Object.values(bestiaryState.entries).forEach(e => {
-    if (e.kills.gte(BESTIARY_CONSTANTS.STAGE_THRESHOLDS.KNOWN)) boost += 0.02;
-    if (e.kills.gte(BESTIARY_CONSTANTS.STAGE_THRESHOLDS.MASTERED)) boost += 0.10;
+    const kills = typeof e.kills === 'number' ? new Decimal(e.kills) : e.kills;
+    if (!(kills instanceof Decimal)) return;
+    if (kills.gte(BESTIARY_CONSTANTS.STAGE_THRESHOLDS.KNOWN)) boost += 0.02;
+    if (kills.gte(BESTIARY_CONSTANTS.STAGE_THRESHOLDS.MASTERED)) boost += 0.10;
   });
   bestiaryState.cachedBoost = boost;
 }

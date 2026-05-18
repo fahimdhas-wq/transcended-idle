@@ -13,7 +13,12 @@ export type ChallengeType =
   | 'crit_storm'
   | 'speed_demon'
   | 'resource_hunter'
-  | 'killstreak';
+  | 'killstreak'
+  | 'boss_killer'
+  | 'ascension_farmer'
+  | 'skill_master'
+  | 'gear_collector'
+  | 'no_damage';
 
 export interface ChallengeReward {
   shards: number;
@@ -122,6 +127,51 @@ export const challengeDefinitions: Record<ChallengeType, Omit<ChallengeDef, 'che
     multiplier: 1.5,
     target: 1000,
     reward: { shards: 35, badge: 'Murderer' }
+  },
+  boss_killer: {
+    id: 'boss_killer',
+    name: 'Boss Hunter',
+    description: 'Slay 10 formidable bosses',
+    icon: '👹',
+    multiplier: 2.0,
+    target: 10,
+    reward: { shards: 50, badge: 'Boss Hunter' }
+  },
+  ascension_farmer: {
+    id: 'ascension_farmer',
+    name: 'Shard Collector',
+    description: 'Earn 100,000 ascension shards',
+    icon: '💠',
+    multiplier: 1.5,
+    target: 100000,
+    reward: { shards: 60, badge: 'Shard Lord' }
+  },
+  skill_master: {
+    id: 'skill_master',
+    name: 'Skill Surge',
+    description: 'Upgrade 20 skill tiers',
+    icon: '🔧',
+    multiplier: 2.0,
+    target: 20,
+    reward: { shards: 45, badge: 'Skill Surgeon' }
+  },
+  gear_collector: {
+    id: 'gear_collector',
+    name: 'Gear Hoarder',
+    description: 'Collect 500 equipment pieces',
+    icon: '⚙️',
+    multiplier: 1.5,
+    target: 500,
+    reward: { shards: 40, badge: 'Gear Hoarder' }
+  },
+  no_damage: {
+    id: 'no_damage',
+    name: 'Flawless',
+    description: 'Win 100 fights without losing HP',
+    icon: '🛡️',
+    multiplier: 2.0,
+    target: 100,
+    reward: { shards: 55, badge: 'Flawless' }
   }
 };
 

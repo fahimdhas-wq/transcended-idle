@@ -18,8 +18,12 @@ import { getSpeciesDropBonus, getQuality } from '../modules/bestiaryBonuses.js';
 import { formatNumber } from '../systems/scalingSystem.js';
 import { Decimal, type DecimalSource } from '../systems/decimal.js';
 import { getEffectiveCombatStats } from '../modules/combat.svelte.js';
+import { addAscensionShards } from '../modules/ascension.svelte.js';
 import type { Enemy } from './aiSystem.js';
 import { getXpMultiplier, getFragmentMultiplier, getDropRateMultiplier, trackFragments } from '../modules/dailyChallenge.svelte.js';
+import { getRiftTotalBonus } from '../modules/rift.svelte.js';
+import { getParadoxXpMult } from '../modules/paradox.svelte.js';
+import { getBoostXpMult } from '../modules/activePlay.svelte.js';
 
 const MAX_BATCH_LEVELS = 100000;
 const EXACT_BATCH_SUM_LIMIT = 256;
@@ -100,6 +104,7 @@ export const rewardSystem = {
     const totalKills = killsInThisEvent.mul(multiplier);
     character.kills = character.kills.add(totalKills);
     recordKill(enemy, totalKills);
+    addAscensionShards(enemy.level, totalKills);
 
     incrementKills(totalKills.toNumber());
 
@@ -117,7 +122,7 @@ export const rewardSystem = {
     
     const baseExp = Decimal.TEN.mul(enemyLvl.pow(1.5));
     
-    let xpGain = baseExp.mul(totalKills).mul(xpMult).mul(sealMult).mul(omni).mul(getXpMultiplier());
+    let xpGain = baseExp.mul(totalKills).mul(xpMult).mul(sealMult).mul(omni).mul(getXpMultiplier()).mul(1 + getRiftTotalBonus('xp')).mul(getParadoxXpMult()).mul(getBoostXpMult());
     
     if (!character.totalXp || character.totalXp.m === 0) {
       character.totalXp = character.xp; // Fallback, totalXp is deprecated

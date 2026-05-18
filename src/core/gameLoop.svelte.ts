@@ -1,7 +1,7 @@
 
 import { character, safeKills, applyMomentumSoftcap, applyOverchargeSoftcap, updateDerivedStats } from '../modules/character.svelte.js';
+import { getAscensionBonus } from '../modules/ascension.svelte.js';
 import { performCombatTick, combatState, getEffectiveCombatStats, flushStatCache } from '../modules/combat.svelte.js';
-import { getSpeciesDamageBonus } from '../modules/bestiaryBonuses.js';
 import { getOmniMult, upgradeAllSkills } from '../modules/skills.svelte.js';
 import { saveSystem } from './saveSystem.js';
 import { checkAchievements } from '../systems/achievementSystem.svelte.js';
@@ -13,13 +13,14 @@ import { bestiaryState } from '../modules/bestiary.svelte.js';
 import { forestryState } from '../modules/forestry.svelte.js';
 import { miningResources } from '../modules/miningResources.js';
 import { forestryResources } from '../modules/forestryResources.js';
-import { aiSystem } from '../systems/aiSystem.js';
 import { rewardSystem } from '../systems/rewardSystem.js';
 import { Decimal } from '../systems/decimal.js';
 import { showOfflineSummary } from '../stores/uiStore.svelte.js';
 import { addLog } from '../ui/LogPanelState.svelte.js';
 import { gameConfig } from '../data/config.js';
-import { mobs } from '../data/mobs.js';
+import { processOfflineProgress as precisionOfflineProcess } from './offlineEngine.svelte.js';
+import { tickParadox } from '../modules/paradox.svelte.js';
+import { tickActivePlay } from '../modules/activePlay.svelte.js';
 import {
   checkAndRotateChallenge,
   checkRotationTick,
@@ -67,162 +68,7 @@ let tickIntervalId: ReturnType<typeof setInterval> | null = null;
 
 export { getTotalTicks };
 
-/**
- * Core Offline Projection Engine
- * Calculates progress using pure math instead of loops.
- */
-function processOfflineCombat(ticks: number): void {
-  let stats = getEffectiveCombatStats();
-  let remaining = ticks;
-
-  // Baseline regen for the full duration
-  character.stats.hp = character.stats.hp.add(stats.regenHp.mul(remaining));
-  character.stats.defense = character.stats.defense.add(stats.regenDef.mul(remaining));
-  if (character.stats.hp.gt(stats.hp)) character.stats.hp = stats.hp;
-  if (character.stats.defense.gt(stats.def)) character.stats.defense = stats.def;
-
-  // Crit tracking for daily challenges (expected over full duration)
-  const expectedCrits = remaining * stats.critChance;
-  if (expectedCrits >= 1) {
-    for (let i = 0; i < Math.floor(expectedCrits); i++) {
-      combatState.lastHitCrit = true;
-    }
-  }
-
-  // Combat loop — cycles through random enemies like live combat
-  let safety = 0;
-  while (remaining > 0.5 && safety < 10000) {
-    safety++;
-
-    const enemyLvl = character.level.add(Math.floor(Math.random() * 3) - 1).max(1);
-    const mobData = mobs[Math.floor(Math.random() * mobs.length)];
-    const speciesBonus = getSpeciesDamageBonus(mobData.id);
-    const dmg = stats.atk.mul(speciesBonus);
-
-    if (dmg.lte(0)) break;
-
-    const growth = Decimal.GROWTH_BASE.pow(enemyLvl.sub(1).max(0));
-    const enemyHp = Decimal.FIFTY.mul(growth);
-    const enemyAtk = Decimal.FIVE.mul(growth);
-
-    const ticksToKill = Math.max(1, enemyHp.div(dmg).toNumber());
-    const killsHere = Math.floor(remaining / ticksToKill);
-    if (killsHere <= 0) break;
-
-    const timeSpent = killsHere * ticksToKill;
-
-    rewardSystem.grantRewards({
-      id: mobData.id, name: mobData.name, type: mobData.type,
-      level: enemyLvl, maxHp: enemyHp, hp: enemyHp,
-      attack: enemyAtk
-    }, new Decimal(killsHere));
-
-    combatState.kills += killsHere;
-    remaining -= timeSpent;
-
-    // Refresh stats if levels were gained so combat scales correctly mid-session
-    stats = getEffectiveCombatStats();
-  }
-
-  // Final regen catch-up
-  if (remaining > 0) {
-    character.stats.hp = character.stats.hp.add(stats.regenHp.mul(remaining));
-    character.stats.defense = character.stats.defense.add(stats.regenDef.mul(remaining));
-    if (character.stats.hp.gt(stats.hp)) character.stats.hp = stats.hp;
-    if (character.stats.defense.gt(stats.def)) character.stats.defense = stats.def;
-  }
-}
-
-export function processOfflineProgress(ms: number): void {
-  if (ms < 1000) return;
-
-  flushStatCache();
-  updateDerivedStats();
-
-  const MONTH_IN_SECONDS = 30 * 24 * 3600;
-  const tickRateVal = tickRate / 1000;
-  const totalSeconds = Math.min(ms / 1000, MONTH_IN_SECONDS);
-  const efficiency = character.offlineSettings.efficiency;
-  const effectiveTime = totalSeconds * efficiency;
-  const ticks = effectiveTime / tickRateVal;
-
-  const preLevel = new Decimal(character.level);
-  const preKills = new Decimal(character.kills);
-  const preXp = new Decimal(character.totalXp);
-  const preFrags = new Decimal(character.skillFragments);
-  const preData = new Decimal(bestiaryState.dataFragments);
-  const preDna = new Decimal(forestryState.dnaFragments);
-
-  const preMiningBuf = Float64Array.from(miningResources.array.getBuffer());
-  const preForestryBuf = Float64Array.from(forestryResources.array.getBuffer());
-
-  // Combat — uses full live logic: species bonus, enemy cycling, regen, god mode
-  processOfflineCombat(ticks);
-  flushInventoryUpdates();
-
-  // Process daily challenge kills from combatState
-  const combatKills = combatState.kills;
-  if (combatKills > 0) {
-    for (let i = 0; i < combatKills; i++) {
-      trackKill();
-    }
-    combatState.kills = 0;
-  }
-  if (combatState.lastHitCrit) {
-    trackCrit();
-    combatState.lastHitCrit = false;
-  }
-
-  // Mining & Forestry (same as live)
-  performMiningTick(ticks);
-  performForestryTick(ticks);
-
-  const killsNum = character.kills.sub(preKills).toNumber();
-  character.momentum = applyMomentumSoftcap(character.momentum + (0.01 + (killsNum * 0.0001)) * ticks);
-
-  if (character.xp.gte(character.xpNeeded)) {
-    character.overcharge = applyOverchargeSoftcap(character.overcharge + (0.05 * ticks));
-  }
-
-  // Level ups — no cap (process all pending)
-  let batchPasses = 0;
-  while (character.xp.gte(character.xpNeeded) && batchPasses++ < 200) {
-    rewardSystem.batchLevelUps();
-  }
-
-  updateDerivedStats();
-
-  character.offlineSettings.lastSummary = {
-    seconds: totalSeconds,
-    levels: character.level.sub(preLevel),
-    kills: character.kills.sub(preKills),
-    efficiency: efficiency * 100
-  };
-
-  if (totalSeconds > 60) {
-    const postMiningBuf = miningResources.array.getBuffer();
-    const postForestryBuf = forestryResources.array.getBuffer();
-    let miningSum = 0;
-    for (let i = 0; i < postMiningBuf.length; i++) miningSum += postMiningBuf[i] - preMiningBuf[i];
-    let forestrySum = 0;
-    for (let i = 0; i < postForestryBuf.length; i++) forestrySum += postForestryBuf[i] - preForestryBuf[i];
-
-    showOfflineSummary({
-      seconds: totalSeconds,
-      kills: character.kills.sub(preKills),
-      levels: character.level.sub(preLevel),
-      efficiency: efficiency,
-      xpGained: character.totalXp.sub(preXp),
-      fragmentsGained: character.skillFragments.sub(preFrags),
-      dataFragments: bestiaryState.dataFragments.sub(preData),
-      dnaFragments: forestryState.dnaFragments.sub(preDna),
-      miningGained: new Decimal(miningSum),
-      forestryGained: new Decimal(forestrySum)
-    });
-  }
-
-  console.log(`[OFFLINE] Processed ${totalSeconds.toFixed(1)}s — Level: ${character.level.toString()}, Kills: ${character.kills.toString()}`);
-}
+export { precisionOfflineProcess };
 
 /**
  * Tab Visibility Handler
@@ -239,7 +85,7 @@ if (typeof document !== 'undefined') {
     } else {
       const elapsed = performance.now() - hiddenTime;
       const doProcess = () => {
-        processOfflineProgress(elapsed);
+        precisionOfflineProcess(elapsed);
         lastTick = performance.now();
         accumulatedTime = 0;
         if (tickIntervalId === null) {
@@ -304,11 +150,12 @@ export function gameTick(): void {
     const dNum = ticksToProcess;
     
     // ---- Momentum (float) ----
-    character.momentum += 0.01 * dNum;
+    const ascMomentum = 1 + getAscensionBonus('momentum');
+    character.momentum += 0.01 * dNum * ascMomentum;
     
     if (character.kills.gt(0)) {
       const k = safeKills();
-      character.momentum += k * 0.0001 * dNum;
+      character.momentum += k * 0.0001 * dNum * ascMomentum;
     }
     character.momentum = applyMomentumSoftcap(character.momentum);
 
@@ -351,6 +198,10 @@ export function gameTick(): void {
     performMiningTick(ticksToProcess);
     performForestryTick(ticksToProcess);
 
+    // Paradox & Active Play ticks
+    tickParadox(ticksToProcess);
+    tickActivePlay(ticksToProcess);
+
     if (achCheckCounter >= 50) {
       achCheckCounter = 0;
       checkAchievements();
@@ -378,7 +229,7 @@ export function skipTime(days: number = 1): string {
 
   const BATCH_MS = Math.min(days, 30) * 24 * 3600 * 1000;
 
-  processOfflineProgress(BATCH_MS);
+  precisionOfflineProcess(BATCH_MS);
 
   dailyChallengeState.consecutiveDays = Math.min(dailyChallengeState.consecutiveDays + Math.min(days, 10000), 9999);
   if (dailyChallengeState.consecutiveDays > dailyChallengeState.bestStreak) {
@@ -412,7 +263,7 @@ export function startGameLoop(): void {
   // Update total playtime tracking
   let lastSave = 0;
   try {
-    const saveData = localStorage.getItem('cyber_idle_save_v3');
+    const saveData = localStorage.getItem(saveSystem.getSlotStorageKey());
     if (saveData) {
       const parsed = JSON.parse(saveData);
       lastSave = parsed.character?.totalPlayTime || 0;
@@ -487,7 +338,7 @@ export function startGameLoop(): void {
       updateDerivedStats();
 
       const ms = Math.min(days, 30) * 24 * 3600 * 1000;
-      processOfflineProgress(ms);
+      precisionOfflineProcess(ms);
 
       return `[DEV] Simulated ${days}d. Level: ${character.level} Kills: ${character.kills} Fragments: ${character.skillFragments}`;
     };

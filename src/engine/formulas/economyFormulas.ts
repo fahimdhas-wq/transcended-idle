@@ -168,8 +168,6 @@ export interface GatheringConfig {
   yieldBaseExponent: number;
   automationBonus: number;
   automationRegen: number;
-  overclockBaseMult: number;
-  overclockPowerBonus: number;
   baseRegenRate: number;
 }
 
@@ -187,8 +185,6 @@ export const DEFAULT_GATHERING_CONFIG: GatheringConfig = {
   yieldBaseExponent: 0,
   automationBonus: 0.1,
   automationRegen: 0.01,
-  overclockBaseMult: 2,
-  overclockPowerBonus: 0.5,
   baseRegenRate: 0.001
 };
 
@@ -205,13 +201,6 @@ export function calculateGatheringSpeed(
   const upgradeMult = (upgradeLevel1 + 1) * (upgradeLevel2 + 1);
 
   return baseRate * automationMult * toolSpeed * upgradeMult * bestiaryBonus * 2 * challengeBonus;
-}
-
-export function calculateOverclockMultiplier(
-  overclockLevel: number
-): number {
-  return DEFAULT_GATHERING_CONFIG.overclockBaseMult +
-         (overclockLevel + 1) * DEFAULT_GATHERING_CONFIG.overclockPowerBonus;
 }
 
 export function calculateEnergyCost(

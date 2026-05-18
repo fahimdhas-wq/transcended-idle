@@ -23,7 +23,7 @@
   function exportGame(): void {
     try {
       saveSystem.save();
-      const raw = localStorage.getItem('cyber_idle_save_v3');
+      const raw = localStorage.getItem(saveSystem.getSlotStorageKey());
       if (raw) {
         exportedStr = btoa(encodeURIComponent(raw).replace(/%([0-9A-F]{2})/g, (_match: string, p1: string) => {
           return String.fromCharCode(parseInt(p1, 16));
@@ -54,7 +54,7 @@
         return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
       }).join(''));
       JSON.parse(decoded);
-      localStorage.setItem('cyber_idle_save_v3', decoded);
+      localStorage.setItem(saveSystem.getSlotStorageKey(), decoded);
       addLog('[SYSTEM] Save imported! Reloading...', 'system');
       setTimeout(() => location.reload(), 1000);
     } catch (e) {

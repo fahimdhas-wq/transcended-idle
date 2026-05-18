@@ -62,6 +62,7 @@ class EngineBridge {
 
     try {
       // Use @vite-ignore to allow dynamic import that may not exist at build time
+      // @ts-expect-error - wasmStub may not exist in all environments
       const module = await import('./wasmStub.js');
       await module.default();
       this.wasm = module as unknown as WasmModule;

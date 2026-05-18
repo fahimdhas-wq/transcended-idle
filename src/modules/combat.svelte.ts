@@ -1,9 +1,14 @@
 
 import { character } from './character.svelte.js';
+import { getAscensionBonus, getAllStatsBonus } from './ascension.svelte.js';
+import { getRiftTotalBonus } from './rift.svelte.js';
+import { getParadoxAtkMult, getParadoxHpMult, getParadoxAllStatsBonus } from './paradox.svelte.js';
+import { getPowerAtkMult } from './activePlay.svelte.js';
+import { generateProceduralEnemy, recordProceduralKill } from './procedural.svelte.js';
 import { aiSystem } from '../systems/aiSystem.js';
 import { rewardSystem } from '../systems/rewardSystem.js';
 import { addLog } from '../ui/LogPanelState.svelte.js';
-import { skillsState, getOmniMult } from './skills.svelte.js';
+import { skillsState, getOmniMult, setFlushCacheCallback } from './skills.svelte.js';
 import { 
   getSpeciesDamageBonus, 
   getGlobalStatBoost, 
@@ -42,7 +47,20 @@ export const combatState: CombatState = $state({
   lastHitCrit: false
 });
 
+// Register callback to break circular dep: skills → combat → skills
+setFlushCacheCallback(flushStatCache);
+
 export function spawnEnemy(): void {
+  const procedural = Math.random() < 0.1;
+  if (procedural) {
+    const procEnemy = generateProceduralEnemy(character.level);
+    if (procEnemy) {
+      combatState.enemy = procEnemy;
+      combatState.isFighting = true;
+      combatState.combatStartTick = getTotalTicks();
+      return;
+    }
+  }
   combatState.enemy = aiSystem.generateEnemy(character);
   combatState.isFighting = true;
   combatState.combatStartTick = getTotalTicks();
@@ -82,15 +100,37 @@ export function getEffectiveCombatStats(): CombatStats {
   const hpMult  = baseMult.mul(getAchievementMult('hp'));
   const regMult = baseMult.mul(getAchievementMult('regen'));
 
+  // Ascension stat bonuses
+  const paradoxAll = getParadoxAllStatsBonus();
+  const ascAll = getAllStatsBonus() + paradoxAll;
+  const ascAtk = getAscensionBonus('atk') + ascAll;
+  const ascHp = getAscensionBonus('hp') + ascAll;
+  const ascDef = getAscensionBonus('def') + ascAll;
+  const ascCrit = getAscensionBonus('critChance');
+  const ascCritDmg = getAscensionBonus('critDmg');
+
+  // Rift bonuses
+  const riftAll = getRiftTotalBonus('allStats');
+  const riftAtk = getRiftTotalBonus('atk');
+  const riftHp = getRiftTotalBonus('hp');
+  const riftCritDmg = getRiftTotalBonus('critDmg');
+
+  // Paradox bonuses
+  const paradoxAtk = getParadoxAtkMult();
+  const paradoxHp = getParadoxHpMult();
+
+  // Active Play bonus
+  const powerAtk = getPowerAtkMult();
+
   // Core Stats
-  let finalAtk = character.stats.attack.mul(atkMult);
-  let finalMaxHp = character.stats.maxHp.mul(hpMult);
-  let finalMaxDef = character.stats.maxDefense.mul(hpMult);
+  let finalAtk = character.stats.attack.mul(atkMult).mul(1 + ascAtk + riftAll + riftAtk).mul(paradoxAtk).mul(powerAtk);
+  let finalMaxHp = character.stats.maxHp.mul(hpMult).mul(1 + ascHp + riftAll + riftHp).mul(paradoxHp);
+  let finalMaxDef = character.stats.maxDefense.mul(hpMult).mul(1 + ascDef + riftAll);
   let finalRegHp = character.stats.regenHp.mul(regMult);
   let finalRegDef = character.stats.regenDef.mul(regMult);
 
-  let finalCritChance = Math.min(1.0, (character.stats.critChance || 0) + getAchievementCritBonus());
-  let finalCritMult = Decimal.TWO; // Base 2x
+  let finalCritChance = Math.min(1.0, (character.stats.critChance || 0) + getAchievementCritBonus() + ascCrit);
+  let finalCritMult = Decimal.TWO.mul(1 + ascCritDmg + riftCritDmg); // Base 2x × ascension + rift crit damage
   let finalSkipChance = Math.min(1.0, character.stats.skipDamageChance || 0);
 
   // Skill Stat Conversions (Converting "on-use" to "per-tick")
@@ -213,6 +253,7 @@ export function performCombatTick(ticks: number = 1): void {
           if (character.stats.defense.gt(stats.def)) character.stats.defense = stats.def;
 
           rewardSystem.grantRewards(enemy, Decimal.from(possibleKills));
+          if (enemy.id.startsWith('proc_')) recordProceduralKill();
           combatState.kills += possibleKills;
 
           // FIXED: carry over remaining ticks instead of discarding
@@ -245,6 +286,7 @@ export function performCombatTick(ticks: number = 1): void {
 
     if (enemy.hp.lte(0)) {
       rewardSystem.grantRewards(enemy);
+      if (enemy.id.startsWith('proc_')) recordProceduralKill();
       combatState.kills += 1;
       combatState.isFighting = false;
       combatState.enemy = null;
@@ -268,6 +310,7 @@ export function performCombatTick(ticks: number = 1): void {
         character.vergeCount++;
         addLog(`[SURGE] Defeated! Gained partial XP...`, 'awakening');
         rewardSystem.grantRewards(enemy, 0.1);
+        if (enemy.id.startsWith('proc_')) recordProceduralKill();
         combatState.isFighting = false;
         combatState.enemy = null;
       }

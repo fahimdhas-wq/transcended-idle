@@ -52,9 +52,10 @@ import { forestryState } from '../modules/forestry.svelte.js';
 import { saveSystem } from '../core/saveSystem.js';
 import { gameConfig } from '../data/config.js';
 import { autoUpgradeMining, autoUpgradeForestry, autoUpgradeBestiary } from '../utils/globalMaxUpgrade.js';
-import { matrixState } from '../modules/matrix.svelte.js';
-import { doOverclock, LEVEL_REQ } from '../modules/overclock.svelte.js';
 import { bestiaryState } from '../modules/bestiary.svelte.js';
+import { checkWeeklyRotation } from '../modules/dailyChallenge.svelte.js';
+import { tickActivePlay } from '../modules/activePlay.svelte.js';
+import { tickParadox } from '../modules/paradox.svelte.js';
 import { Decimal } from '../systems/decimal.js';
 
 // ============================================================
@@ -108,6 +109,7 @@ export class GameEngine {
 
     // Initialize daily challenge
     checkAndRotateChallenge();
+    checkWeeklyRotation();
 
     // Initialize login tracking
     const now = Date.now();
@@ -173,19 +175,15 @@ export class GameEngine {
     performForestryTick(ticks);
 
     // ---- Automation ----
-    if (matrixState.autoSkill) {
-      // upgradeAllSkills(); // Can be expensive, throttled elsewhere
-    }
-    if (matrixState.autoMining) autoUpgradeMining();
-    if (matrixState.autoForestry) autoUpgradeForestry();
-    if (matrixState.autoBestiary) autoUpgradeBestiary();
+    autoUpgradeMining();
+    autoUpgradeForestry();
+    autoUpgradeBestiary();
 
-    if (matrixState.autoOverclock) {
-      const target = new Decimal(matrixState.targetOverclockLevel);
-      if (target.gte(LEVEL_REQ) && character.level.gte(target)) {
-        doOverclock();
-      }
-    }
+    // ---- Paradox ----
+    tickParadox(ticks);
+
+    // ---- Active Play ----
+    tickActivePlay(ticks);
 
     // ---- Throttled checks ----
     const tickCount = scheduler.getTickCount();
@@ -223,8 +221,6 @@ export class GameEngine {
         miningProgress: 0,
         minesPerSecond: 0,
         dataRate: 0,
-        isOverclocked: false,
-        overclockTicks: 0
       })
     });
 
@@ -238,9 +234,7 @@ export class GameEngine {
         maxEnergy: 100,
         growthProgress: 0,
         harvestRate: 0,
-        dnaRate: 0,
-        isOverclocked: false,
-        overclockTicks: 0
+        dnaRate: 0
       })
     });
 

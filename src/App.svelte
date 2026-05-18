@@ -12,13 +12,23 @@
   import AchievementsPanel from './components/AchievementsPanel.svelte';
   import SystemPanel       from './components/SystemPanel.svelte';
   import CharacterPanel    from './components/CharacterPanel.svelte';
+  import AscensionPanel    from './components/AscensionPanel.svelte';
+  import FracturePanel     from './components/FracturePanel.svelte';
+  import RiftPanel          from './components/RiftPanel.svelte';
+  import ParadoxPanel       from './components/ParadoxPanel.svelte';
+  import ActivePlayPanel    from './components/ActivePlayPanel.svelte';
+  import ProceduralPanel    from './components/ProceduralPanel.svelte';
   import ToastNotification from './components/ToastNotification.svelte';
   import OfflineModal      from './components/OfflineModal.svelte';
+  import MainMenu          from './components/MainMenu.svelte';
   import { startGameLoop } from './core/gameLoop.svelte.js';
   import { character }     from './modules/character.svelte.js';
+  import { getTier }       from './modules/ascension.svelte.js';
+  import { saveSystem } from './core/saveSystem.js';
+  import { loadSettings, applyTheme, setAnimations, settingsState as settings } from './modules/settings.svelte.js';
   import DailyChallenge    from './components/DailyChallenge.svelte';
 
-  const allTabs = ['COMBAT', 'CHARACTER', 'MINING', 'FORESTRY', 'BESTIARY', 'INVENTORY', 'SKILLS', 'SEALS', 'ACHIEVE', 'DAILY', 'SYSTEM'] as const;
+  const allTabs = ['COMBAT', 'CHARACTER', 'MINING', 'FORESTRY', 'BESTIARY', 'INVENTORY', 'SKILLS', 'SEALS', 'ACHIEVE', 'DAILY', 'ASCENSION', 'FRACTURE', 'RIFT', 'PARADOX', 'ACTIVE', 'PROCEDURAL', 'SYSTEM'] as const;
   type Tab = typeof allTabs[number];
 
   const componentMap: Record<Tab, Component> = {
@@ -32,25 +42,55 @@
     'SEALS':      SealsPanel,
     'ACHIEVE':    AchievementsPanel,
     'DAILY':      DailyChallenge,
+    'ASCENSION':  AscensionPanel,
+    'FRACTURE':   FracturePanel,
+    'RIFT':       RiftPanel,
+    'PARADOX':    ParadoxPanel,
+    'ACTIVE':     ActivePlayPanel,
+    'PROCEDURAL': ProceduralPanel,
     'SYSTEM':     SystemPanel
   };
 
   const bottomTabs: (Tab | 'ALL')[] = ['CHARACTER', 'SKILLS', 'INVENTORY', 'SEALS', 'ALL'];
 
   let activeView = $state<string>('CHARACTER');
+  let inMenu = $state(true);
 
   function isTabUnlocked(tab: Tab): boolean {
-    if (tab === 'MINING')    return character.level.gte(100);
-    if (tab === 'FORESTRY')  return character.level.gte(200);
+    if (tab === 'MINING')     return character.level.gte(100);
+    if (tab === 'FORESTRY')   return character.level.gte(200);
+    if (tab === 'ASCENSION')  return character.level.gte(100000);
+    if (tab === 'FRACTURE')   return getTier() >= 1;
+    if (tab === 'RIFT')       return getTier() >= 2;
+    if (tab === 'PARADOX')    return getTier() >= 3;
+    if (tab === 'ACTIVE')     return character.level.gte(10);
+    if (tab === 'PROCEDURAL') return getTier() >= 1;
     return true;
   }
 
-  onMount(() => { startGameLoop(); });
+  onMount(() => {
+    loadSettings();
+    applyTheme(settings.theme);
+    setAnimations(settings.animations);
+  });
+
+  function enterGame(slot: number, newGame?: boolean) {
+    saveSystem.setCurrentSlot(slot);
+    if (newGame) {
+      saveSystem.clearSlotData(slot);
+    }
+    inMenu = false;
+    startGameLoop();
+  }
 
   function switchTab(t: Tab | 'ALL') {
     activeView = t;
   }
 </script>
+
+{#if inMenu}
+  <MainMenu onEnterGame={enterGame} />
+{:else}
 
 <div class="shell">
   <!-- TOP BAR -->
@@ -119,6 +159,7 @@
 
 <ToastNotification />
 <OfflineModal />
+{/if}
 
 <style>
 .shell {

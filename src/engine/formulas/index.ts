@@ -44,7 +44,6 @@ export {
   calculateBulkCost,
   calculateMaxAffordable,
   calculateGatheringSpeed,
-  calculateOverclockMultiplier,
   calculateEnergyCost,
   calculateEnergyRegen,
   calculateYield,

@@ -8,7 +8,10 @@
     claimDailyReward,
     isChallengeActive,
     isChallengeComplete,
-    getStreakBonus
+    getStreakBonus,
+    getWeeklyChallenge,
+    isWeeklyComplete,
+    claimWeeklyReward,
   } from '../modules/dailyChallenge.svelte.js';
   import { formatValue } from '../systems/formatValue.js';
   import { showToast } from '../stores/uiStore.svelte.js';
@@ -133,6 +136,35 @@
           <span class="stat-value shard">{formatValue(dailyChallengeState.totalShardsEarned)}</span>
         </div>
       </div>
+    </div>
+
+    <!-- Weekly Challenge -->
+    <div class="weekly-section">
+      <div class="weekly-header">WEEKLY CHALLENGE</div>
+      {#if getWeeklyChallenge()}
+        {@const wc = getWeeklyChallenge()!}
+        <div class="weekly-body">
+          <div class="weekly-name">{wc.name}</div>
+          <div class="weekly-desc">{wc.description}</div>
+          <div class="weekly-progress">
+            <span>Progress: {formatValue(dailyChallengeState.weeklyProgress)} / {formatValue(wc.reward.shards)} shards</span>
+            <div class="prog-bar">
+              <div class="prog-fill" style="width:{Math.min(100, (dailyChallengeState.weeklyProgress / wc.reward.shards) * 100)}%"></div>
+            </div>
+          </div>
+          {#if isWeeklyComplete() && !dailyChallengeState.weeklyClaimed}
+            <button class="claim-btn" onclick={() => { claimWeeklyReward(); showToast('Weekly reward claimed!', 'success'); }}>
+              CLAIM WEEKLY
+            </button>
+          {:else if dailyChallengeState.weeklyClaimed}
+            <div class="claimed-badge"><span class="check-icon">✓</span><span>Weekly Claimed</span></div>
+          {:else}
+            <div class="pending-badge"><span>Keep progressing to earn weekly rewards</span></div>
+          {/if}
+        </div>
+      {:else}
+        <div class="weekly-loading">Loading weekly challenge...</div>
+      {/if}
     </div>
   {/if}
 </div>
@@ -448,4 +480,14 @@
   .stat-value.shard {
     color: var(--gold);
   }
+
+  .weekly-section { margin-top:8px; border:1px solid var(--gold); padding:12px; }
+  .weekly-header { font-size:0.55rem; font-weight:700; color:var(--gold); font-family:var(--font-hud); letter-spacing:0.12em; margin-bottom:8px; }
+  .weekly-body { display:flex; flex-direction:column; gap:6px; }
+  .weekly-name { font-size:0.7rem; font-weight:700; color:var(--text-0); font-family:var(--font-hud); }
+  .weekly-desc { font-size:0.55rem; color:var(--text-2); }
+  .weekly-progress { font-size:0.55rem; color:var(--text-2); font-family:var(--font-mono); }
+  .prog-bar { background:var(--bg-0); height:4px; margin-top:4px; overflow:hidden; }
+  .prog-fill { height:100%; background:var(--gold); transition:width 0.5s; }
+  .weekly-loading { font-size:0.55rem; color:var(--text-2); font-family:var(--font-mono); }
 </style>
