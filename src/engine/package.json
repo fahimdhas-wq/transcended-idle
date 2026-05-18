@@ -1,0 +1,15 @@
+{
+  "name": "idle-engine",
+  "version": "0.1.0",
+  "description": "High-performance Rust/WASM game engine for IDLE RPG",
+  "scripts": {
+    "build": "wasm-pack build --target web --out-dir ../dist/engine",
+    "build:release": "wasm-pack build --target web --release --out-dir ../dist/engine",
+    "build:node": "wasm-pack build --target nodejs --out-dir ../dist/engine-node",
+    "dev": "wasm-pack build --target web --dev --out-dir ../dist/engine",
+    "test": "wasm-pack test --headless"
+  },
+  "devDependencies": {
+    "wasm-pack": "^0.12"
+  }
+}

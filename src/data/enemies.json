@@ -1,0 +1,61 @@
+{
+  "types": ["spectral", "organic", "robotic", "cybernetic", "eldritch"],
+  "zones": [
+    {
+      "id": "neural_wastes",
+      "name": "Neural Wastes",
+      "minLevel": 1,
+      "maxLevel": 50,
+      "types": ["spectral", "cybernetic"],
+      "ambientDescription": "Cascading data streams fill the void where memories once lived."
+    },
+    {
+      "id": "crystal_valleys",
+      "name": "Crystal Valleys",
+      "minLevel": 50,
+      "maxLevel": 200,
+      "types": ["organic", "robotic"],
+      "ambientDescription": "Prismatic growths pulse with harvested energy from a thousand dead servers."
+    },
+    {
+      "id": "void_depths",
+      "name": "Void Depths",
+      "minLevel": 200,
+      "maxLevel": 500,
+      "types": ["cybernetic", "eldritch"],
+      "ambientDescription": "Reality bends here, where the boundary between code and chaos dissolves."
+    },
+    {
+      "id": "singularity_core",
+      "name": "Singularity Core",
+      "minLevel": 500,
+      "maxLevel": 1000,
+      "types": ["eldritch", "spectral"],
+      "ambientDescription": "The heart of everything pulses with infinite possibility."
+    },
+    {
+      "id": "transcendence",
+      "name": "Transcendence",
+      "minLevel": 1000,
+      "maxLevel": 999999,
+      "types": ["spectral", "organic", "robotic", "cybernetic", "eldritch"],
+      "ambientDescription": "Beyond all boundaries, beyond all limits."
+    }
+  ],
+  "namingPatterns": {
+    "prefix": ["Corrupted", "Prime", "Omega", "Alpha", "Delta", "Nexus", "Void", "Stellar", "Quantum", "Prismatic"],
+    "suffix": ["Node", "Drone", "Walker", "Seeker", "Hunter", "Guardian", "Entity", "Fragment", "Signal", "Echo"],
+    "titles": ["of the Deep", "of Light", "of Shadow", "the Endless", "the Infinite", "the First", "the Last"]
+  },
+  "difficultyScaling": {
+    "hpExp": 1.15,
+    "atkExp": 1.12,
+    "xpExp": 1.08,
+    "dropExp": 1.03
+  },
+  "metadata": {
+    "version": 1,
+    "lastUpdated": "2026-05-12",
+    "notes": "Enemy definitions for procedural generation. Generator combines zone types with naming patterns to create unique enemies at any level."
+  }
+}

@@ -1,0 +1,259 @@
+{
+  "skills": [
+    {
+      "id": "emp_strike",
+      "name": "EMP Strike",
+      "description": "Unleashes a focused electromagnetic burst. Deals 3x ATK base damage, scaling by +50% per tier.",
+      "category": "offense",
+      "baseCost": 30,
+      "costMultiplier": 2.5,
+      "maxTier": 999,
+      "effects": [
+        {
+          "type": "damage",
+          "stat": "attack",
+          "mult": 3,
+          "perTier": 0.5,
+          "formula": "mult"
+        }
+      ],
+      "autoCast": true,
+      "unlockLevel": 1
+    },
+    {
+      "id": "overclock",
+      "name": "Overclock",
+      "description": "Overclocks your neural processor. Grants +25% damage multiplier per tier to all attacks.",
+      "category": "offense",
+      "baseCost": 50,
+      "costMultiplier": 2.5,
+      "maxTier": 999,
+      "effects": [
+        {
+          "type": "damage",
+          "stat": "attack",
+          "mult": 1.25,
+          "perTier": 0.25,
+          "formula": "power"
+        }
+      ],
+      "autoCast": true,
+      "unlockLevel": 1
+    },
+    {
+      "id": "nano_repair",
+      "name": "Nano Repair",
+      "description": "Deploys nanobots to restore 20% max HP and Shield instantly. Heals an additional +5% per tier.",
+      "category": "defense",
+      "baseCost": 60,
+      "costMultiplier": 2.5,
+      "maxTier": 999,
+      "effects": [
+        {
+          "type": "regen",
+          "stat": "hp",
+          "mult": 0.2,
+          "perTier": 0.05
+        },
+        {
+          "type": "regen",
+          "stat": "defense",
+          "mult": 0.2,
+          "perTier": 0.05
+        }
+      ],
+      "autoCast": true,
+      "unlockLevel": 1
+    },
+    {
+      "id": "chain_hack",
+      "name": "Chain Hack",
+      "description": "Infects the enemy's core code with poison. Deals 2x ATK base damage per tick, scaling by +30% per tier.",
+      "category": "offense",
+      "baseCost": 80,
+      "costMultiplier": 2.5,
+      "maxTier": 999,
+      "effects": [
+        {
+          "type": "damage",
+          "stat": "attack",
+          "mult": 2,
+          "perTier": 0.3,
+          "formula": "dot"
+        }
+      ],
+      "autoCast": true,
+      "unlockLevel": 5
+    },
+    {
+      "id": "shield_surge",
+      "name": "Shield Surge",
+      "description": "Surges excess energy into your shield matrix, regenerating 30% max Shield instantly. Gains +3% Skip Damage chance per tier.",
+      "category": "defense",
+      "baseCost": 40,
+      "costMultiplier": 2.5,
+      "maxTier": 999,
+      "effects": [
+        {
+          "type": "regen",
+          "stat": "defense",
+          "mult": 0.3,
+          "perTier": 0.03
+        },
+        {
+          "type": "skipChance",
+          "value": 0.01,
+          "perTier": 0.01
+        }
+      ],
+      "autoCast": true,
+      "unlockLevel": 10
+    },
+    {
+      "id": "data_siphon",
+      "name": "Data Siphon",
+      "description": "Siphons data from the enemy. Grants 5x base Skill Fragments, with +1x bonus per tier.",
+      "category": "utility",
+      "baseCost": 100,
+      "costMultiplier": 2.5,
+      "maxTier": 999,
+      "effects": [
+        {
+          "type": "fragmentMult",
+          "base": 5,
+          "perTier": 1
+        }
+      ],
+      "autoCast": true,
+      "unlockLevel": 15
+    },
+    {
+      "id": "xp_boost",
+      "name": "Neural Learning",
+      "description": "Passively increases XP gained from all sources by 20% per tier.",
+      "category": "progression",
+      "baseCost": 120,
+      "costMultiplier": 2.5,
+      "maxTier": 999,
+      "effects": [
+        {
+          "type": "xpMult",
+          "perTier": 0.2
+        }
+      ],
+      "autoCast": true,
+      "unlockLevel": 20
+    },
+    {
+      "id": "cleave",
+      "name": "System Wipe",
+      "description": "Passively grants a chance to instantly kill +100 additional enemies per tier when you get a kill.",
+      "category": "offense",
+      "baseCost": 150,
+      "costMultiplier": 2.5,
+      "maxTier": 999,
+      "effects": [
+        {
+          "type": "cleave",
+          "baseAmount": 0,
+          "perTier": 100,
+          "chanceBase": 0.4,
+          "chanceBonusTier": 21
+        }
+      ],
+      "autoCast": true,
+      "unlockLevel": 25
+    },
+    {
+      "id": "loot_boost",
+      "name": "Deep Scan",
+      "description": "Passively increases drop rates and rarity chances by 10% per tier. Higher tiers unlock rare item drops.",
+      "category": "utility",
+      "baseCost": 180,
+      "costMultiplier": 2.5,
+      "maxTier": 999,
+      "effects": [
+        {
+          "type": "dropRate",
+          "perTier": 0.1
+        },
+        {
+          "type": "rarityUpgrade",
+          "perTier": 0.05
+        }
+      ],
+      "autoCast": true,
+      "unlockLevel": 30
+    },
+    {
+      "id": "crit_surge",
+      "name": "Crit Surge",
+      "description": "Permanently increases Critical Damage Multiplier by 0.5x per tier. Base crit damage is 2x.",
+      "category": "offense",
+      "baseCost": 250,
+      "costMultiplier": 2.5,
+      "maxTier": 999,
+      "effects": [
+        {
+          "type": "critMult",
+          "perTier": 0.5
+        }
+      ],
+      "autoCast": true,
+      "unlockLevel": 50
+    },
+    {
+      "id": "omni_stat",
+      "name": "God Mode",
+      "description": "Permanently multiplies ALL stats (HP, ATK, DEF, Regen) by 1.2x per tier. Extremely expensive.",
+      "category": "ultimate",
+      "baseCost": 500,
+      "costMultiplier": 2.5,
+      "maxTier": 999,
+      "effects": [
+        {
+          "type": "statMult",
+          "stats": ["hp", "attack", "defense", "regenHp", "regenDef"],
+          "perTier": 0.2,
+          "formula": "power"
+        }
+      ],
+      "autoCast": true,
+      "unlockLevel": 100
+    }
+  ],
+  "tiers": [
+    "F-", "F", "F+",
+    "E-", "E", "E+",
+    "D-", "D", "D+",
+    "C-", "C", "C+",
+    "B-", "B", "B+",
+    "A-", "A", "A+",
+    "S-", "S", "S+",
+    "SS-", "SS", "SS+",
+    "SSS-", "SSS", "SSS+",
+    "SSR", "SSR+",
+    "UR", "UR+", "URR",
+    "EX", "EX+",
+    "Transcendent", "Transcendent+", "Transcendent++", "Transcendent+++", "Transcendent EX",
+    "Ethereal", "Ethereal+", "Ethereal++", "Ethereal+++", "Ethereal EX",
+    "Cosmic", "Cosmic+", "Cosmic++", "Cosmic+++", "Cosmic EX",
+    "Omni", "Omni+", "Omni++", "Omni+++", "Omni EX",
+    "Singularity", "Singularity+", "Singularity++", "Singularity+++", "Singularity EX",
+    "Continuum", "Continuum+", "Continuum++", "Continuum+++", "Continuum EX",
+    "Paradox", "Paradox+", "Paradox++", "Paradox+++", "Paradox EX",
+    "Reality", "Reality+", "Reality++", "Reality+++", "Reality EX",
+    "Chronos", "Chronos+", "Chronos++", "Chronos+++", "Chronos EX",
+    "Eternal", "Eternal+", "Eternal++", "Eternal+++", "Eternal EX",
+    "Absolute", "Absolute+", "Absolute++", "Absolute+++", "Absolute EX",
+    "Omega", "Omega+", "Omega++", "Omega+++", "Omega EX",
+    "Zenith", "Zenith+", "Zenith++", "Zenith+++", "Zenith EX",
+    "Apotheosis", "Apotheosis+", "Apotheosis++", "Apotheosis+++", "Apotheosis EX",
+    "Infinite", "Infinite+", "Infinite++", "Infinite+++", "Infinite EX"
+  ],
+  "metadata": {
+    "version": 1,
+    "lastUpdated": "2026-05-12",
+    "notes": "Skill definitions for procedural balancing. AI can generate variations by modifying baseCost, costMultiplier, and effect values."
+  }
+}

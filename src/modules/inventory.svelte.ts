@@ -19,6 +19,8 @@ export const inventory: InventoryState = $state({
 let itemMap = new Map<string, InventoryItem>();
 let _pendingUpdates = new Map<string, number>();
 
+const MAX_ITEM_COUNT = 1e12; // Cap item stacks to prevent overflow
+
 export function rebuildInventoryMap(): void {
   itemMap = new Map();
   const uniqueItems: InventoryItem[] = [];
@@ -47,14 +49,14 @@ export function flushInventoryUpdates(): void {
 
   _pendingUpdates.forEach((delta, key) => {
     if (itemMap.has(key)) {
-      itemMap.get(key)!.count += delta;
+      itemMap.get(key)!.count = Math.min(itemMap.get(key)!.count + delta, MAX_ITEM_COUNT);
     } else {
       const [name, rarity] = key.split('|') as [string, ItemRarity];
       const newItem: InventoryItem = {
         id: typeof crypto !== 'undefined' ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`,
         name,
         rarity,
-        count: delta
+        count: Math.min(delta, MAX_ITEM_COUNT)
       };
       inventory.items.push(newItem);
       itemMap.set(key, newItem);

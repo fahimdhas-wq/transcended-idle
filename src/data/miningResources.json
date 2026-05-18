@@ -1,0 +1,231 @@
+{
+  "resources": [
+    {
+      "id": "ferrite",
+      "name": "Ferrite",
+      "tier": 1,
+      "category": "raw",
+      "color": "#8B4513",
+      "refinesInto": "alloyX"
+    },
+    {
+      "id": "carbite",
+      "name": "Carbite",
+      "tier": 2,
+      "category": "raw",
+      "color": "#CD853F",
+      "refinesInto": "fuelX"
+    },
+    {
+      "id": "cuprite",
+      "name": "Cuprite",
+      "tier": 3,
+      "category": "raw",
+      "color": "#B87333",
+      "refinesInto": "conduitX"
+    },
+    {
+      "id": "argentite",
+      "name": "Argentite",
+      "tier": 4,
+      "category": "raw",
+      "color": "#C0C0C0",
+      "refinesInto": "lumenAlloy"
+    },
+    {
+      "id": "aurite",
+      "name": "Aurite",
+      "tier": 5,
+      "category": "raw",
+      "color": "#FFD700",
+      "refinesInto": "solarAlloy"
+    },
+    {
+      "id": "crystite",
+      "name": "Crystite",
+      "tier": 6,
+      "category": "raw",
+      "color": "#00FFFF",
+      "refinesInto": "phaseCrystal"
+    },
+    {
+      "id": "verdite",
+      "name": "Verdite",
+      "tier": 7,
+      "category": "raw",
+      "color": "#32CD32",
+      "refinesInto": "quantumCrystal"
+    },
+    {
+      "id": "obsidite",
+      "name": "Obsidite",
+      "tier": 8,
+      "category": "raw",
+      "color": "#4B0082",
+      "refinesInto": "darkAlloy"
+    },
+    {
+      "id": "neutrite",
+      "name": "Neutrite",
+      "tier": 9,
+      "category": "raw",
+      "color": "#000080",
+      "refinesInto": "denseMatter"
+    },
+    {
+      "id": "voidite",
+      "name": "Voidite",
+      "tier": 10,
+      "category": "raw",
+      "color": "#1a1a2e",
+      "refinesInto": "exoticMatter"
+    }
+  ],
+  "refined": [
+    {
+      "id": "alloyX",
+      "name": "Alloy-X",
+      "tier": 1,
+      "color": "#6B4423"
+    },
+    {
+      "id": "fuelX",
+      "name": "Fuel-X",
+      "tier": 2,
+      "color": "#FF4500"
+    },
+    {
+      "id": "conduitX",
+      "name": "Conduit-X",
+      "tier": 3,
+      "color": "#8B0000"
+    },
+    {
+      "id": "lumenAlloy",
+      "name": "Lumen Alloy",
+      "tier": 4,
+      "color": "#F0E68C"
+    },
+    {
+      "id": "solarAlloy",
+      "name": "Solar Alloy",
+      "tier": 5,
+      "color": "#FFA500"
+    },
+    {
+      "id": "phaseCrystal",
+      "name": "Phase Crystal",
+      "tier": 6,
+      "color": "#E0FFFF"
+    },
+    {
+      "id": "quantumCrystal",
+      "name": "Quantum Crystal",
+      "tier": 7,
+      "color": "#98FB98"
+    },
+    {
+      "id": "darkAlloy",
+      "name": "Dark Alloy",
+      "tier": 8,
+      "color": "#2F4F4F"
+    },
+    {
+      "id": "denseMatter",
+      "name": "Dense Matter",
+      "tier": 9,
+      "color": "#191970"
+    },
+    {
+      "id": "exoticMatter",
+      "name": "Exotic Matter",
+      "tier": 10,
+      "color": "#0D0D0D"
+    }
+  ],
+  "tier1Refined": [
+    {
+      "id": "titanCore",
+      "name": "Titan Core",
+      "tier": 1,
+      "color": "#B8860B"
+    }
+  ],
+  "tier2Refined": [
+    {
+      "id": "fusionCore",
+      "name": "Fusion Core",
+      "tier": 2,
+      "color": "#FF6347"
+    }
+  ],
+  "tier3Refined": [
+    {
+      "id": "plasmaCoil",
+      "name": "Plasma Coil",
+      "tier": 3,
+      "color": "#DC143C"
+    }
+  ],
+  "tier4Refined": [
+    {
+      "id": "photonCore",
+      "name": "Photon Core",
+      "tier": 4,
+      "color": "#FFDAB9"
+    }
+  ],
+  "tier5Refined": [
+    {
+      "id": "stellarCore",
+      "name": "Stellar Core",
+      "tier": 5,
+      "color": "#FFE4B5"
+    }
+  ],
+  "tier6Refined": [
+    {
+      "id": "prismCore",
+      "name": "Prism Core",
+      "tier": 6,
+      "color": "#AFEEEE"
+    }
+  ],
+  "tier7Refined": [
+    {
+      "id": "entropyCore",
+      "name": "Entropy Core",
+      "tier": 7,
+      "color": "#00FA9A"
+    }
+  ],
+  "tier8Refined": [
+    {
+      "id": "voidCore",
+      "name": "Void Core",
+      "tier": 8,
+      "color": "#006400"
+    }
+  ],
+  "tier9Refined": [
+    {
+      "id": "singularityCore",
+      "name": "Singularity Core",
+      "tier": 9,
+      "color": "#00008B"
+    }
+  ],
+  "tier10Refined": [
+    {
+      "id": "cosmicCore",
+      "name": "Cosmic Core",
+      "tier": 10,
+      "color": "#4B0082"
+    }
+  ],
+  "metadata": {
+    "version": 1,
+    "lastUpdated": "2026-05-12",
+    "notes": "Mining resource definitions. Tier increases unlock new resources. AI can generate tier 11+ by extrapolating color and naming patterns."
+  }
+}
