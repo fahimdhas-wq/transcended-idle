@@ -11,9 +11,12 @@ import { maxAffordable } from './maxAffordable.js';
  * Throttle: minimum ms between auto-upgrade executions
  */
 const AUTO_MIN_INTERVAL_MS = 250;
+const MAX_AUTO_BUY_PER_TICK = 1000000000;
 let _lastMiningAuto = 0;
 let _lastForestryAuto = 0;
 let _lastBestiaryAuto = 0;
+let _miningAutoPending = false;
+let _forestryAutoPending = false;
 
 /**
  * Clamps a count to MAX_UPGRADE_COUNT and floors to nearest clean step.
@@ -22,7 +25,8 @@ function floorToCleanAmount(n: number): number {
   if (n <= 0) return 0;
   if (n < 10) return 1;
   const mag = Math.pow(10, Math.floor(Math.log10(n)));
-  return Math.max(1, Math.floor(n / mag) * mag);
+  const capped = Math.min(n, MAX_AUTO_BUY_PER_TICK);
+  return Math.max(1, Math.floor(capped / mag) * mag);
 }
 
 function _getForestryFormula(type: string): CostFormula {
@@ -66,17 +70,16 @@ export function autoUpgradeMining(): void {
   // Sort by priority
   priorityUpgrades.sort((a, b) => a.priority - b.priority);
 
-  // Process upgrades using microtask batching to avoid blocking
-  queueMicrotask(() => {
+  if (_miningAutoPending) return;
+  _miningAutoPending = true;
+  try {
     for (const u of priorityUpgrades) {
       const currentLv = Number(miningState[u.type] || 0);
-      // Skip if at cap
       if (u.cap !== undefined && currentLv >= u.cap) continue;
 
       const formula = _getMiningFormula(u.type);
-      const maxBuy = u.cap !== undefined ? u.cap - currentLv : 1000000000000;
+      const maxBuy = u.cap !== undefined ? u.cap - currentLv : MAX_AUTO_BUY_PER_TICK;
 
-      // Calculate max affordable WITHOUT buying
       const initialCount = maxAffordable(bestiaryState.dataFragments, currentLv, formula, maxBuy).toNumber();
       const count = floorToCleanAmount(initialCount);
 
@@ -85,14 +88,10 @@ export function autoUpgradeMining(): void {
       }
     }
 
-    // Handle energy upgrade
     upgradeEnergy('max');
-
-    // Handle drone/automation upgrades
     upgradeAutomation('drone', 'max');
     upgradeAutomation('extractor', 'max');
 
-    // Handle tool upgrade
     if (miningState.toolTier < tools.length) {
       const next = tools[miningState.toolTier];
       if (bestiaryState.dataFragments.gte(next.dataCost)) {
@@ -103,7 +102,9 @@ export function autoUpgradeMining(): void {
     }
 
     invalidateBulkCostCache();
-  });
+  } finally {
+    _miningAutoPending = false;
+  }
 }
 
 function autoUpgradeTool(): void {
@@ -136,17 +137,16 @@ export function autoUpgradeForestry(): void {
   // Sort by priority
   priorityUpgrades.sort((a, b) => (a.priority || 99) - (b.priority || 99));
 
-  // Process upgrades using microtask batching to avoid blocking
-  queueMicrotask(() => {
+  if (_forestryAutoPending) return;
+  _forestryAutoPending = true;
+  try {
     for (const u of priorityUpgrades) {
       const currentLv = Number(forestryState[u.type] || 0);
-      // Skip if at cap
       if (u.cap !== undefined && currentLv >= u.cap) continue;
 
       const formula = _getForestryFormula(u.type);
-      const maxBuy = u.cap !== undefined ? u.cap - currentLv : 1000000000000;
+      const maxBuy = u.cap !== undefined ? u.cap - currentLv : MAX_AUTO_BUY_PER_TICK;
 
-      // Calculate max affordable WITHOUT buying
       const initialCount = maxAffordable(forestryState.dnaFragments, currentLv, formula, maxBuy).toNumber();
       const count = floorToCleanAmount(initialCount);
 
@@ -155,13 +155,9 @@ export function autoUpgradeForestry(): void {
       }
     }
 
-    // Handle growth chambers
     addGrowthChamber('max');
-
-    // Handle energy upgrade
     upgradeForestryEnergy('max');
 
-    // Handle bio tool upgrade
     if (forestryState.toolTier < bioTools.length) {
       const next = bioTools[forestryState.toolTier];
       if (forestryState.dnaFragments.gte(next.dataCost)) {
@@ -172,7 +168,9 @@ export function autoUpgradeForestry(): void {
     }
 
     invalidateBulkCostCache();
-  });
+  } finally {
+    _forestryAutoPending = false;
+  }
 }
 
 function autoUpgradeBioTool(): void {
@@ -193,12 +191,7 @@ export function autoUpgradeBestiary(): void {
   const upgrades: Array<'anatomy' | 'huntersGreed' | 'soulExtraction'> = ['anatomy', 'huntersGreed', 'soulExtraction'];
 
   for (const u of upgrades) {
-    const initialCount = buyBestiaryUpgrade(u, 'max');
-    const count = floorToCleanAmount(initialCount);
-
-    if (count > 0) {
-      buyBestiaryUpgrade(u, count);
-    }
+    buyBestiaryUpgrade(u, 'max');
   }
 }
 

@@ -3,16 +3,45 @@
 ═══════════════════════════════════════════════════════════════════ */
 
 /* ═══════════════════════════════════════════════════════════════════
-   PANELS — Glass/HUD look
-══════════════════════════════════════════════════════════════════ */
+    PANELS — Glass/HUD look
+ ═══════════════════════════════════════════════════════════════════ */
 
 .panel {
-  background: hsl(220 30% 6% / 0.8);
+  background: hsl(220 30% 5% / 0.85);
   border: 1px solid var(--line);
   border-radius: var(--r);
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(10px);
   position: relative;
   overflow: hidden;
+  box-shadow:
+    0 0 20px hsl(185 100% 50% / 0.05),
+    inset 0 0 30px hsl(0 0% 0% / 0.3);
+}
+
+/* Top accent line with gradient */
+.panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--cyan), var(--pink), var(--cyan), transparent);
+  box-shadow: 0 0 10px var(--cyan);
+}
+
+/* Corner brackets effect */
+.panel::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  right: 4px;
+  bottom: 4px;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  opacity: 0.3;
+  pointer-events: none;
 }
 
 /* Corner accent */
@@ -84,8 +113,8 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   BUTTONS — HUD Style
-══════════════════════════════════════════════════════════════════ */
+    BUTTONS — HUD Style
+ ═══════════════════════════════════════════════════════════════════ */
 
 button {
   font-family: var(--font-hud);
@@ -102,6 +131,39 @@ button {
   transition: all var(--fast);
   position: relative;
   overflow: hidden;
+  box-shadow: 0 0 8px hsl(185 100% 50% / 0.1);
+}
+
+/* Top line on hover */
+button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--cyan);
+  transform: scaleX(0);
+  transition: transform var(--fast);
+  box-shadow: 0 0 8px var(--cyan);
+}
+
+button:hover:not(:disabled) {
+  border-color: var(--cyan-bright);
+  color: var(--cyan);
+  box-shadow:
+    0 0 16px hsl(185 100% 55% / 0.4),
+    inset 0 0 10px hsl(185 100% 55% / 0.1);
+}
+
+button:hover:not(:disabled)::before {
+  transform: scaleX(1);
+}
+
+button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
 /* Top line on hover */
@@ -134,14 +196,17 @@ button:disabled {
 
 /* Primary */
 button.btn-primary {
-  background: hsl(185 100% 55% / 0.15);
+  background: hsl(185 100% 55% / 0.2);
   border-color: var(--cyan-bright);
   color: var(--cyan);
+  box-shadow: 0 0 12px hsl(185 100% 55% / 0.25);
 }
 
 button.btn-primary:hover:not(:disabled) {
-  background: hsl(185 100% 55% / 0.25);
-  box-shadow: 0 0 16px hsl(185 100% 55% / 0.4);
+  background: hsl(185 100% 55% / 0.35);
+  box-shadow:
+    0 0 20px hsl(185 100% 55% / 0.5),
+    inset 0 0 15px hsl(185 100% 55% / 0.15);
 }
 
 /* Max/Gold */
@@ -207,12 +272,15 @@ button.btn-green:hover:not(:disabled) {
   min-width: 75px;
   text-align: center;
   transition: all var(--fast);
+  box-shadow: 0 0 6px hsl(185 100% 50% / 0.1);
 }
 
 .upg-buy-btn:hover:not(:disabled) {
   border-color: var(--cyan-bright);
   color: var(--cyan);
-  box-shadow: 0 0 10px hsl(185 100% 55% / 0.3);
+  box-shadow:
+    0 0 14px hsl(185 100% 55% / 0.4),
+    inset 0 0 8px hsl(185 100% 55% / 0.1);
 }
 
 /* Amount buttons */
@@ -251,18 +319,21 @@ button.btn-green:hover:not(:disabled) {
   letter-spacing: 0.1em;
   text-transform: uppercase;
   padding: 5px 12px;
-  background: hsl(185 100% 55% / 0.08);
-  border: 1px solid hsl(185 100% 55% / 0.3);
+  background: hsl(185 100% 55% / 0.12);
+  border: 1px solid hsl(185 100% 55% / 0.4);
   border-radius: var(--r);
   color: var(--cyan);
   cursor: pointer;
   transition: all var(--fast);
+  box-shadow: 0 0 10px hsl(185 100% 55% / 0.2);
 }
 
 .auto-up-btn:hover {
-  background: hsl(185 100% 55% / 0.18);
+  background: hsl(185 100% 55% / 0.25);
   border-color: var(--cyan);
-  box-shadow: 0 0 12px hsl(185 100% 55% / 0.4);
+  box-shadow:
+    0 0 18px hsl(185 100% 55% / 0.5),
+    inset 0 0 10px hsl(185 100% 55% / 0.15);
 }
 
 /* Cap badge */

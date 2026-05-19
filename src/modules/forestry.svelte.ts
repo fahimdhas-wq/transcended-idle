@@ -16,6 +16,8 @@ export type ForestryUpgradeType =
   | 'mutationPower'
   | 'efficiency';
 
+const MAX_PURCHASE_CAP = 1000000000;
+
 export interface ForestryState {
   unlocked: boolean;
   autoRefine: Record<string, boolean>;
@@ -291,10 +293,7 @@ export function buyForestryUpgrade(type: ForestryUpgradeType, amount: number | '
   const currentLv = (forestryState[type] || 0);
   let count = 0;
 
-  let maxBuy = 1000000000000;
-  if (type === 'ancientSaplings') {
-    maxBuy = 10 - currentLv;
-  }
+  let maxBuy = type === 'ancientSaplings' ? Math.max(0, 10 - currentLv) : MAX_PURCHASE_CAP;
 
   if (amount === 'max') {
     count = maxAffordable(forestryState.dnaFragments, currentLv, formula, maxBuy).toNumber();
@@ -304,7 +303,7 @@ export function buyForestryUpgrade(type: ForestryUpgradeType, amount: number | '
   }
 
   if (count <= 0) return 0;
-  const totalCost = calculateBulkCost(formula, currentLv, count);
+  const totalCost = calculateBulkCost(formula, currentLv, Math.min(count, MAX_PURCHASE_CAP));
 
   // Already checked via getAffordableAmount
   if (forestryState.dnaFragments.gte(totalCost)) {
@@ -328,23 +327,47 @@ export function upgradeBioTool(): void {
 }
 
 export function addGrowthChamber(amount: number | 'max' = 1): void {
-  const getCost = (lv: number): Decimal => new Decimal(Math.floor(Math.pow(lv, 1.5) * 50));
+  const currentLv = Math.max(0, forestryState.growthChambers - 1);
+  const budget = forestryState.resources.get('biofiber');
 
-  const currentLv = forestryState.growthChambers - 1;
-  let count = 0;
   if (amount === 'max') {
-    count = maxAffordable(forestryState.resources.get('biofiber'), currentLv, getCost).toNumber();
-  } else {
-    count = amount;
-  }
+    if (budget.lte(0)) return;
+    const budgetNum = budget.toNumber();
+    if (!isFinite(budgetNum) || budgetNum <= 0) return;
 
-  if (count <= 0) return;
-  const totalCost = calculateBulkCost(getCost, currentLv, count);
+    // Integral approximation: cost(L) = 50 * L^1.5, integral = 20 * L^2.5
+    // Solve (L+k)^2.5 = L^2.5 + budget/20
+    const L25 = Math.pow(currentLv, 2.5);
+    const estK = Math.pow(L25 + budgetNum / 20, 1 / 2.5) - currentLv;
+    if (!isFinite(estK) || estK <= 0) return;
 
-  if (forestryState.resources.gte('biofiber', totalCost)) {
+    const maxIter = Math.min(Math.ceil(estK) + 50, MAX_PURCHASE_CAP);
+    let totalCost = Decimal.ZERO;
+    let count = 0;
+    for (let i = 0; i < maxIter; i++) {
+      const cost = new Decimal(Math.floor(Math.pow(currentLv + i, 1.5) * 50));
+      const next = totalCost.add(cost);
+      if (next.lte(budget)) {
+        totalCost = next;
+        count++;
+      } else {
+        break;
+      }
+    }
+    if (count <= 0) return;
     forestryState.resources.sub('biofiber', totalCost);
     forestryState.growthChambers += count;
-    addLog(`[FORESTRY] Built ${count} Chambers.`, 'system');
+    if (count > 0) addLog(`[FORESTRY] Built ${count} Chambers.`, 'system');
+  } else {
+    let totalCost = Decimal.ZERO;
+    for (let i = 0; i < amount; i++) {
+      totalCost = totalCost.add(new Decimal(Math.floor(Math.pow(currentLv + i, 1.5) * 50)));
+    }
+    if (forestryState.resources.gte('biofiber', totalCost)) {
+      forestryState.resources.sub('biofiber', totalCost);
+      forestryState.growthChambers += amount;
+      addLog(`[FORESTRY] Built ${amount} Chambers.`, 'system');
+    }
   }
 }
 
@@ -354,9 +377,9 @@ export function upgradeMutationChance(amount: number | 'max' = 1): void {
 
   let count = 0;
   if (amount === 'max') {
-    count = maxAffordable(forestryState.resources.get('resinGel'), currentLv, formula).toNumber();
+    count = Math.min(maxAffordable(forestryState.resources.get('resinGel'), currentLv, formula).toNumber(), MAX_PURCHASE_CAP);
   } else {
-    count = amount;
+    count = Math.min(amount, MAX_PURCHASE_CAP);
   }
 
   if (count <= 0) return;
@@ -375,9 +398,9 @@ export function upgradeForestryEnergy(amount: number | 'max' = 1): void {
 
   let count = 0;
   if (amount === 'max') {
-    count = maxAffordable(forestryState.resources.get('reinforcedFiber'), 0, formula).toNumber();
+    count = Math.min(maxAffordable(forestryState.resources.get('reinforcedFiber'), 0, formula).toNumber(), MAX_PURCHASE_CAP);
   } else {
-    count = amount;
+    count = Math.min(amount, MAX_PURCHASE_CAP);
   }
 
   if (count <= 0) return;

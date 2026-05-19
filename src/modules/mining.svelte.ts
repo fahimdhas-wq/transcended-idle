@@ -15,6 +15,8 @@ import { miningResources } from './miningResources.js';
 export type MiningUpgradeType = 'sharpness' | 'discovery' | 'sensors' | 'efficiency' | 'extraction';
 export type MiningAutomationType = 'drone' | 'extractor';
 
+const MAX_PURCHASE_CAP = 1000000000;
+
 export interface MiningState {
   unlocked: boolean;
   autoRefine: Record<string, boolean>;
@@ -272,10 +274,7 @@ export function buyMiningUpgrade(type: MiningUpgradeType, amount: number | 'max'
   const currentLv = Number(miningState[type] || 0);
   let count = 0;
 
-  let maxBuy = 1000000000000;
-  if (type === 'discovery') {
-    maxBuy = 10 - currentLv;
-  }
+  let maxBuy = type === 'discovery' ? Math.max(0, 10 - currentLv) : MAX_PURCHASE_CAP;
 
   if (amount === 'max') {
     count = maxAffordable(bestiaryState.dataFragments, currentLv, formula, maxBuy).toNumber();
@@ -285,7 +284,7 @@ export function buyMiningUpgrade(type: MiningUpgradeType, amount: number | 'max'
 
   if (count <= 0) return 0;
 
-  const totalCost = calculateBulkCost(formula, currentLv, count);
+  const totalCost = calculateBulkCost(formula, currentLv, Math.min(count, MAX_PURCHASE_CAP));
 
   if (bestiaryState.dataFragments.gte(totalCost)) {
     bestiaryState.dataFragments = bestiaryState.dataFragments.sub(totalCost);
@@ -313,9 +312,9 @@ export function upgradeEnergy(amount: number | 'max' = 1): void {
 
   let count = 0;
   if (amount === 'max') {
-    count = maxAffordable(miningState.resources.get('fuelX'), 0, formula).toNumber();
+    count = Math.min(maxAffordable(miningState.resources.get('fuelX'), 0, formula).toNumber(), MAX_PURCHASE_CAP);
   } else {
-    count = amount;
+    count = Math.min(amount, MAX_PURCHASE_CAP);
   }
 
   if (count <= 0) return;
@@ -336,9 +335,9 @@ export function upgradeAutomation(type: MiningAutomationType, amount: number | '
 
   let count = 0;
   if (amount === 'max') {
-    count = maxAffordable(miningState.resources.get('alloyX'), currentLv, formula).toNumber();
+    count = Math.min(maxAffordable(miningState.resources.get('alloyX'), currentLv, formula).toNumber(), MAX_PURCHASE_CAP);
   } else {
-    count = amount;
+    count = Math.min(amount, MAX_PURCHASE_CAP);
   }
 
   if (count <= 0) return;

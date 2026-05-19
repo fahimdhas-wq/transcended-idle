@@ -7,6 +7,8 @@ import { Decimal, type DecimalSource } from '../systems/decimal.js';
 export type BestiaryStage = 'Unknown' | 'Known' | 'Mastered' | 'Exalted' | 'Transcendent' | 'Omniscient';
 export type BestiaryUpgradeType = 'anatomy' | 'huntersGreed' | 'soulExtraction';
 
+const MAX_PURCHASE_CAP = 1000000000;
+
 export interface BestiaryEntry {
   id: string;
   name: string;
@@ -140,10 +142,10 @@ export function buyBestiaryUpgrade(type: BestiaryUpgradeType, amount: number | '
   const currentLv = Number(bestiaryState[type]);
   let count = 0;
   if (amount === 'max') {
-    count = maxAffordable(bestiaryState.dataFragments, currentLv, formula).toNumber();
+    count = Math.min(maxAffordable(bestiaryState.dataFragments, currentLv, formula).toNumber(), MAX_PURCHASE_CAP);
   } else {
     // Dynamically adjust the requested amount if it's too expensive
-    count = getAffordableAmount(bestiaryState.dataFragments, currentLv, formula, amount);
+    count = getAffordableAmount(bestiaryState.dataFragments, currentLv, formula, Math.min(amount, MAX_PURCHASE_CAP));
   }
 
   if (count <= 0) return 0;
