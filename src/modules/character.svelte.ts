@@ -31,7 +31,6 @@ export interface Character {
   stats: CharacterStats;
   level: Decimal;
   xp: Decimal;
-  totalXp: Decimal;
   xpNeeded: Decimal;
   momentum: number;
   overcharge: number;
@@ -88,7 +87,6 @@ export const character: Character = $state({
   stats: { ...INITIAL_STATS },
   level: Decimal.ONE,
   xp: Decimal.ZERO,
-  totalXp: Decimal.ZERO,
   xpNeeded: Decimal.HUNDRED,
   momentum: 0,
   overcharge: 0,
@@ -153,7 +151,6 @@ export function resetCharacter(): void {
   character.stats = { ...INITIAL_STATS };
   character.level = Decimal.ONE;
   character.xp = Decimal.ZERO;
-  character.totalXp = Decimal.ZERO;
   character.kills = Decimal.ZERO;
   character.momentum = 0;
   character.overcharge = 0;

@@ -1,86 +1,50 @@
 <script lang="ts">
-import { miningState, tools, buyMiningUpgrade } from '../modules/mining.svelte.js';
-import { bestiaryState } from '../modules/bestiary.svelte.js';
-import { uiStore } from '../stores/uiStore.svelte.js';
-import { formatValue } from '../systems/formatValue.js';
-import { Decimal } from '../systems/decimal.js';
-import { invalidateBulkCostCache, calculateBulkCost, type CostFormula } from '../utils/bulkCost.js';
-import { maxAffordable } from '../utils/maxAffordable.js';
-import type { MiningUpgradeType } from '../modules/mining.svelte.js';
-import { onMount, untrack } from 'svelte';
+  import { miningState, buyMiningUpgrade } from '../modules/mining.svelte.js';
+  import { bestiaryState } from '../modules/bestiary.svelte.js';
+  import { uiStore } from '../stores/uiStore.svelte.js';
+  import { formatValue } from '../systems/formatValue.js';
+  import { Decimal } from '../systems/decimal.js';
+  import { invalidateBulkCostCache, calculateBulkCost, type CostFormula } from '../utils/bulkCost.js';
+  import { maxAffordable } from '../utils/maxAffordable.js';
+  import type { MiningUpgradeType } from '../modules/mining.svelte.js';
 
-const buyAmount = $derived(uiStore.buyAmount);
+  const buyAmount = $derived(uiStore.buyAmount);
 
-// Upgrade costs — throttled to avoid recalculating on every tick
-function computeCosts() {
-  const a = buyAmount;
-  const data = bestiaryState.dataFragments;
-  const s = miningState.sharpness;
-  const e = miningState.extraction;
-  const d = miningState.discovery;
-  const se = miningState.sensors;
-  const ef = miningState.efficiency;
-
-  return {
-    sharpness:      getCost({ type: 'linear', base: 0, gain: 1000 }, s, a, data),
-    extraction:     getCost({ type: 'linear', base: 0, gain: 200 }, e, a, data),
-    discovery:     getCost({ type: 'geometric', base: 500, multiplier: 10 }, d,
-                          a === 'max' ? Math.min(10 - d, 10) : Math.min(a as number, 10 - d), data),
-    sensors:        getCost({ type: 'linear', base: 2000, gain: 2000 }, se, a, data),
-    efficiency:    getCost({ type: 'linear', base: 1500, gain: 1500 }, ef, a, data),
-  };
-}
-
-let costs = $state(computeCosts());
-let _lastCostUpdate = 0;
-
-function refreshCosts() {
-  const now = performance.now();
-  if (now - _lastCostUpdate > 200) {
-    _lastCostUpdate = now;
-    costs = computeCosts();
+  function getCost(formula: CostFormula, level: number, amount: number | 'max', budget: Decimal): { cost: Decimal, count: number } {
+    const count = amount === 'max' ? maxAffordable(budget, level, formula).toNumber() : amount;
+    const cost = calculateBulkCost(formula, level, count);
+    return { cost, count };
   }
-}
 
-$effect(() => {
-  buyAmount;
-  untrack(() => {
-    costs = computeCosts();
-    _lastCostUpdate = performance.now();
+  const costs = $derived({
+    sharpness:    getCost({ type: 'linear', base: 0, gain: 1000 }, miningState.sharpness, buyAmount, bestiaryState.dataFragments),
+    extraction:   getCost({ type: 'linear', base: 0, gain: 200 }, miningState.extraction, buyAmount, bestiaryState.dataFragments),
+    discovery:    getCost({ type: 'geometric', base: 500, multiplier: 10 }, miningState.discovery,
+                        buyAmount === 'max' ? Math.min(10 - miningState.discovery, 10) : Math.min(buyAmount as number, 10 - miningState.discovery), bestiaryState.dataFragments),
+    sensors:      getCost({ type: 'linear', base: 2000, gain: 2000 }, miningState.sensors, buyAmount, bestiaryState.dataFragments),
+    efficiency:   getCost({ type: 'linear', base: 1500, gain: 1500 }, miningState.efficiency, buyAmount, bestiaryState.dataFragments),
   });
-});
 
-onMount(() => {
-  const id = setInterval(() => refreshCosts(), 250);
-  return () => clearInterval(id);
-});
+  function doBuy(type: MiningUpgradeType) {
+    buyMiningUpgrade(type, buyAmount);
+    invalidateBulkCostCache();
+  }
 
-function getCost(formula: CostFormula, level: number, amount: number | 'max', budget: Decimal): { cost: Decimal, count: number } {
-  const count = amount === 'max' ? maxAffordable(budget, level, formula).toNumber() : amount;
-  const cost = calculateBulkCost(formula, level, count);
-  return { cost, count };
-}
+  function buyMax(type: MiningUpgradeType) {
+    buyMiningUpgrade(type, 'max');
+    invalidateBulkCostCache();
+  }
 
-function fmt(v: any): string { return formatValue(v); }
-function canAfford(cost: Decimal | number): boolean { return bestiaryState.dataFragments.gte(cost); }
+  function fmt(v: any): string { return formatValue(v); }
+  function canAfford(cost: Decimal | number): boolean { return bestiaryState.dataFragments.gte(cost); }
 
-function doBuy(type: MiningUpgradeType) {
-  buyMiningUpgrade(type, buyAmount);
-  invalidateBulkCostCache();
-}
-
-function buyMax(type: MiningUpgradeType) {
-  buyMiningUpgrade(type, 'max');
-  invalidateBulkCostCache();
-}
-
-const UPGRADE_DEFS: Array<{ key: MiningUpgradeType; label: string; cap?: number }> = [
-  { key: 'discovery',      label: 'Discovery',  cap: 10 },
-  { key: 'sharpness',     label: 'Sharpness'       },
-  { key: 'extraction',    label: 'Extraction'      },
-  { key: 'sensors',       label: 'Sensors'         },
-  { key: 'efficiency',    label: 'Efficiency'      },
-];
+  const UPGRADE_DEFS: Array<{ key: MiningUpgradeType; label: string; cap?: number }> = [
+    { key: 'discovery', label: 'Discovery', cap: 10 },
+    { key: 'sharpness', label: 'Sharpness' },
+    { key: 'extraction', label: 'Extraction' },
+    { key: 'sensors', label: 'Sensors' },
+    { key: 'efficiency', label: 'Efficiency' },
+  ];
 </script>
 
 <div class="upg-list">

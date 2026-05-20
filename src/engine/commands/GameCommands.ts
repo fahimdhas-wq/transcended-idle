@@ -93,7 +93,6 @@ function handleAddXP(amount: DecimalSource): CommandResult {
   if (xpGain.lte(0)) return { success: false, reason: 'Invalid XP amount' };
 
   character.xp = character.xp.add(xpGain);
-  character.totalXp = character.totalXp.add(xpGain);
   eventBus.emit({ type: 'XP_GAINED', amount: xpGain });
 
   return { success: true };

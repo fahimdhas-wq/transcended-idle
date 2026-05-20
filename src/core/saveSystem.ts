@@ -88,6 +88,7 @@ function safeMerge(state: MutableRecord, savedData: unknown): void {
       const m = finiteNumber(savedValue.m);
       const e = finiteNumber(savedValue.e);
       if (m !== null && e !== null) {
+        if (currentValue instanceof Decimal && currentValue.m === m && currentValue.e === e) return;
         state[key] = typeof currentValue === 'number'
           ? m * Math.pow(10, e)
           : new Decimal(m, e);
@@ -99,6 +100,7 @@ function safeMerge(state: MutableRecord, savedData: unknown): void {
     }
 
     if (currentValue instanceof Decimal) {
+      if (currentValue === savedValue) return;
       state[key] = new Decimal(savedValue as number | string | Decimal | { m: number; e: number });
       return;
     }
@@ -296,7 +298,7 @@ export const saveSystem = {
           (e as { kills: Decimal }).kills = new Decimal(kills);
         } else if (kills !== null && typeof kills === 'object' && 'm' in kills && 'e' in kills) {
           (e as { kills: Decimal }).kills = new Decimal(kills as { m: number; e: number });
-        } else if (!(kills instanceof Decimal)) {
+        } else if (typeof kills !== 'object' || !('_decimal' in (kills as object))) {
           (e as { kills: Decimal }).kills = Decimal.ZERO;
         }
       });

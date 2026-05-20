@@ -6,6 +6,25 @@
   let unlockedCount = $derived(Object.keys(achievementState.unlocked).length);
   const total = achievementDefs.length;
   let pct = $derived((unlockedCount / total * 100).toFixed(1));
+
+  const ROW_HEIGHT = 72;
+  const BUFFER = 3;
+  let scrollContainer = $state<HTMLElement | null>(null);
+  let scrollTop = $state(0);
+  let containerHeight = $state(500);
+
+  const visibleStart = $derived(Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - BUFFER));
+  const visibleEnd = $derived(Math.min(achievementDefs.length, Math.ceil((scrollTop + containerHeight) / ROW_HEIGHT) + BUFFER));
+  const visibleAchievements = $derived(achievementDefs.slice(visibleStart, visibleEnd).map((ach, i) => ({
+    ach,
+    idx: visibleStart + i
+  })));
+  const totalHeight = $derived(achievementDefs.length * ROW_HEIGHT);
+
+  function handleScroll(e: Event) {
+    const el = e.target as HTMLElement;
+    scrollTop = el.scrollTop;
+  }
 </script>
 
 <div class="ach-panel">
@@ -27,20 +46,24 @@
     <div class="ach-progress-fill" style:width="{pct}%"></div>
   </div>
 
-  <div class="ach-list">
-    {#each achievementDefs as ach (ach.id)}
-      {@const unlocked = achievementState.unlocked[ach.id]}
-      <div class="ach-card" class:unlocked>
-        <div class="ach-top">
-          <div class="ach-icon"></div>
-          <div class="ach-info">
-            <span class="ach-name">{ach.name}</span>
-            <span class="ach-desc">{ach.desc}</span>
+  <div class="ach-list" onscroll={handleScroll} bind:this={scrollContainer} style="overflow-y: auto; height: 100%;">
+    <div style="height: {totalHeight}px; position: relative;">
+      {#each visibleAchievements as item (item.ach.id)}
+        {@const unlocked = achievementState.unlocked[item.ach.id]}
+        <div class="ach-card" class:unlocked={unlocked}
+          style="position: absolute; top: {item.idx * ROW_HEIGHT}px; left: 0; right: 0; box-sizing: border-box;"
+        >
+          <div class="ach-top">
+            <div class="ach-icon"></div>
+            <div class="ach-info">
+              <span class="ach-name">{item.ach.name}</span>
+              <span class="ach-desc">{item.ach.desc}</span>
+            </div>
+            <div class="ach-bonus" class:bonus-active={unlocked}>{item.ach.bonusDesc}</div>
           </div>
-          <div class="ach-bonus" class:bonus-active={unlocked}>{ach.bonusDesc}</div>
         </div>
-      </div>
-    {/each}
+      {/each}
+    </div>
   </div>
 </div>
 
@@ -153,6 +176,8 @@
   border: 1px solid var(--line);
   padding: 10px 12px;
   transition: all var(--fast);
+  height: 62px;
+  box-sizing: border-box;
 }
 .ach-card.unlocked {
   border-color: var(--gold);

@@ -1,71 +1,14 @@
 <script lang="ts">
-import { combatState, getEffectiveCombatStats } from '../modules/combat.svelte.js';
+import { combatState } from '../modules/combat.svelte.js';
 import { character } from '../modules/character.svelte.js';
 import { formatValue } from '../systems/formatValue.js';
-import { getPowerTier } from '../systems/powerTier.js';
 import { Decimal } from '../systems/decimal.js';
-import { onMount } from 'svelte';
 import type { MobType } from '../data/mobs.js';
-import Value from './Value.svelte';
+import { bestiaryState } from '../modules/bestiary.svelte.js';
 
 let { compact = false }: { compact?: boolean } = $props();
 
-let showAdvanced = $state(false);
-
-const combatDialogues = [
-  'SLAYING DEMONS...',
-  'PURGING EVIL...',
-  'DEFENDING REALM...',
-  'BREAKING DIMENSIONS...',
-  'EXECUTING PROTOCOL...',
-  'ANNIHILATING THREAT...',
-  'SACRIFICING ALL...',
-  'OVERCLOCKING SYSTEM...',
-  'RIPPING THROUGH...',
-  'CONSUMING DARKNESS...',
-  'ASCENDING BEYOND...',
-  'TEARING FATE...',
-  'VOID CRAVES MORE...',
-  'TRANSCENDING LIMITS...',
-  'SLAYING LEGENDS...',
-];
-let dialogueIndex = $state(0);
-
-onMount(() => {
-  const interval = setInterval(() => {
-    dialogueIndex = (dialogueIndex + 1) % combatDialogues.length;
-  }, 2500);
-  return () => clearInterval(interval);
-});
-
-// Single derived block for all combat display data — reduces reactive overhead
 let combatDisplay = $derived.by(() => {
-  const stats = getEffectiveCombatStats();
-  const hp = character.stats?.hp ?? Decimal.ZERO;
-  const mHp = stats.hp;
-  const sh = character.stats?.defense ?? Decimal.ZERO;
-  const mSh = stats.def;
-  const xp = character.xp ?? Decimal.ZERO;
-  const xpN = character.xpNeeded ?? Decimal.ONE;
-
-  const playerHpPct = (() => {
-    if (hp.gte(mHp) && mHp.gt(0)) return 100;
-    const pct = hp.div(mHp).mul(100).toNumber();
-    return isNaN(pct) ? 100 : Math.max(0, Math.min(100, pct));
-  })();
-
-  const playerShPct = (() => {
-    if (sh.gte(mSh) && mSh.gt(0)) return 100;
-    const pct = sh.div(mSh).mul(100).toNumber();
-    return isNaN(pct) ? 100 : Math.max(0, Math.min(100, pct));
-  })();
-
-  const xpPct = (() => {
-    if (xp.gte(xpN) && xpN.gt(0)) return 100;
-    const pct = xp.div(xpN).mul(100).toNumber();
-    return isNaN(pct) ? 0 : Math.min(100, pct);
-  })();
-
   const enemyHpPct = (() => {
     if (!combatState.enemy?.maxHp) return 0;
     const eHp = combatState.enemy.hp ?? Decimal.ZERO;
@@ -75,24 +18,29 @@ let combatDisplay = $derived.by(() => {
     return isNaN(pct) ? 0 : Math.min(100, pct);
   })();
 
-  return {
-    stats,
-    maxHp: stats.hp,
-    maxSh: stats.def,
-    attackVal: stats.atk,
-    regenHpVal: stats.regenHp.mul(10),
-    regenDefVal: stats.regenDef.mul(10),
-    powerTier: getPowerTier(stats.atk),
-    playerHpPct,
-    playerShPct,
-    xpPct,
-    enemyHpPct,
-    hpIsLow: playerHpPct < 25,
-  };
+  const playerHp = character.stats?.hp ?? Decimal.ZERO;
+  const playerMaxHp = character.stats?.maxHp ?? Decimal.HUNDRED;
+  const playerHpPct = playerHp.gte(playerMaxHp) ? 100 : Math.min(100, playerHp.div(playerMaxHp).mul(100).toNumber());
+
+  const playerDef = character.stats?.defense ?? Decimal.ZERO;
+  const playerMaxDef = character.stats?.maxDefense ?? Decimal.FIFTY;
+  const playerShPct = playerDef.gte(playerMaxDef) ? 100 : Math.min(100, playerDef.div(playerMaxDef).mul(100).toNumber());
+
+  const hpIsLow = playerHpPct < 20;
+
+  return { enemyHpPct, playerHpPct, playerShPct, hpIsLow };
 });
 
 function typeLabel(type: MobType): string {
   return (type || 'UNKNOWN').toUpperCase();
+}
+
+function getZoneName(level: number): string {
+  if (level < 50) return 'NEURAL WASTES';
+  if (level < 200) return 'CRYSTAL VALLEYS';
+  if (level < 500) return 'VOID DEPTHS';
+  if (level < 1000) return 'SINGULARITY CORE';
+  return 'TRANSCENDENCE';
 }
 </script>
 
@@ -129,83 +77,36 @@ function typeLabel(type: MobType): string {
             <div class="c-bar-fill hp" style="width:{combatDisplay.enemyHpPct}%"></div>
           </div>
         {:else}
-          <span class="c-scan">▸ {combatDialogues[dialogueIndex]}</span>
+          <span class="c-scan">SEARCHING...</span>
         {/if}
       </div>
     </div>
   </div>
 {:else}
 <div class="arena">
-  <!-- PLAYER HUD -->
-  <div class="player-hud">
-    <!-- Level & Class -->
-    <div class="player-identity">
-      <div class="identity-main">
-        <span class="label">LVL</span>
-        <span class="value">{formatValue(character.level ?? 0)}</span>
+  <div class="panel-header">
+    <div class="header-left">
+      <div class="header-icon">&#11043;</div>
+      <div class="header-text">
+        <h2 class="transcended-text">SYS.COMBAT</h2>
+        <span class="transcended-sub">ENGAGEMENT PROTOCOL</span>
       </div>
-      <div class="identity-divider"></div>
-      <div class="identity-class">
-        <span class="tier-badge {combatDisplay.powerTier.class}">{combatDisplay.powerTier.name}</span>
-      </div>
-      <button class="expand-btn" onclick={() => showAdvanced = !showAdvanced}>
-        {showAdvanced ? '[-]' : '[+]'}
-      </button>
     </div>
-
-    <!-- Advanced Stats -->
-    {#if showAdvanced}
-      <div class="adv-grid">
-        <div class="adv-item"><span class="a-lbl">CRIT</span><span class="a-val">{character.stats.critChance * 100 > 0 ? (character.stats.critChance * 100).toFixed(1) + '%' : '—'}</span></div>
-        <div class="adv-item"><span class="a-lbl">KILLS</span><span class="a-val">{formatValue(character.kills ?? 0)}</span></div>
-        <div class="adv-item"><span class="a-lbl">SKIP</span><span class="a-val">{character.stats.skipDamageChance * 100 > 0 ? (character.stats.skipDamageChance * 100).toFixed(1) + '%' : '—'}</span></div>
-        <div class="adv-item"><span class="a-lbl">HP/s</span><span class="a-val val-green">{formatValue(combatDisplay.regenHpVal)}</span></div>
-        <div class="adv-item"><span class="a-lbl">SH/s</span><span class="a-val val-cyan">{formatValue(combatDisplay.regenDefVal)}</span></div>
-        <div class="adv-item"><span class="a-lbl">SEALS</span><span class="a-val val-gold"><Value n={character.seals} /></span></div>
+    {#if bestiaryState.cachedBoost > 0}
+      <div class="header-stats">
+        <div class="stat-item">
+          <span class="stat-label">COMBAT SYNC</span>
+          <span class="stat-value green">+{(bestiaryState.cachedBoost * 100).toFixed(0)}%</span>
+        </div>
       </div>
     {/if}
-
-    <!-- Health Bars -->
-    <div class="gauge-container">
-      <!-- HP -->
-      <div class="gauge">
-        <div class="gauge-header">
-          <span class="gauge-label red">HP</span>
-          <span class="gauge-value">{formatValue(character.stats?.hp ?? 0)}</span>
-        </div>
-        <div class="bar-track">
-          <div class="bar-fill hp" class:hp-critical={combatDisplay.hpIsLow} style="width:{combatDisplay.playerHpPct}%"></div>
-        </div>
-      </div>
-
-      <!-- Shield -->
-      <div class="gauge">
-        <div class="gauge-header">
-          <span class="gauge-label cyan">SH</span>
-          <span class="gauge-value">{formatValue(character.stats?.defense ?? 0)}</span>
-        </div>
-        <div class="bar-track">
-          <div class="bar-fill sh" style="width:{combatDisplay.playerShPct}%"></div>
-        </div>
-      </div>
-
-      <!-- XP -->
-      <div class="gauge">
-        <div class="gauge-header">
-          <span class="gauge-label gold">XP</span>
-          <span class="gauge-value">{formatValue(character.xp ?? 0)}</span>
-        </div>
-        <div class="bar-track">
-          <div class="bar-fill xp" style="width:{combatDisplay.xpPct}%"></div>
-        </div>
-      </div>
-    </div>
   </div>
 
   <!-- ENEMY ZONE -->
   <div class="enemy-zone">
     {#if combatState.enemy}
       <div class="target-card">
+        <div class="zone-label">{getZoneName(combatState.enemy.level?.toNumber() ?? 0)}</div>
         <div class="target-header">
           <div class="target-info">
             <span class="target-name">{combatState.enemy.name}</span>
@@ -228,9 +129,28 @@ function typeLabel(type: MobType): string {
         </div>
       </div>
     {:else}
-      <div class="scanning">
-        <span class="scan-icon">▸</span>
-        <span class="scan-text">{combatDialogues[dialogueIndex]}</span>
+      <div class="target-card waiting">
+        <div class="zone-label">{getZoneName(character.level.toNumber())}</div>
+        <div class="target-header">
+          <div class="target-info">
+            <span class="target-name">SEARCHING...</span>
+            <span class="target-type">NO TARGET ACQUIRED</span>
+          </div>
+          <div class="target-level">
+            <span class="lvl-label">LVL</span>
+            <span class="lvl-value">{formatValue(character.level ?? 0)}</span>
+          </div>
+        </div>
+        <div class="target-health">
+          <div class="bar-track empty">
+            <div class="bar-fill hp" style="width:0%"></div>
+          </div>
+          <div class="health-numbers">
+            <span class="current">—</span>
+            <span class="separator">/</span>
+            <span class="max">—</span>
+          </div>
+        </div>
       </div>
     {/if}
   </div>
@@ -245,144 +165,48 @@ function typeLabel(type: MobType): string {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   PLAYER HUD
-══════════════════════════════════════════════════════════════════ */
+   PANEL HEADER
+═════════════════════════════════════════════════════════════════ */
 
-.player-hud {
-  flex-shrink: 0;
-  padding: 12px;
-  border-bottom: 1px solid var(--line);
-}
-
-.player-identity {
+.panel-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 10px;
-}
-
-.identity-main {
-  display: flex;
-  flex-direction: column;
-}
-
-.identity-main .label {
-  font-family: var(--font-hud);
-  font-size: 0.5rem;
-  font-weight: 600;
-  letter-spacing: 0.15em;
-  color: var(--text-2);
-  text-transform: uppercase;
-}
-
-.identity-main .value {
-  font-family: var(--font-data);
-  font-size: 1.4rem;
-  font-weight: 700;
-  color: var(--text-0);
-  line-height: 1;
-}
-
-.identity-divider {
-  width: 1px;
-  height: 28px;
-  background: var(--line);
-}
-
-.identity-class {
-  flex: 1;
-}
-
-.expand-btn {
-  font-family: var(--font-data);
-  font-size: 0.6rem;
-  padding: 4px 8px;
-  background: var(--bg-0);
-  border: 1px solid var(--line);
-  color: var(--text-2);
-}
-
-.expand-btn:hover {
-  border-color: var(--cyan);
-  color: var(--cyan);
-}
-
-/* Advanced Grid */
-.adv-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 4px;
-  padding: 8px;
-  background: var(--bg-1);
-  border: 1px solid var(--line);
-  margin-bottom: 10px;
-}
-
-.adv-item {
-  display: flex;
   justify-content: space-between;
-  padding: 4px 6px;
-  background: var(--bg-0);
-}
-
-.a-lbl {
-  font-family: var(--font-hud);
-  font-size: 0.5rem;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  color: var(--text-2);
-  text-transform: uppercase;
-}
-
-.a-val {
-  font-family: var(--font-data);
-  font-size: 0.65rem;
-  color: var(--text-0);
-}
-
-/* ═══════════════════════════════════════════════════════════════════
-   GAUGES
-══════════════════════════════════════════════════════════════════ */
-
-.gauge-container {
-  display: flex;
-  flex-direction: column;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+  flex-wrap: wrap;
   gap: 8px;
 }
-
-.gauge {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.gauge-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.gauge-label {
+.header-left { display: flex; align-items: center; gap: 10px; }
+.header-icon { font-size: 1rem; color: var(--cyan); }
+.header-text { display: flex; flex-direction: column; gap: 1px; }
+.header-stats { display: flex; gap: 16px; }
+.stat-item { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+.stat-label { font-family: var(--font-hud); font-size: 0.5rem; font-weight: 600; letter-spacing: 0.12em; color: var(--text-2); text-transform: uppercase; }
+.stat-value { font-family: var(--font-data); font-size: 0.8rem; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text-0); }
+.green { color: var(--green); }
+.transcended-text {
   font-family: var(--font-hud);
-  font-size: 0.55rem;
+  font-size: 0.85rem;
   font-weight: 700;
-  letter-spacing: 0.15em;
+  letter-spacing: 0.12em;
+  color: var(--text-0);
+  margin: 0;
   text-transform: uppercase;
 }
-
-.gauge-label.red { color: var(--red); }
-.gauge-label.cyan { color: var(--cyan); }
-.gauge-label.gold { color: var(--gold); }
-
-.gauge-value {
-  font-family: var(--font-data);
-  font-size: 0.7rem;
-  color: var(--text-0);
+.transcended-sub {
+  font-family: var(--font-hud);
+  font-size: 0.5rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--text-2);
+  text-transform: uppercase;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
    ENEMY ZONE
-══════════════════════════════════════════════════════════════════ */
+═════════════════════════════════════════════════════════════════ */
 
 .enemy-zone {
   flex: 1;
@@ -394,19 +218,60 @@ function typeLabel(type: MobType): string {
     radial-gradient(ellipse 60% 40% at 50% 50%, hsl(0 100% 60% / 0.05) 0%, transparent 70%);
 }
 
+.bar-track {
+  height: 14px;
+  background: hsl(0 0% 0% / 0.5);
+  border: 1px solid hsl(0 100% 60% / 0.2);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.bar-track.empty {
+  border-color: var(--line);
+}
+
+.bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--red), hsl(0 100% 70%));
+  border-radius: 3px;
+  transition: width 150ms ease;
+}
+
+.bar-fill.hp {
+  background: linear-gradient(90deg, var(--red), hsl(0 100% 70%));
+}
+
 .target-card {
   width: 100%;
-  max-width: 340px;
+  max-width: 400px;
   background: var(--bg-2);
-  border: 1px solid hsl(0 100% 60% / 0.2);
-  padding: 14px;
+  border: 1px solid hsl(0 100% 60% / 0.25);
+  padding: 20px;
+  box-shadow: 0 0 20px hsl(0 100% 60% / 0.1);
+}
+
+.target-card.waiting {
+  border-color: var(--line);
+  box-shadow: none;
+}
+
+.zone-label {
+  font-family: var(--font-hud);
+  font-size: 0.5rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  color: var(--cyan);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--line);
 }
 
 .target-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 10px;
+  margin-bottom: 14px;
 }
 
 .target-info {
@@ -417,7 +282,7 @@ function typeLabel(type: MobType): string {
 
 .target-name {
   font-family: var(--font-hud);
-  font-size: 1rem;
+  font-size: 1.5rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -426,7 +291,7 @@ function typeLabel(type: MobType): string {
 
 .target-type {
   font-family: var(--font-hud);
-  font-size: 0.5rem;
+  font-size: 0.65rem;
   font-weight: 600;
   letter-spacing: 0.2em;
   color: var(--text-2);
@@ -437,14 +302,14 @@ function typeLabel(type: MobType): string {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  padding: 4px 10px;
+  padding: 6px 14px;
   background: hsl(45 100% 60% / 0.1);
   border: 1px solid hsl(45 100% 60% / 0.25);
 }
 
 .lvl-label {
   font-family: var(--font-hud);
-  font-size: 0.45rem;
+  font-size: 0.5rem;
   font-weight: 600;
   letter-spacing: 0.15em;
   color: var(--gold);
@@ -453,7 +318,7 @@ function typeLabel(type: MobType): string {
 
 .lvl-value {
   font-family: var(--font-data);
-  font-size: 0.9rem;
+  font-size: 1.3rem;
   font-weight: 700;
   color: var(--gold);
 }
@@ -461,60 +326,32 @@ function typeLabel(type: MobType): string {
 .target-health {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .health-numbers {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
 }
 
 .current {
   font-family: var(--font-data);
-  font-size: 0.8rem;
+  font-size: 1rem;
   font-weight: 600;
   color: var(--red);
 }
 
 .separator {
   font-family: var(--font-data);
-  font-size: 0.7rem;
+  font-size: 0.85rem;
   color: var(--text-2);
 }
 
 .max {
   font-family: var(--font-data);
-  font-size: 0.7rem;
+  font-size: 0.85rem;
   color: var(--text-2);
-}
-
-/* Scanning */
-.scanning {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.scan-icon {
-  font-family: var(--font-data);
-  font-size: 1rem;
-  color: var(--cyan);
-  animation: blink 1s step-end infinite;
-}
-
-@keyframes blink {
-  0%, 50% { opacity: 1; }
-  51%, 100% { opacity: 0; }
-}
-
-.scan-text {
-  font-family: var(--font-hud);
-  font-size: 0.65rem;
-  font-weight: 600;
-  letter-spacing: 0.15em;
-  color: var(--text-2);
-  text-transform: uppercase;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -615,15 +452,6 @@ function typeLabel(type: MobType): string {
   background: linear-gradient(90deg, var(--cyan), hsl(185 100% 70%));
 }
 
-.hp-critical {
-  animation: hp-flash 0.5s ease-in-out infinite alternate;
-}
-
-@keyframes hp-flash {
-  from { opacity: 1; }
-  to { opacity: 0.5; }
-}
-
 .c-enemy {
   flex: 1;
   display: flex;
@@ -672,7 +500,6 @@ function typeLabel(type: MobType): string {
   font-size: 0.5rem;
   font-weight: 600;
   letter-spacing: 0.12em;
-  color: var(--cyan);
-  animation: blink 1s step-end infinite;
+  color: var(--text-2);
 }
 </style>

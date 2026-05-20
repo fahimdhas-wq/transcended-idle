@@ -3,7 +3,6 @@
   import { character } from '../modules/character.svelte.js';
   import { formatNumber } from '../systems/scalingSystem.js';
   import { Decimal } from '../systems/decimal.js';
-  import { bestiaryState } from '../modules/bestiary.svelte.js';
   import { getPowerTier } from '../systems/powerTier.js';
   import Value from './Value.svelte';
 
@@ -33,23 +32,7 @@
 
 <div class="char-panel">
 
-  <div class="panel-header">
-    <div class="header-left">
-      <div class="header-icon">&#11043;</div>
-      <div class="header-text">
-        <h2 class="transcended-text">SYS.IDENTITY</h2>
-        <span class="transcended-sub">CORE CHARACTER DATA</span>
-      </div>
-    </div>
-    {#if bestiaryState.cachedBoost > 0}
-      <div class="header-stats">
-        <div class="stat-item">
-          <span class="stat-label">COMBAT SYNC</span>
-          <span class="stat-value green">+{(bestiaryState.cachedBoost * 100).toFixed(0)}%</span>
-        </div>
-      </div>
-    {/if}
-  </div>
+  <div class="panel-header"></div>
 
   <!-- Level + XP -->
   <div class="level-block">
@@ -139,23 +122,8 @@
 }
 
 .panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--line);
-  flex-shrink: 0;
-  flex-wrap: wrap;
-  gap: 8px;
+  display: none;
 }
-.header-left { display: flex; align-items: center; gap: 10px; }
-.header-icon { font-size: 1rem; color: var(--cyan); }
-.header-text { display: flex; flex-direction: column; gap: 1px; }
-.header-stats { display: flex; gap: 16px; }
-.stat-item { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
-.stat-label { font-family: var(--font-hud); font-size: 0.5rem; font-weight: 600; letter-spacing: 0.12em; color: var(--text-2); text-transform: uppercase; }
-.stat-value { font-family: var(--font-data); font-size: 0.8rem; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text-0); }
-.green { color: var(--green); }
 
 /* ── LEVEL BLOCK ────────────────────────────── */
 .level-block {

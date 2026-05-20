@@ -69,11 +69,16 @@ export function spawnEnemy(): void {
 // Cache for getEffectiveCombatStats (expires each game tick)
 let cachedStats: CombatStats | null = null;
 let cacheTickId = -1;
+let cachedSkillTiers: Record<string, number> = {};
 
 /** Force-invalidates the stat cache so the next call recalculates fresh. */
 export function flushStatCache(): void {
   cachedStats = null;
   cacheTickId = -1;
+  cachedSkillTiers = {};
+  skillsState.skills.forEach(s => {
+    cachedSkillTiers[s.id] = s.tierIndex;
+  });
 }
 
 /**
@@ -133,29 +138,26 @@ export function getEffectiveCombatStats(): CombatStats {
   let finalCritMult = Decimal.TWO.mul(1 + ascCritDmg + riftCritDmg); // Base 2x × ascension + rift crit damage
   let finalSkipChance = Math.min(1.0, character.stats.skipDamageChance || 0);
 
-  // Skill Stat Conversions (Converting "on-use" to "per-tick")
-  skillsState.skills.forEach(skill => {
-    if (skill.tierIndex <= 0) return;
-    const tierPower = Decimal.TWO.pow(skill.tierIndex - 1); // 1, 2, 4, 8... for tier 1, 2, 3...
+  // Skill Stat Conversions (Converting "on-use" to "per-tick") — uses cached tier values
+  for (const skill of skillsState.skills) {
+    const tierIndex = cachedSkillTiers[skill.id] ?? skill.tierIndex;
+    if (tierIndex <= 0) continue;
+    const tierPower = Decimal.TWO.pow(tierIndex - 1);
 
     if (skill.id === 'emp_strike') {
-      // 3x ATK per "activation". Assuming activate every tick if autoCast.
       finalAtk = finalAtk.add(character.stats.attack.mul(3).mul(tierPower).mul(atkMult));
     } else if (skill.id === 'chain_hack') {
-      // 2x ATK for 3 ticks = 6x ATK total per activation.
       finalAtk = finalAtk.add(character.stats.attack.mul(6).mul(tierPower).mul(atkMult));
     } else if (skill.id === 'nano_repair') {
-      // 20% Max HP/SH per activation.
       finalRegHp = finalRegHp.add(finalMaxHp.mul(0.2).mul(tierPower));
       finalRegDef = finalRegDef.add(finalMaxDef.mul(0.2).mul(tierPower));
     } else if (skill.id === 'shield_surge') {
-      // 30% Max SH per activation + 1% skip per tier.
       finalRegDef = finalRegDef.add(finalMaxDef.mul(0.3).mul(tierPower));
-      finalSkipChance = Math.min(1.0, finalSkipChance + (0.01 * skill.tierIndex));
+      finalSkipChance = Math.min(1.0, finalSkipChance + (0.01 * tierIndex));
     } else if (skill.id === 'crit_surge') {
       finalCritMult = finalCritMult.add(Decimal.ZERO_POINT_FIVE.mul(tierPower));
     }
-  });
+  }
 
   // Level-based damage multiplier — kills speed up at high levels
   const levelDmgMult = character.level.pow(0.5).max(1);

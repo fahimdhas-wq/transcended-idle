@@ -1,66 +1,40 @@
 <script lang="ts">
-import { forestryState, buyForestryUpgrade, bioTools } from '../modules/forestry.svelte.js';
-import { invalidateBulkCostCache } from '../utils/bulkCost.js';
-import { maxAffordable } from '../utils/maxAffordable.js';
-import { calculateBulkCost, type CostFormula } from '../utils/bulkCost.js';
-import { uiStore, showToast } from '../stores/uiStore.svelte.js';
-import { formatValue } from '../systems/formatValue.js';
-import { Decimal } from '../systems/decimal.js';
-import type { ForestryUpgradeType } from '../modules/forestry.svelte.js';
-import { onMount, untrack } from 'svelte';
+  import { forestryState, buyForestryUpgrade } from '../modules/forestry.svelte.js';
+  import { invalidateBulkCostCache } from '../utils/bulkCost.js';
+  import { maxAffordable } from '../utils/maxAffordable.js';
+  import { calculateBulkCost, type CostFormula } from '../utils/bulkCost.js';
+  import { uiStore } from '../stores/uiStore.svelte.js';
+  import { formatValue } from '../systems/formatValue.js';
+  import { Decimal } from '../systems/decimal.js';
+  import type { ForestryUpgradeType } from '../modules/forestry.svelte.js';
 
-const buyAmount = $derived(uiStore.buyAmount);
+  const buyAmount = $derived(uiStore.buyAmount);
 
-function resolveCost(formula: CostFormula, currentLevel: number, amount: number | 'max', budget: Decimal): { cost: Decimal, count: number } {
-  const count = amount === 'max' ? maxAffordable(budget, currentLevel, formula).toNumber() : amount;
-  const cost = calculateBulkCost(formula, currentLevel, count);
-  return { cost, count };
-}
+  function resolveCost(formula: CostFormula, currentLevel: number, amount: number | 'max', budget: Decimal): { cost: Decimal, count: number } {
+    const count = amount === 'max' ? maxAffordable(budget, currentLevel, formula).toNumber() : amount;
+    const cost = calculateBulkCost(formula, currentLevel, count);
+    return { cost, count };
+  }
 
-function computeCosts() {
-  return {
+  const costs = $derived({
     chainsawFuel: resolveCost({ type: 'linear', base: 0, gain: 500 }, forestryState.chainsawFuel, buyAmount, forestryState.dnaFragments),
     reforestation: resolveCost({ type: 'linear', base: 0, gain: 200 }, forestryState.reforestation, buyAmount, forestryState.dnaFragments),
     ancientSaplings: resolveCost({ type: 'geometric', base: 100, multiplier: 10 }, forestryState.ancientSaplings, buyAmount === 'max' ? Math.min(10 - forestryState.ancientSaplings, 10) : Math.min(buyAmount as number, 10 - forestryState.ancientSaplings), forestryState.dnaFragments),
     mutationPower: resolveCost({ type: 'linear', base: 1500, gain: 1500 }, forestryState.mutationPower, buyAmount, forestryState.dnaFragments),
     efficiency: resolveCost({ type: 'linear', base: 1000, gain: 1000 }, forestryState.efficiency, buyAmount, forestryState.dnaFragments),
-  };
-}
-
-let costs = $state(computeCosts());
-let _lastCostUpdate = 0;
-function refreshCosts() {
-  const now = performance.now();
-  if (now - _lastCostUpdate > 200) {
-    _lastCostUpdate = now;
-    costs = computeCosts();
-  }
-}
-
-$effect(() => {
-  buyAmount;
-  untrack(() => {
-    costs = computeCosts();
-    _lastCostUpdate = performance.now();
   });
-});
 
-onMount(() => {
-  const id = setInterval(() => refreshCosts(), 250);
-  return () => clearInterval(id);
-});
+  function fmt(v: any): string { return formatValue(v); }
+  function canAfford(cost: Decimal | number): boolean { return forestryState.dnaFragments.gte(cost); }
 
-function fmt(v: any): string { return formatValue(v); }
-function canAfford(cost: Decimal | number): boolean { return forestryState.dnaFragments.gte(cost); }
-
-function doBuy(t: ForestryUpgradeType) {
-  buyForestryUpgrade(t, buyAmount);
-  invalidateBulkCostCache();
-}
-function doMax(t: ForestryUpgradeType) {
-  buyForestryUpgrade(t, 'max');
-  invalidateBulkCostCache();
-}
+  function doBuy(t: ForestryUpgradeType) {
+    buyForestryUpgrade(t, buyAmount);
+    invalidateBulkCostCache();
+  }
+  function doMax(t: ForestryUpgradeType) {
+    buyForestryUpgrade(t, 'max');
+    invalidateBulkCostCache();
+  }
 </script>
 
 <div class="upg-list">

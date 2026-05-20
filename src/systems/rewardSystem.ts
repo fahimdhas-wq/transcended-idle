@@ -122,35 +122,22 @@ export const rewardSystem = {
     
     const baseExp = Decimal.TEN.mul(enemyLvl.pow(1.5));
     
-    let xpGain = baseExp.mul(totalKills).mul(xpMult).mul(sealMult).mul(omni).mul(getXpMultiplier()).mul(1 + getRiftTotalBonus('xp')).mul(getParadoxXpMult()).mul(getBoostXpMult());
-    
-    if (!character.totalXp || character.totalXp.m === 0) {
-      character.totalXp = character.xp; // Fallback, totalXp is deprecated
-    }
+let xpGain = baseExp.mul(totalKills).mul(xpMult).mul(sealMult).mul(omni).mul(getXpMultiplier()).mul(1 + getRiftTotalBonus('xp')).mul(getParadoxXpMult()).mul(getBoostXpMult()).mul(5);
 
     character.xp = character.xp.add(xpGain).max(0);
-    character.totalXp = character.totalXp.add(xpGain).max(0);
 
-    this.processLevelUps();
-    this._doLoot(enemy, totalKills);
-    this._doFragments(totalKills);
-  },
-
-  _doFragments(totalKills: Decimal): void {
-    const baseFrag = character.level.div(200).add(0.1).mul(1 + (character.seals || 0));
-    let fragGain = baseFrag.mul(totalKills).mul(getFragmentMultiplier());
-
-    // Data Siphon Skill — doubles each tier × sealMult
+    let fragGain = character.level.div(200).add(0.1).mul(1 + (character.seals || 0)).mul(getFragmentMultiplier()).mul(totalKills);
     const siphon = skillsState.skills.find(s => s.id === 'data_siphon');
     if (siphon && siphon.tierIndex > 0) {
-      const sealMult = Decimal.TEN.pow(character.seals || 0);
       const siphonMult = new Decimal(25).mul(Decimal.TWO.pow(siphon.tierIndex - 1)).mul(totalKills).mul(sealMult);
       fragGain = fragGain.add(siphonMult);
     }
-
     character.skillFragments = character.skillFragments.add(fragGain);
     character.totalFragments = character.totalFragments.add(fragGain);
     trackFragments(fragGain);
+
+    this.processLevelUps();
+    this._doLoot(enemy, totalKills);
   },
 
   _doLoot(enemy: Enemy, totalKills: Decimal): void {
@@ -263,7 +250,7 @@ export const rewardSystem = {
 
   processLevelUps(): number {
     let levelsGainedNum = 0;
-    while (character.xp.gte(character.xpNeeded) && levelsGainedNum < 50) {
+    while (character.xp.gte(character.xpNeeded)) {
       character.xp = character.xp.sub(character.xpNeeded);
       character.level = character.level.add(1);
       updateDerivedStats(); // Updates xpNeeded and base stats for next iteration

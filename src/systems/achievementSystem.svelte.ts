@@ -8,8 +8,10 @@ import { bestiaryState } from '../modules/bestiary.svelte.js';
 import { Decimal } from '../systems/decimal.js';
 import { skillsState } from '../modules/skills.svelte.js';
 
-let lastCheckTime = 0;
-const CHECK_THROTTLE = 1000; // Check achievements max once per second
+let lastCheckTime1 = 0;
+let lastCheckTime2 = 0;
+const TIER1_THROTTLE = 5000;  // kills, levels, seals, crits, survival — check every 5s
+const TIER2_THROTTLE = 30000; // bestiary, skills, data, stats, playtime — check every 30s
 
 export interface AchievementBonus {
   atk?: number;
@@ -181,26 +183,31 @@ export const achievementState: AchievementState = $state({
   unlocked: {}
 });
 
-// FIXED: Throttled check with error logging
+// FIXED: Throttled two-tier check with error logging
+function checkOne(ach: AchievementDef): void {
+  if (!achievementState.unlocked[ach.id]) {
+    try {
+      if (ach.req()) {
+        achievementState.unlocked[ach.id] = true;
+        applyBonus(ach.bonus);
+        addLog(`[ACH] ${ach.name} unlocked! ${ach.bonusDesc}`, 'awakening');
+      }
+    } catch (e) {
+      console.error(`[Achievement Error] Failed to check "${ach.id}":`, e);
+    }
+  }
+}
+
 export function checkAchievements(): void {
   const now = Date.now();
-  if (now - lastCheckTime < CHECK_THROTTLE) return;
-  lastCheckTime = now;
-
-  achievementDefs.forEach(ach => {
-    if (!achievementState.unlocked[ach.id]) {
-      try {
-        const result = ach.req();
-        if (result) {
-          achievementState.unlocked[ach.id] = true;
-          applyBonus(ach.bonus);
-          addLog(`[ACH] ${ach.name} unlocked! ${ach.bonusDesc}`, 'awakening');
-        }
-      } catch (e) {
-        console.error(`[Achievement Error] Failed to check "${ach.id}":`, e);
-      }
-    }
-  });
+  if (now - lastCheckTime1 >= TIER1_THROTTLE) {
+    lastCheckTime1 = now;
+    achievementDefs.slice(0, 80).forEach(checkOne);
+  }
+  if (now - lastCheckTime2 >= TIER2_THROTTLE) {
+    lastCheckTime2 = now;
+    achievementDefs.slice(80).forEach(checkOne);
+  }
 }
 
 export function getAchievementMult(statType: 'atk' | 'hp' | 'regen'): Decimal {

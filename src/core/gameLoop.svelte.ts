@@ -24,7 +24,7 @@ import { tickActivePlay } from '../modules/activePlay.svelte.js';
 import {
   checkAndRotateChallenge,
   checkRotationTick,
-  trackKill,
+  trackKillBatch,
   trackLevelUp,
   trackCrit,
   checkChallengeCompletion,
@@ -184,9 +184,7 @@ export function gameTick(): void {
     // Daily Challenge tracking
     const combatKills = combatState.kills;
     if (combatKills > 0) {
-      for (let i = 0; i < combatKills; i++) {
-        trackKill();
-      }
+      trackKillBatch(combatKills);
       combatState.kills = 0;
     }
     if (combatState.lastHitCrit) {

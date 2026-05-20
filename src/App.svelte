@@ -51,7 +51,7 @@
     'SYSTEM':     SystemPanel
   };
 
-  const bottomTabs: (Tab | 'ALL')[] = ['CHARACTER', 'SKILLS', 'INVENTORY', 'SEALS', 'ALL'];
+  const bottomTabs: (Tab | 'ALL')[] = ['CHARACTER', 'SKILLS', 'BESTIARY', 'DAILY', 'SEALS', 'ALL'];
 
   let activeView = $state<string>('CHARACTER');
   let inMenu = $state(true);
@@ -108,13 +108,6 @@
     </div>
   </header>
 
-  <!-- COMBAT STRIP -->
-  <div class="combat-strip">
-    <div class="combat-inner">
-      <CombatArena compact />
-    </div>
-  </div>
-
   <!-- PANEL CONTENT -->
   <main class="panel-content">
     {#if activeView === 'ALL'}
@@ -131,8 +124,11 @@
       </div>
     {:else}
       {#each allTabs as t}
-        {#if isTabUnlocked(t) && t !== 'COMBAT' && t === activeView}
+        {#if isTabUnlocked(t) && t === activeView}
           <div class="panel-slot active">
+            {#if t === 'CHARACTER'}
+              <CombatArena />
+            {/if}
             {#if componentMap[t]}
               {@const C = componentMap[t]}
               <C />
@@ -253,21 +249,6 @@
 @keyframes pulse {
   0%, 100% { opacity: 1; box-shadow: 0 0 6px var(--green); }
   50% { opacity: 0.6; box-shadow: 0 0 3px var(--green); }
-}
-
-/* ═══════════════════════════════════════════════════════════════════
-   COMBAT STRIP — Always visible at top
-══════════════════════════════════════════════════════════════════ */
-
-.combat-strip {
-  flex-shrink: 0;
-  border-bottom: 1px solid var(--line);
-  background:
-    radial-gradient(ellipse 60% 60% at 50% 50%, hsl(185 100% 60% / 0.03) 0%, transparent 70%);
-}
-
-.combat-inner {
-  padding: 8px 12px;
 }
 
 /* ═══════════════════════════════════════════════════════════════════

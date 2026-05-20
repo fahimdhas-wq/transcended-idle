@@ -61,6 +61,25 @@
 
   let pendingSealIdx = $state<number | null>(null);
   let showModal = $state(false);
+  let scrollContainer = $state<HTMLElement | null>(null);
+
+  const ROW_HEIGHT = 68;
+  const BUFFER = 5;
+  let scrollTop = $state(0);
+  let containerHeight = $state(600);
+
+  const visibleStart = $derived(Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - BUFFER));
+  const visibleEnd = $derived(Math.min(sealRequirements.length, Math.ceil((scrollTop + containerHeight) / ROW_HEIGHT) + BUFFER));
+  const visibleSeals = $derived(sealRequirements.slice(visibleStart, visibleEnd).map((req, i) => ({
+    req,
+    idx: visibleStart + i
+  })));
+  const totalHeight = $derived(sealRequirements.length * ROW_HEIGHT);
+
+  function handleScroll(e: Event) {
+    const el = e.target as HTMLElement;
+    scrollTop = el.scrollTop;
+  }
 
   function killPct(req: Decimal): number {
     if (character.kills.gte(req)) return 100;
@@ -144,45 +163,50 @@
   </div>
 
   <!-- Seals list -->
-  <div class="seals-list">
-    {#each sealRequirements as req, idx}
-      {@const broken = character.seals > idx}
-      {@const available = canBreak(idx)}
-      {@const pct = killPct(req)}
+  <div class="seals-list" onscroll={handleScroll} bind:this={scrollContainer} style="height: 100%; overflow-y: auto;">
+    <div style="height: {totalHeight}px; position: relative;">
+      {#each visibleSeals as item (item.idx)}
+        {@const req = item.req}
+        {@const idx = item.idx}
+        {@const broken = character.seals > idx}
+        {@const available = canBreak(idx)}
+        {@const pct = killPct(req)}
 
-      <div class="seal-row"
-        class:broken={broken}
-        class:available={available}
-        class:locked={!broken && !available && character.seals < idx}
-      >
-        <div class="seal-left">
-          <span class="seal-num">SEAL {idx + 1}</span>
-          <span class="seal-req">{formatNumber(req)} kills</span>
-          <span class="seal-reward">Next: x{formatNumber(Math.pow(10, idx + 1))}</span>
-        </div>
+        <div class="seal-row"
+          class:broken={broken}
+          class:available={available}
+          class:locked={!broken && !available && character.seals < idx}
+          style="position: absolute; top: {idx * ROW_HEIGHT}px; left: 0; right: 0;"
+        >
+          <div class="seal-left">
+            <span class="seal-num">SEAL {idx + 1}</span>
+            <span class="seal-req">{formatNumber(req)} kills</span>
+            <span class="seal-reward">Next: x{formatNumber(Math.pow(10, idx + 1))}</span>
+          </div>
 
-        <div class="seal-mid">
-          {#if broken}
-            <span class="broken-text">BROKEN</span>
-          {:else}
-            <div class="kill-bar-wrap">
-              <div class="kill-bar-fill" style="width:{pct}%"></div>
-            </div>
-            <span class="pct-text">{pct.toFixed(1)}%</span>
-          {/if}
-        </div>
+          <div class="seal-mid">
+            {#if broken}
+              <span class="broken-text">BROKEN</span>
+            {:else}
+              <div class="kill-bar-wrap">
+                <div class="kill-bar-fill" style="width:{pct}%"></div>
+              </div>
+              <span class="pct-text">{pct.toFixed(1)}%</span>
+            {/if}
+          </div>
 
-        <div class="seal-right">
-          {#if broken}
-            <span class="check">&#10003;</span>
-          {:else if available}
-            <button class="break-btn" onclick={() => requestBreak(idx)}>BREAK</button>
-          {:else}
-            <span class="lock-icon">—</span>
-          {/if}
+          <div class="seal-right">
+            {#if broken}
+              <span class="check">&#10003;</span>
+            {:else if available}
+              <button class="break-btn" onclick={() => requestBreak(idx)}>BREAK</button>
+            {:else}
+              <span class="lock-icon">—</span>
+            {/if}
+          </div>
         </div>
-      </div>
-    {/each}
+      {/each}
+    </div>
   </div>
 
 </div>
@@ -275,8 +299,9 @@
   gap: 10px;
   padding: 10px 14px;
   border: 1px solid var(--line);
-  background: transparent;
+  background: var(--bg-1);
   transition: all var(--fast);
+  box-sizing: border-box;
 }
 .seal-row.broken {
   border-color: hsl(0 100% 60% / 0.2);

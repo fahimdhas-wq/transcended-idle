@@ -170,6 +170,11 @@ export function trackKill(): void {
   trackWeeklyProgress(1);
 }
 
+export function trackKillBatch(n: number): void {
+  dailyChallengeState.progress.kills += n;
+  trackWeeklyProgress(n);
+}
+
 export function trackBossKill(): void {
   dailyChallengeState.progress.bossesKilled += 1;
 }
@@ -197,6 +202,10 @@ export function trackLevelUp(): void {
 
 export function trackCrit(): void {
   dailyChallengeState.progress.critsLanded += 1;
+}
+
+export function trackCritBatch(n: number): void {
+  dailyChallengeState.progress.critsLanded += n;
 }
 
 export function trackResources(amount: number): void {

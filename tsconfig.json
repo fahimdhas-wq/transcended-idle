@@ -10,7 +10,6 @@
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
     "skipLibCheck": false,
-    "ignoreDeprecations": "6.0",
     "lib": ["ESNext", "DOM"],
     "paths": {
       "*": ["./*"],

@@ -187,12 +187,18 @@ export function setFlushCacheCallback(cb: () => void): void {
   _flushCache = cb;
 }
 
+let _cachedOmni: Decimal | null = null;
 export function getOmniMult(): Decimal {
+  if (_cachedOmni !== null) return _cachedOmni;
   const omniSkill = skillsState.skills.find(s => s.id === 'omni_stat');
-  if (omniSkill && omniSkill.tierIndex > 0) {
-    return new Decimal(1.2).mul(Decimal.TWO.pow(omniSkill.tierIndex - 1));
-  }
-  return Decimal.ONE;
+  _cachedOmni = omniSkill && omniSkill.tierIndex > 0
+    ? new Decimal(1.2).mul(Decimal.TWO.pow(omniSkill.tierIndex - 1))
+    : Decimal.ONE;
+  return _cachedOmni;
+}
+
+function _invalidateOmniCache(): void {
+  _cachedOmni = null;
 }
 
 export function upgradeAllSkills(): string {
@@ -208,8 +214,13 @@ export function upgradeAllSkills(): string {
   });
   // Only flush cache and trigger UI update once at the end
   if (totalUpgrades > 0) {
+    _invalidateOmniCache();
     if (_flushCache) _flushCache();
   }
   return `System Overhaul: ${totalUpgrades} skill tiers purchased using available fragments.`;
+}
+
+export function invalidateSkillCaches(): void {
+  _invalidateOmniCache();
 }
 

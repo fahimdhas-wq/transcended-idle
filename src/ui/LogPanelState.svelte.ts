@@ -107,33 +107,47 @@ export function incrementKills(amount: number = 1): void {
 
 // Single batched reactive update per second — replace the entire live object
 // so Svelte only fires one signal instead of four separate property mutations.
-setInterval(() => {
-  const now = Date.now();
+let summaryInterval: ReturnType<typeof setInterval> | null = null;
 
-  summaryState.live = {
-    kills: hotTally.kills,
-    loot: hotTally.loot,
-    levels: hotTally.levels,
-    verges: hotTally.verges,
-  };
+function startSummaryInterval(): void {
+  if (summaryInterval) return;
+  summaryInterval = setInterval(() => {
+    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
 
-  if (now - hotTally.startTime >= 60000) {
-    summaryState.history.unshift({
-      time: new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }),
+    const now = Date.now();
+
+    summaryState.live = {
       kills: hotTally.kills,
       loot: hotTally.loot,
       levels: hotTally.levels,
-      verges: hotTally.verges
-    });
-    if (summaryState.history.length > 5) summaryState.history.pop();
+      verges: hotTally.verges,
+    };
 
-    hotTally.kills = 0;
-    hotTally.loot = 0;
-    hotTally.levels = 0;
-    hotTally.verges = 0;
-    hotTally.startTime = now;
+    if (now - hotTally.startTime >= 60000) {
+      summaryState.history.unshift({
+        time: new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }),
+        kills: hotTally.kills,
+        loot: hotTally.loot,
+        levels: hotTally.levels,
+        verges: hotTally.verges
+      });
+      if (summaryState.history.length > 5) summaryState.history.pop();
 
-    summaryState.live = { kills: 0, loot: 0, levels: 0, verges: 0 };
-  }
-}, 1000);
+      hotTally.kills = 0;
+      hotTally.loot = 0;
+      hotTally.levels = 0;
+      hotTally.verges = 0;
+      hotTally.startTime = now;
+
+      summaryState.live = { kills: 0, loot: 0, levels: 0, verges: 0 };
+    }
+  }, 1000);
+}
+
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') startSummaryInterval();
+  });
+  startSummaryInterval();
+}
 
