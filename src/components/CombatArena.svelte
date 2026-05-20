@@ -1,5 +1,5 @@
 <script lang="ts">
-import { combatState } from '../modules/combat.svelte.js';
+import { combatState, SEARCHING_DISPLAY_MS } from '../modules/combat.svelte.js';
 import { character } from '../modules/character.svelte.js';
 import { formatValue } from '../systems/formatValue.js';
 import { Decimal } from '../systems/decimal.js';
@@ -7,6 +7,35 @@ import type { MobType } from '../data/mobs.js';
 import { bestiaryState } from '../modules/bestiary.svelte.js';
 
 let { compact = false }: { compact?: boolean } = $props();
+
+let showSearching = $state(true);
+
+$effect(() => {
+  const enemy = combatState.enemy;
+  const lastKill = combatState.lastKillTime;
+
+  if (!enemy) {
+    showSearching = true;
+    return;
+  }
+
+  if (lastKill <= 0) {
+    showSearching = false;
+    return;
+  }
+
+  const elapsed = performance.now() - lastKill;
+  if (elapsed >= SEARCHING_DISPLAY_MS) {
+    showSearching = false;
+    return;
+  }
+
+  showSearching = true;
+  const timer = setTimeout(() => { showSearching = false; }, SEARCHING_DISPLAY_MS - elapsed);
+  return () => clearTimeout(timer);
+});
+
+
 
 let combatDisplay = $derived.by(() => {
   const enemyHpPct = (() => {
@@ -45,7 +74,7 @@ function getZoneName(level: number): string {
 </script>
 
 {#if compact}
-  <div class="arena-compact">
+  <div id="arena" class="arena-compact">
     <div class="c-main">
       <div class="c-level">
         <span class="c-lbl">LV</span>
@@ -68,10 +97,10 @@ function getZoneName(level: number): string {
         </div>
       </div>
       <div class="c-enemy">
-        {#if combatState.enemy}
+        {#if !showSearching}
           <div class="c-enemy-top">
-            <span class="c-enemy-name">{combatState.enemy.name}</span>
-            <span class="c-enemy-lv">Lv.{formatValue(combatState.enemy.level ?? 0)}</span>
+            <span class="c-enemy-name">{combatState.enemy?.name}</span>
+            <span class="c-enemy-lv">Lv.{formatValue(combatState.enemy?.level ?? 0)}</span>
           </div>
           <div class="c-bar-track enemy">
             <div class="c-bar-fill hp" style="width:{combatDisplay.enemyHpPct}%"></div>
@@ -83,7 +112,7 @@ function getZoneName(level: number): string {
     </div>
   </div>
 {:else}
-<div class="arena">
+<div id="arena" class="arena">
   <div class="panel-header">
     <div class="header-left">
       <div class="header-text">
@@ -98,18 +127,18 @@ function getZoneName(level: number): string {
     </div>
   </div>
 
-  {#if combatState.enemy}
+  {#if !showSearching}
     <div class="enemy-zone">
       <div class="target-card">
-        <div class="zone-label">{getZoneName(combatState.enemy.level?.toNumber() ?? 0)}</div>
+        <div class="zone-label">{getZoneName(combatState.enemy?.level?.toNumber() ?? 0)}</div>
         <div class="target-header">
           <div class="target-info">
-            <span class="target-name">{combatState.enemy.name}</span>
-            <span class="target-type">{typeLabel(combatState.enemy.type)}</span>
+            <span class="target-name">{combatState.enemy?.name}</span>
+            <span class="target-type">{typeLabel(combatState.enemy?.type as any)}</span>
           </div>
           <div class="target-level">
             <span class="lvl-label">LVL</span>
-            <span class="lvl-value">{formatValue(combatState.enemy.level ?? 0)}</span>
+            <span class="lvl-value">{formatValue(combatState.enemy?.level ?? 0)}</span>
           </div>
         </div>
         <div class="target-health">
@@ -117,9 +146,9 @@ function getZoneName(level: number): string {
             <div class="bar-fill hp" style="width:{combatDisplay.enemyHpPct}%"></div>
           </div>
           <div class="health-numbers">
-            <span class="current">{formatValue(combatState.enemy.hp ?? 0)}</span>
+            <span class="current">{formatValue(combatState.enemy?.hp ?? 0)}</span>
             <span class="separator">/</span>
-            <span class="max">{formatValue(combatState.enemy.maxHp ?? 0)}</span>
+            <span class="max">{formatValue(combatState.enemy?.maxHp ?? 0)}</span>
           </div>
         </div>
       </div>

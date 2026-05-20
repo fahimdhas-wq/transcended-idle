@@ -67,8 +67,8 @@ function processOfflineSimulation(snapshot: GameSnapshot, days: number): Offline
   }
   const effectiveKills = Math.floor(totalKills * cleaveMult);
   
-  const baseExp = 10 * Math.pow(lvl.toNumber(), 1.5);
-  let xpGain = baseExp * effectiveKills * xpMult * sealMult * omniMult.toNumber() * 5;
+  const baseExp = 10 * Math.pow(1.15, lvl.toNumber() - 1);
+  let xpGain = baseExp * effectiveKills * xpMult * sealMult * omniMult.toNumber();
   
   let levelsGained = 0;
   let xpRemaining = xpGain;
@@ -79,7 +79,7 @@ function processOfflineSimulation(snapshot: GameSnapshot, days: number): Offline
     currentXp = currentXp.sub(toDecimal(char.xpNeeded));
     const nextLvl = lvl.add(levelsGained + 1);
     const nextGrowth = new Decimal(1.15).pow(nextLvl.sub(1).max(0));
-    xpNeeded = new Decimal(10).mul(nextGrowth).toNumber();
+    xpNeeded = new Decimal(100).mul(nextGrowth).toNumber();
     levelsGained++;
     if (levelsGained > 1000000) break;
   }
@@ -129,12 +129,12 @@ self.onmessage = (e: MessageEvent) => {
       let lvl = currentLevel;
       let levels = 0;
       
-      let xpNeeded = new Decimal(10).mul(new Decimal(1.001).pow(lvl - 1).mul(Math.pow(lvl, 2)));
+      let xpNeeded = new Decimal(100).mul(new Decimal(1.15).pow(lvl - 1));
       
       while (xp.gte(xpNeeded)) {
         xp = xp.sub(xpNeeded);
         lvl++;
-        xpNeeded = new Decimal(10).mul(new Decimal(1.001).pow(lvl - 1).mul(Math.pow(lvl, 2)));
+        xpNeeded = new Decimal(100).mul(new Decimal(1.15).pow(lvl - 1));
         levels++;
         if (levels > 1000000) break;
       }

@@ -58,12 +58,10 @@ export interface XPResult {
 // XP Formulas
 // ============================================================
 
-const XP_EXP_BASE = 1.08; // Enemy XP grows at 8% per level
-
 export function calculateEnemyXP(enemyLevel: DecimalSource): Decimal {
   const level = enemyLevel instanceof Decimal ? enemyLevel : new Decimal(enemyLevel);
-  const growth = new Decimal(XP_EXP_BASE).pow(level.sub(1).max(0));
-  return new Decimal(10).mul(growth);
+  const growth = new Decimal(XP_COST_GROWTH).pow(level.sub(1).max(0));
+  return XP_REWARD_BASE.mul(growth);
 }
 
 export function calculateXPWithMultipliers(
@@ -98,21 +96,21 @@ export function calculateXPWithMultipliers(
 // XP Needed for Level
 // ============================================================
 
-const XP_COST_EXP_BASE = 1.15;
-const XP_COST_POLY_POWER = 0.8;
+const XP_COST_GROWTH = 1.15;
 const XP_COST_BASE = new Decimal(100);
 const MAX_SAFE_LEVEL = 1e9;
+const XP_REWARD_BASE = new Decimal(10);
 
 export function calculateXPNeededForLevel(level: DecimalSource): Decimal {
   const levelDec = level instanceof Decimal ? level : new Decimal(level || 1);
-  const rawLevelNum = levelDec.toNumber();
-  const levelNum = isFinite(rawLevelNum)
-    ? Math.min(Math.max(1, rawLevelNum), MAX_SAFE_LEVEL)
-    : MAX_SAFE_LEVEL;
+  const growth = new Decimal(XP_COST_GROWTH).pow(levelDec.sub(1).max(0));
+  return XP_COST_BASE.mul(growth);
+}
 
-  const expGrowth = new Decimal(XP_COST_EXP_BASE).pow(levelDec.sub(1).max(0));
-  const polyGrowth = new Decimal(Math.max(1, Math.pow(levelNum, XP_COST_POLY_POWER)));
-  return XP_COST_BASE.mul(expGrowth).mul(polyGrowth);
+export function calculateBaseXPReward(enemyLevel: DecimalSource): Decimal {
+  const level = enemyLevel instanceof Decimal ? enemyLevel : new Decimal(enemyLevel);
+  const growth = new Decimal(XP_COST_GROWTH).pow(level.sub(1).max(0));
+  return XP_REWARD_BASE.mul(growth);
 }
 
 // ============================================================
@@ -132,7 +130,7 @@ export function calculateBaseStats(level: DecimalSource): {
   regenDef: Decimal;
 } {
   const levelDec = level instanceof Decimal ? level : new Decimal(level);
-  const growth = new Decimal(XP_COST_EXP_BASE).pow(levelDec.sub(1).max(0));
+  const growth = new Decimal(XP_COST_GROWTH).pow(levelDec.sub(1).max(0));
 
   return {
     hp: new Decimal(BASE_HP).mul(growth),

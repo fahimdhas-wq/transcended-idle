@@ -6,8 +6,8 @@ import {
   applyOverchargeSoftcap,
   safeKills,
   getXpNeededForLevel,
-  XP_COST_EXP_BASE,
-  XP_COST_POLY_POWER,
+  STAT_GROWTH_BASE,
+  XP_REWARD_BASE,
 } from '../modules/character.svelte.js';
 import { addLog, incrementKills } from '../ui/LogPanelState.svelte.js';
 import { addItem } from '../modules/inventory.svelte.js';
@@ -29,28 +29,6 @@ const MAX_BATCH_LEVELS = 100000;
 const EXACT_BATCH_SUM_LIMIT = 256;
 const MAX_SAFE_LEVEL_NUM = 1e9;
 
-function getSafeLevelNumber(level: DecimalSource): number {
-  const levelDec = level instanceof Decimal ? level : new Decimal(level || 1);
-  const rawLevelNum = levelDec.toNumber();
-  return isFinite(rawLevelNum)
-    ? Math.min(Math.max(1, rawLevelNum), MAX_SAFE_LEVEL_NUM)
-    : MAX_SAFE_LEVEL_NUM;
-}
-
-function getGeometricWeightedIndex(count: number): number {
-  if (count <= 1) return 0;
-
-  const g = XP_COST_EXP_BASE;
-  const invPow = Math.pow(g, -count);
-  const denom = (g - 1) * (1 - invPow);
-  const numerator = (count * (g - 1)) - g + (g * invPow);
-  const weighted = numerator / denom;
-
-  return isFinite(weighted)
-    ? Math.min(Math.max(0, weighted), count - 1)
-    : count - 1;
-}
-
 function exactCostForLevels(startLevel: Decimal, count: number): Decimal {
     let total = Decimal.ZERO;
   for (let i = 0; i < count; i++) {
@@ -59,22 +37,14 @@ function exactCostForLevels(startLevel: Decimal, count: number): Decimal {
   return total;
 }
 
-function estimatedCostForLevels(startLevel: Decimal, count: number): Decimal {
+function costForLevels(startLevel: Decimal, count: number): Decimal {
   if (count <= 0) return Decimal.ZERO;
   if (count <= EXACT_BATCH_SUM_LIMIT) return exactCostForLevels(startLevel, count);
 
   const startCost = getXpNeededForLevel(startLevel);
-  const startLevelNum = getSafeLevelNumber(startLevel);
-  const weightedLevelNum = Math.min(
-    MAX_SAFE_LEVEL_NUM,
-    startLevelNum + getGeometricWeightedIndex(count)
-  );
-  const startPoly = Math.max(1, Math.pow(startLevelNum, XP_COST_POLY_POWER));
-  const weightedPoly = Math.max(1, Math.pow(weightedLevelNum, XP_COST_POLY_POWER));
-  const polyRatio = weightedPoly / startPoly;
-  const geomSum = new Decimal(XP_COST_EXP_BASE).pow(count).sub(1).div(XP_COST_EXP_BASE - 1);
-
-  return startCost.mul(geomSum).mul(polyRatio);
+  const r = new Decimal(STAT_GROWTH_BASE);
+  const geomSum = r.pow(count).sub(1).div(r.sub(1));
+  return startCost.mul(geomSum);
 }
 
 export const rewardSystem = {
@@ -120,9 +90,9 @@ export const rewardSystem = {
     const sealMult = Decimal.TEN.pow(character.seals || 0);
     const omni = getOmniMult();
     
-    const baseExp = Decimal.TEN.mul(enemyLvl.pow(1.5));
+    const baseExp = XP_REWARD_BASE.mul(new Decimal(STAT_GROWTH_BASE).pow(enemyLvl.sub(1).max(0)));
     
-let xpGain = baseExp.mul(totalKills).mul(xpMult).mul(sealMult).mul(omni).mul(getXpMultiplier()).mul(1 + getRiftTotalBonus('xp')).mul(getParadoxXpMult()).mul(getBoostXpMult()).mul(5);
+let xpGain = baseExp.mul(totalKills).mul(xpMult).mul(sealMult).mul(omni).mul(getXpMultiplier()).mul(1 + getRiftTotalBonus('xp')).mul(getParadoxXpMult()).mul(getBoostXpMult());
 
     character.xp = character.xp.add(xpGain).max(0);
 
@@ -191,58 +161,44 @@ let xpGain = baseExp.mul(totalKills).mul(xpMult).mul(sealMult).mul(omni).mul(get
 
   /**
    * Batch level-up for offline / skipTime.
-   * XP costs are exponential plus a polynomial factor, so use the old
-   * geometric result as an upper bound and refine it with binary search.
+   * XP cost is pure exponential: 100 * 1.15^(level-1).
+   * Closed-form solution using geometric series.
    */
   batchLevelUps(): number {
     if (!character.xp.gte(character.xpNeeded)) return 0;
 
-    const availableXP = character.xp;
-    // Current level cost gives the geometric estimate a practical upper bound.
     const C = character.xpNeeded;
-    const g = XP_COST_EXP_BASE;
-    const logG = Math.log10(g);
+    const X = character.xp;
+    const r = STAT_GROWTH_BASE;
 
-    // ratio = 1 + X * (g-1) / C
-    const ratio = availableXP.mul(g - 1).div(C).add(1);
-    const log10Ratio = ratio.log10();
+    // n = floor(log_r(1 + X * (r-1) / C))
+    const inner = X.mul(r - 1).div(C).add(1);
+    const logR = Math.log10(r);
+    const logInner = inner.log10();
 
-    if (!isFinite(log10Ratio) || log10Ratio <= 0) {
-      // Edge case – do a single level up
+    if (!isFinite(logInner) || logInner <= 0) {
       character.xp = character.xp.sub(C).max(0);
       character.level = character.level.add(1);
       updateDerivedStats();
       return 1;
     }
 
-    let n = Math.floor(log10Ratio / logG);
+    let n = Math.floor(logInner / logR);
     if (n < 1) n = 1;
     if (n > MAX_BATCH_LEVELS) n = MAX_BATCH_LEVELS;
 
     const startLevel = character.level;
-    let lo = 0;
-    let hi = n;
-
-    while (lo < hi) {
-      const mid = Math.floor((lo + hi + 1) / 2);
-      if (estimatedCostForLevels(startLevel, mid).lte(availableXP)) {
-        lo = mid;
-      } else {
-        hi = mid - 1;
-      }
-    }
-
-    if (lo <= 0) {
-      character.xp = character.xp.sub(character.xpNeeded).max(0);
+    const xpConsumed = costForLevels(startLevel, n);
+    if (xpConsumed.gt(X)) n = Math.max(0, n - 1);
+    if (n <= 0) {
+      character.xp = character.xp.sub(C).max(0);
       character.level = character.level.add(1);
       updateDerivedStats();
       return 1;
     }
 
-    n = lo;
-
-    const xpConsumed = estimatedCostForLevels(startLevel, n);
-    character.xp = character.xp.sub(xpConsumed).max(0);
+    const finalCost = costForLevels(startLevel, n);
+    character.xp = character.xp.sub(finalCost).max(0);
     character.level = character.level.add(n);
     updateDerivedStats();
     return n;

@@ -63,24 +63,16 @@ const INITIAL_STATS: CharacterStats = {
   quality: 0
 };
 
-export const XP_COST_EXP_BASE = 1.001;
-export const XP_COST_POLY_POWER = 2;
-export const XP_REWARD_POLY_POWER = 1.5;
 export const STAT_GROWTH_BASE = 1.15;
+export const XP_REWARD_BASE = Decimal.TEN;
+export const XP_COST_BASE_DECIMAL = new Decimal(100);
 
-const XP_COST_BASE = Decimal.TEN;
 const MAX_SAFE_LEVEL_NUM = 1e15;
 
 export function getXpNeededForLevel(level: DecimalSource): Decimal {
   const levelDec = level instanceof Decimal ? level : new Decimal(level || 1);
-  const rawLevelNum = levelDec.toNumber();
-  const levelNum = isFinite(rawLevelNum)
-    ? Math.min(Math.max(1, rawLevelNum), MAX_SAFE_LEVEL_NUM)
-    : MAX_SAFE_LEVEL_NUM;
-
-  const expGrowth = new Decimal(XP_COST_EXP_BASE).pow(levelDec.sub(1).max(0));
-  const polyGrowth = new Decimal(Math.max(1, Math.pow(levelNum, XP_COST_POLY_POWER)));
-  return XP_COST_BASE.mul(expGrowth).mul(polyGrowth);
+  const growth = new Decimal(STAT_GROWTH_BASE).pow(levelDec.sub(1).max(0));
+  return XP_COST_BASE_DECIMAL.mul(growth);
 }
 
 export const character: Character = $state({

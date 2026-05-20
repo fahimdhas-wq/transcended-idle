@@ -75,9 +75,8 @@ function randOffset() { return (Math.random() * 2) - 1; }
 
 // ============ BENCHMARK 1: XP Needed ============
 function xpNeeded(level) {
-  const expGrowth = new Decimal(1.001).pow(level - 1);
-  const polyGrowth = new Decimal(Math.max(1, Math.pow(level, 2)));
-  return Decimal.TEN.mul(expGrowth).mul(polyGrowth);
+  const growth = new Decimal(1.15).pow(level - 1);
+  return new Decimal(100).mul(growth);
 }
 
 console.log('=== BENCHMARK 1: xpNeeded (10,000 calls) ===');
@@ -168,7 +167,7 @@ console.log();
 // ============ BENCHMARK 5: XP Reward Chain ============
 function xpReward(level, seals, kills) {
   const enemyLvl = level;
-  const baseExp = Decimal.TEN.mul(new Decimal(enemyLvl).pow(1.5));
+  const baseExp = Decimal.TEN.mul(new Decimal(1.15).pow(enemyLvl - 1));
   const sealMult = Decimal.TEN.pow(seals);
   const xpMult = new Decimal(1 + 0.5 * Math.pow(2, 107)); // tier 108
   const omni = new Decimal(1.2).mul(new Decimal(Math.pow(2, 107)));

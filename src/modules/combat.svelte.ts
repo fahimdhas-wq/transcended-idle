@@ -31,12 +31,15 @@ export interface CombatStats {
   skipChance: number;
 }
 
+export const SEARCHING_DISPLAY_MS = 500;
+
 export interface CombatState {
   enemy: Enemy | null;
   isFighting: boolean;
   combatStartTick: number;
-  kills: number;          // Kill counter for daily challenge
-  lastHitCrit: boolean;   // Flag for crit tracking
+  kills: number;
+  lastHitCrit: boolean;
+  lastKillTime: number;
 }
 
 export const combatState: CombatState = $state({
@@ -44,7 +47,8 @@ export const combatState: CombatState = $state({
   isFighting: false,
   combatStartTick: 0,
   kills: 0,
-  lastHitCrit: false
+  lastHitCrit: false,
+  lastKillTime: 0
 });
 
 // Register callback to break circular dep: skills → combat → skills
@@ -257,6 +261,7 @@ export function performCombatTick(ticks: number = 1): void {
           rewardSystem.grantRewards(enemy, Decimal.from(possibleKills));
           if (enemy.id.startsWith('proc_')) recordProceduralKill();
           combatState.kills += possibleKills;
+          combatState.lastKillTime = performance.now();
 
           // FIXED: carry over remaining ticks instead of discarding
           ticksRemaining -= timeUsed;
@@ -290,8 +295,10 @@ export function performCombatTick(ticks: number = 1): void {
       rewardSystem.grantRewards(enemy);
       if (enemy.id.startsWith('proc_')) recordProceduralKill();
       combatState.kills += 1;
+      combatState.lastKillTime = performance.now();
       combatState.isFighting = false;
       combatState.enemy = null;
+      break;
     } else {
       const isSkipped = Math.random() < stats.skipChance;
       const enemyDmg = isSkipped ? Decimal.ZERO : enemy.attack.mul(ticksUsed);
@@ -313,8 +320,10 @@ export function performCombatTick(ticks: number = 1): void {
         addLog(`[SURGE] Defeated! Gained partial XP...`, 'awakening');
         rewardSystem.grantRewards(enemy, 0.1);
         if (enemy.id.startsWith('proc_')) recordProceduralKill();
+        combatState.lastKillTime = performance.now();
         combatState.isFighting = false;
         combatState.enemy = null;
+        break;
       }
     }
 
