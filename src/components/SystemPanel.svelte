@@ -145,25 +145,7 @@
   gap: 1px;
 }
 
-.transcended-text {
-  font-family: var(--font-hud);
-  font-size: 0.9rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--text-0);
-  margin: 0;
-}
 
-.transcended-sub {
-  font-family: var(--font-hud);
-  font-size: 0.5rem;
-  font-weight: 600;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: var(--text-2);
-  margin: 0;
-}
 
 .save-info {
   font-size: 0.6rem;

@@ -32,7 +32,16 @@
 </script>
 
 <div class="active-panel">
-  <div class="panel-title">ACTIVE PLAY</div>
+  <div class="panel-header">
+    <div class="header-left">
+      <div class="header-icon">&#9889;</div>
+      <div class="header-text">
+        <h2 class="transcended-text">ACTIVE PLAY</h2>
+        <span class="transcended-sub">QUICK ACTIONS</span>
+      </div>
+    </div>
+  </div>
+
   <div class="hint">Quick actions to boost your progress. Unlocked at level 10.</div>
 
   <div class="btn-row">
@@ -61,8 +70,8 @@
 </div>
 
 <style>
-  .active-panel { display:flex; flex-direction:column; gap:12px; padding:12px; }
-  .panel-title { font-size:0.7rem; font-weight:700; color:var(--text-0); font-family:var(--font-hud); letter-spacing:0.1em; }
+  .active-panel { display:flex; flex-direction:column; height:100%; gap:12px; }
+  .header-icon { color: var(--cyan); }
   .hint { font-size:0.55rem; color:var(--text-2); font-family:var(--font-mono); }
 
   .btn-row { display:flex; flex-direction:column; gap:8px; }

@@ -43,6 +43,16 @@
 </script>
 
 <div class="daily-challenge">
+  <div class="panel-header">
+    <div class="header-left">
+      <div class="header-icon">&#9733;</div>
+      <div class="header-text">
+        <h2 class="transcended-text">DAILY CHALLENGE</h2>
+        <span class="transcended-sub">DAILY TRIALS</span>
+      </div>
+    </div>
+  </div>
+
   {#if !challenge}
     <div class="loading-state">
       <span class="loading-icon">⟳</span>
@@ -171,13 +181,12 @@
 
 <style>
   .daily-challenge {
-    background: var(--bg-2);
-    border: 1px solid var(--line);
-    padding: 16px;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    height: 100%;
+    gap: 0;
   }
+  .header-icon { color: var(--gold); }
 
   .loading-state {
     display: flex;

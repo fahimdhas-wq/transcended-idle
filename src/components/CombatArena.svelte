@@ -86,25 +86,20 @@ function getZoneName(level: number): string {
 <div class="arena">
   <div class="panel-header">
     <div class="header-left">
-      <div class="header-icon">&#11043;</div>
       <div class="header-text">
-        <h2 class="transcended-text">SYS.COMBAT</h2>
-        <span class="transcended-sub">ENGAGEMENT PROTOCOL</span>
-      </div>
-    </div>
-    {#if bestiaryState.cachedBoost > 0}
-      <div class="header-stats">
-        <div class="stat-item">
-          <span class="stat-label">COMBAT SYNC</span>
-          <span class="stat-value green">+{(bestiaryState.cachedBoost * 100).toFixed(0)}%</span>
+        <h2 class="transcended-text">⬣ SYS.COMBAT</h2>
+        <div class="sub-row">
+          <span class="transcended-sub">ENGAGEMENT PROTOCOL</span>
+          {#if bestiaryState.cachedBoost > 0}
+            <span class="sync-badge">COMBAT SYNC +{(bestiaryState.cachedBoost * 100).toFixed(0)}%</span>
+          {/if}
         </div>
       </div>
-    {/if}
+    </div>
   </div>
 
-  <!-- ENEMY ZONE -->
-  <div class="enemy-zone">
-    {#if combatState.enemy}
+  {#if combatState.enemy}
+    <div class="enemy-zone">
       <div class="target-card">
         <div class="zone-label">{getZoneName(combatState.enemy.level?.toNumber() ?? 0)}</div>
         <div class="target-header">
@@ -128,32 +123,27 @@ function getZoneName(level: number): string {
           </div>
         </div>
       </div>
-    {:else}
-      <div class="target-card waiting">
-        <div class="zone-label">{getZoneName(character.level.toNumber())}</div>
-        <div class="target-header">
-          <div class="target-info">
-            <span class="target-name">SEARCHING...</span>
-            <span class="target-type">NO TARGET ACQUIRED</span>
-          </div>
-          <div class="target-level">
-            <span class="lvl-label">LVL</span>
-            <span class="lvl-value">{formatValue(character.level ?? 0)}</span>
-          </div>
-        </div>
-        <div class="target-health">
-          <div class="bar-track empty">
-            <div class="bar-fill hp" style="width:0%"></div>
-          </div>
-          <div class="health-numbers">
-            <span class="current">—</span>
-            <span class="separator">/</span>
-            <span class="max">—</span>
-          </div>
-        </div>
+    </div>
+  {:else}
+    <div class="scan-area">
+      <div class="scan-radar">
+        <div class="radar-ring"></div>
+        <div class="radar-ring"></div>
+        <div class="radar-ring"></div>
       </div>
-    {/if}
-  </div>
+      <div class="scan-bar">
+        <div class="scan-line"></div>
+        <div class="scan-info">
+          <span class="scan-lbl">SCANNING SECTOR</span>
+          <span class="scan-zone">{getZoneName(character.level.toNumber())}</span>
+        </div>
+        <div class="scan-dots">
+          <span class="s-dot"></span><span class="s-dot"></span><span class="s-dot"></span>
+        </div>
+        <span class="scan-msg">NO TARGET ACQUIRED</span>
+      </div>
+    </div>
+  {/if}
 </div>
 {/if}
 
@@ -179,29 +169,21 @@ function getZoneName(level: number): string {
   gap: 8px;
 }
 .header-left { display: flex; align-items: center; gap: 10px; }
-.header-icon { font-size: 1rem; color: var(--cyan); }
-.header-text { display: flex; flex-direction: column; gap: 1px; }
-.header-stats { display: flex; gap: 16px; }
-.stat-item { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
-.stat-label { font-family: var(--font-hud); font-size: 0.5rem; font-weight: 600; letter-spacing: 0.12em; color: var(--text-2); text-transform: uppercase; }
-.stat-value { font-family: var(--font-data); font-size: 0.8rem; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text-0); }
-.green { color: var(--green); }
-.transcended-text {
-  font-family: var(--font-hud);
-  font-size: 0.85rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  color: var(--text-0);
-  margin: 0;
-  text-transform: uppercase;
-}
-.transcended-sub {
+.header-icon { font-size: 1rem; color: var(--red); }
+.header-text { align-items: center; }
+.sub-row { display: flex; align-items: center; gap: 12px; margin-top: 2px; justify-content: center; flex-wrap: wrap; }
+.transcended-sub { color: var(--text-2); font-size: 0.6rem; }
+.transcended-text { display: flex; justify-content: center; }
+.sync-badge {
   font-family: var(--font-hud);
   font-size: 0.5rem;
   font-weight: 600;
-  letter-spacing: 0.12em;
-  color: var(--text-2);
-  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--cyan);
+  background: hsl(185 100% 55% / 0.1);
+  border: 1px solid hsl(185 100% 55% / 0.3);
+  padding: 2px 8px;
+  border-radius: 3px;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -226,10 +208,6 @@ function getZoneName(level: number): string {
   overflow: hidden;
 }
 
-.bar-track.empty {
-  border-color: var(--line);
-}
-
 .bar-fill {
   height: 100%;
   background: linear-gradient(90deg, var(--red), hsl(0 100% 70%));
@@ -250,9 +228,124 @@ function getZoneName(level: number): string {
   box-shadow: 0 0 20px hsl(0 100% 60% / 0.1);
 }
 
-.target-card.waiting {
-  border-color: var(--line);
-  box-shadow: none;
+/* ═══════════════════════════════════════════════════════════════════
+   SCAN AREA — Full-height view when no enemy acquired
+═════════════════════════════════════════════════════════════════════ */
+
+.scan-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% 60%, hsl(0 100% 60% / 0.04) 0%, transparent 70%);
+}
+
+.scan-radar {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.radar-ring {
+  position: absolute;
+  width: 120px;
+  height: 120px;
+  border: 1px solid hsl(0 100% 60% / 0.12);
+  border-radius: 50%;
+  animation: radar-expand 3s ease-out infinite;
+}
+.radar-ring:nth-child(2) { animation-delay: 1s; }
+.radar-ring:nth-child(3) { animation-delay: 2s; }
+
+@keyframes radar-expand {
+  0% { transform: scale(0.5); opacity: 0.8; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+
+.scan-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--line);
+  background: var(--bg-1);
+  position: relative;
+  z-index: 1;
+}
+
+.scan-line {
+  width: 2px;
+  height: 24px;
+  background: var(--red);
+  animation: scan-pulse 1.2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes scan-pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+.scan-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.scan-lbl {
+  font-family: var(--font-hud);
+  font-size: 0.55rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--text-2);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.scan-zone {
+  font-family: var(--font-hud);
+  font-size: 0.5rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  color: var(--cyan);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.scan-dots {
+  display: flex;
+  gap: 4px;
+  margin-left: 4px;
+}
+.s-dot {
+  width: 4px;
+  height: 4px;
+  background: var(--red);
+  border-radius: 50%;
+  animation: dot-blink 1.2s ease-in-out infinite;
+}
+.s-dot:nth-child(2) { animation-delay: 0.4s; }
+.s-dot:nth-child(3) { animation-delay: 0.8s; }
+
+@keyframes dot-blink {
+  0%, 100% { opacity: 0.15; }
+  50% { opacity: 1; }
+}
+
+.scan-msg {
+  font-family: var(--font-hud);
+  font-size: 0.5rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--text-2);
+  text-transform: uppercase;
+  margin-left: auto;
+  white-space: nowrap;
 }
 
 .zone-label {

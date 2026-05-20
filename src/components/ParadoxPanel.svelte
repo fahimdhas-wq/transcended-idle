@@ -42,10 +42,21 @@
 </script>
 
 <div class="paradox-panel">
+  <div class="panel-header">
+    <div class="header-left">
+      <div class="header-icon">&#8734;</div>
+      <div class="header-text">
+        <h2 class="transcended-text">PARADOX CHALLENGES</h2>
+        <span class="transcended-sub">CONTRADICT REALITY</span>
+      </div>
+    </div>
+  </div>
+
   {#if !unlocked}
-    <div class="locked-msg">
-      <span class="lock-icon">&#9888;</span>
-      <span>Reach Ascension Tier 3 to unlock Paradox Challenges</span>
+    <div class="lock-screen">
+      <div class="lock-icon">&#8734;</div>
+      <p class="lock-title">LOCKED</p>
+      <p class="lock-sub">Reach Ascension Tier 3 to unlock</p>
     </div>
   {:else}
     <div class="all-bonus-bar">
@@ -98,10 +109,8 @@
 </div>
 
 <style>
-  .paradox-panel { display:flex; flex-direction:column; gap:10px; padding:12px; }
-
-  .locked-msg { display:flex; align-items:center; gap:8px; justify-content:center; padding:40px 12px; color:var(--text-2); font-family:var(--font-hud); font-size:0.65rem; }
-  .lock-icon { font-size:1rem; }
+  .paradox-panel { display:flex; flex-direction:column; height:100%; gap:10px; }
+  .header-icon { color: var(--pink); }
 
   .all-bonus-bar { text-align:center; font-size:0.55rem; color:var(--cyan); font-family:var(--font-mono); padding:6px; border:1px solid var(--line); }
 

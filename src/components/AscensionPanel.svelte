@@ -20,6 +20,26 @@
 </script>
 
 <div class="asc-panel">
+  <div class="panel-header">
+    <div class="header-left">
+      <div class="header-icon">&#10038;</div>
+      <div class="header-text">
+        <h2 class="transcended-text">ASCENSION</h2>
+        <span class="transcended-sub">BREAK THE CYCLE</span>
+      </div>
+    </div>
+    <div class="header-stats">
+      <div class="stat-item">
+        <span class="stat-label">SHARDS</span>
+        <span class="stat-value pink">{fmt(ascensionState.shards)}</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">TIER</span>
+        <span class="stat-value">{tierName}</span>
+      </div>
+    </div>
+  </div>
+
   <div class="tier-section">
     <div class="tier-name">{tierName}</div>
     <div class="tier-bonus">+{fmt(tierBonus * 100)}% All Stats</div>
@@ -71,7 +91,9 @@
 </div>
 
 <style>
-  .asc-panel { display:flex; flex-direction:column; gap:12px; padding:12px; }
+  .asc-panel { display:flex; flex-direction:column; height:100%; gap:12px; }
+  .header-icon { color: var(--cyan); }
+  .pink { color: var(--pink); }
 
   .tier-section { text-align:center; padding:12px; border:1px solid var(--line); }
   .tier-name { font-size:1.1rem; font-weight:900; color:var(--cyan); font-family:var(--font-hud); letter-spacing:0.1em; }

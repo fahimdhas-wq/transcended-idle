@@ -32,7 +32,17 @@
 
 <div class="char-panel">
 
-  <div class="panel-header"></div>
+  <div class="panel-header">
+    <div class="header-left">
+      <div class="header-icon">&#9876;</div>
+      <div class="header-text">
+        <h2 class="transcended-text">⚔ CHARACTER STATUS</h2>
+        <div class="sub-row">
+          <span class="transcended-sub">LIVING STATISTICS</span>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Level + XP -->
   <div class="level-block">
@@ -121,9 +131,11 @@
   height: 100%;
 }
 
-.panel-header {
-  display: none;
-}
+.header-icon { color: var(--gold); }
+.header-left { width: 100%; justify-content: center; }
+.header-text { display: flex; flex-direction: column; align-items: center; }
+.sub-row { margin-top: 2px; }
+.transcended-sub { color: var(--text-2); font-size: 0.6rem; }
 
 /* ── LEVEL BLOCK ────────────────────────────── */
 .level-block {

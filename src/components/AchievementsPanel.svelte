@@ -104,22 +104,7 @@
   gap: 1px;
 }
 
-.transcended-text {
-  font-family: var(--font-hud);
-  font-size: 0.9rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  color: var(--text-0);
-  margin: 0;
-}
 
-.transcended-sub {
-  font-family: var(--font-hud);
-  font-size: 0.5rem;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  color: var(--text-2);
-}
 
 .header-right {
   display: flex;
@@ -139,7 +124,7 @@
 
 .stat-value {
   font-family: var(--font-data);
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 700;
   color: var(--gold);
   font-variant-numeric: tabular-nums;

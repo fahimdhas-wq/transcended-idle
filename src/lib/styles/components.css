@@ -287,53 +287,41 @@ button.btn-green:hover:not(:disabled) {
 .amt-btn {
   font-family: var(--font-hud);
   font-size: 0.55rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  padding: 4px 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  padding: 4px 8px;
   background: transparent;
   border: 1px solid var(--line);
-  border-radius: var(--r);
   color: var(--text-2);
   cursor: pointer;
   transition: all var(--fast);
-  margin-right: 4px;
 }
-
-.amt-btn:hover {
-  border-color: var(--cyan-bright);
-  color: var(--cyan);
-}
-
 .amt-btn.active {
-  background: hsl(185 100% 55% / 0.15);
-  border-color: var(--cyan-bright);
+  border-color: var(--cyan);
   color: var(--cyan);
+  background: hsl(185 100% 55% / 0.1);
+}
+.amt-btn:hover:not(.active) {
+  border-color: var(--line);
+  color: var(--text-1);
 }
 
 /* Auto upgrade */
 .auto-up-btn {
   font-family: var(--font-hud);
-  font-size: 0.55rem;
+  font-size: 0.6rem;
   font-weight: 700;
   letter-spacing: 0.1em;
-  text-transform: uppercase;
-  padding: 5px 12px;
-  background: hsl(185 100% 55% / 0.12);
-  border: 1px solid hsl(185 100% 55% / 0.4);
-  border-radius: var(--r);
+  padding: 5px 14px;
+  background: transparent;
+  border: 1px solid var(--cyan);
   color: var(--cyan);
   cursor: pointer;
   transition: all var(--fast);
-  box-shadow: 0 0 10px hsl(185 100% 55% / 0.2);
 }
-
 .auto-up-btn:hover {
-  background: hsl(185 100% 55% / 0.25);
-  border-color: var(--cyan);
-  box-shadow:
-    0 0 18px hsl(185 100% 55% / 0.5),
-    inset 0 0 10px hsl(185 100% 55% / 0.15);
+  background: hsl(185 100% 55% / 0.1);
+  color: var(--text-0);
 }
 
 /* Cap badge */
@@ -771,4 +759,154 @@ button.btn-green:hover:not(:disabled) {
 .status-dot.danger {
   background: var(--red);
   box-shadow: 0 0 6px var(--red);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   PANEL HEADER — Unified across all tabs
+════════════════════════════════════════════════════════════════════ */
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.header-left { display: flex; align-items: center; gap: 10px; }
+.header-icon { font-size: 1rem; line-height: 1; }
+.header-text { display: flex; flex-direction: column; gap: 1px; }
+.header-stats { display: flex; gap: 16px; }
+.header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+
+/* Header stat items — vertical, right-aligned within .header-stats or .header-right */
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+}
+.stat-label {
+  font-family: var(--font-hud);
+  font-size: 0.5rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--text-2);
+  text-transform: uppercase;
+}
+.stat-value {
+  font-family: var(--font-data);
+  font-size: 0.8rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-0);
+}
+
+.transcended-text {
+  font-family: var(--font-hud);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--text-0);
+  margin: 0;
+  text-transform: uppercase;
+}
+.transcended-sub {
+  font-family: var(--font-hud);
+  font-size: 0.5rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--text-2);
+  text-transform: uppercase;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   LOCK SCREEN — For locked tabs
+════════════════════════════════════════════════════════════════════ */
+
+.lock-screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-2);
+  gap: 8px;
+}
+.lock-icon { font-size: 3rem; color: var(--text-2); }
+.lock-title {
+  font-family: var(--font-hud);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--text-2);
+  margin: 0;
+}
+.lock-sub {
+  font-size: 0.7rem;
+  color: var(--text-2);
+  margin: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   CONTROL STRIP — Buy amount + auto upgrade
+════════════════════════════════════════════════════════════════════ */
+
+.control-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.buy-selector { display: flex; gap: 2px; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   SECTIONS / ACCORDION — Scrollable collapsible sections
+════════════════════════════════════════════════════════════════════ */
+
+.sections {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+}
+
+.accordion {
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+}
+.acc-head {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: transparent;
+  border: none;
+  font-family: var(--font-hud);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 10px 12px;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: background var(--fast);
+}
+.acc-arrow {
+  font-family: var(--font-data);
+  font-size: 0.8rem;
+}
+.accordion.open .acc-head {
+  border-bottom: 1px solid var(--line);
+}
+.acc-body {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }

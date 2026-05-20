@@ -32,16 +32,29 @@
 </script>
 
 <div class="fracture-panel">
+  <div class="panel-header">
+    <div class="header-left">
+      <div class="header-icon">&#9876;</div>
+      <div class="header-text">
+        <h2 class="transcended-text">FRACTURE DUNGEON</h2>
+        <span class="transcended-sub">REALM BREAKER</span>
+      </div>
+    </div>
+    <div class="header-stats">
+      <div class="stat-item">
+        <span class="stat-label">SHARDS</span>
+        <span class="stat-value gold">{fmt(fractureState.currency)}</span>
+      </div>
+    </div>
+  </div>
+
   {#if !unlocked}
-    <div class="locked-msg">
-      <span class="lock-icon">&#9888;</span>
-      <span>Reach Ascension Tier 1 to unlock Fracture Dungeons</span>
+    <div class="lock-screen">
+      <div class="lock-icon">&#9876;</div>
+      <p class="lock-title">LOCKED</p>
+      <p class="lock-sub">Reach Ascension Tier 1 to unlock</p>
     </div>
   {:else}
-    <div class="currency-row">
-      <span class="cur-label">FRACTURE SHARDS</span>
-      <span class="cur-value">{fmt(fractureState.currency)}</span>
-    </div>
 
     {#if !inRun && !dungeon?.completed}
       <button class="gen-btn" onclick={doGenerate}>
@@ -123,14 +136,9 @@
 </div>
 
 <style>
-  .fracture-panel { display:flex; flex-direction:column; gap:10px; padding:12px; }
-
-  .locked-msg { display:flex; align-items:center; gap:8px; justify-content:center; padding:40px 12px; color:var(--text-2); font-family:var(--font-hud); font-size:0.65rem; letter-spacing:0.05em; }
-  .lock-icon { font-size:1rem; }
-
-  .currency-row { display:flex; justify-content:space-between; align-items:center; padding:8px 12px; border:1px solid var(--line); }
-  .cur-label { font-size:0.55rem; color:var(--text-2); font-family:var(--font-hud); letter-spacing:0.1em; }
-  .cur-value { font-size:0.85rem; font-weight:700; color:var(--gold); font-family:var(--font-mono); }
+  .fracture-panel { display:flex; flex-direction:column; height:100%; gap:10px; }
+  .header-icon { color: var(--gold); }
+  .gold { color: var(--gold); }
 
   .gen-btn { display:block; width:100%; padding:14px; background:transparent; border:1px solid var(--cyan); color:var(--cyan); font-family:var(--font-hud); font-size:0.7rem; letter-spacing:0.1em; cursor:pointer; transition:all var(--fast); }
   .gen-btn:hover { background:hsl(185 100% 55% / 0.1); box-shadow:0 0 12px hsl(185 100% 55% / 0.2); }

@@ -6,7 +6,16 @@
 </script>
 
 <div class="proc-panel">
-  <div class="panel-title">PROCEDURAL GENERATION</div>
+  <div class="panel-header">
+    <div class="header-left">
+      <div class="header-icon">&#8776;</div>
+      <div class="header-text">
+        <h2 class="transcended-text">PROCEDURAL GEN</h2>
+        <span class="transcended-sub">INFINITE VARIATION</span>
+      </div>
+    </div>
+  </div>
+
   <div class="panel-hint">
     When Ascension Tier 1+ is reached, 10% of enemies are procedurally generated with unique names and stat variations.
   </div>
@@ -36,8 +45,8 @@
 </div>
 
 <style>
-  .proc-panel { display:flex; flex-direction:column; gap:10px; padding:12px; }
-  .panel-title { font-size:0.7rem; font-weight:700; color:var(--text-0); font-family:var(--font-hud); letter-spacing:0.1em; }
+  .proc-panel { display:flex; flex-direction:column; height:100%; gap:10px; }
+  .header-icon { color: var(--cyan); }
   .panel-hint { font-size:0.55rem; color:var(--text-2); font-family:var(--font-mono); line-height:1.4; }
 
   .stat-card { display:flex; justify-content:space-between; align-items:center; padding:10px 12px; border:1px solid var(--line); }

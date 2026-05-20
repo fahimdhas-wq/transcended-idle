@@ -130,20 +130,7 @@
   height: 100%;
 }
 
-.panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--line);
-  flex-shrink: 0;
-}
-.header-left { display: flex; align-items: center; gap: 10px; }
-.header-icon { font-size: 1rem; color: var(--gold); }
-.header-text { display: flex; flex-direction: column; gap: 1px; }
-.header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
-.stat-label { font-family: var(--font-hud); font-size: 0.5rem; font-weight: 600; letter-spacing: 0.12em; color: var(--text-2); text-transform: uppercase; }
-.stat-value { font-family: var(--font-data); font-size: 0.8rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.header-icon { color: var(--gold); }
 
 .sort-row {
   display: flex;
